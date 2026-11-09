@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "enabled": true,
+  "name": "Zero Raw JSX / Unsafe HTML Injection Guard",
+  "description": "Audits modified TypeScript and React files to ensure no dangerouslySetInnerHTML, eval(), or raw LLM HTML/JSX evaluation bypasses the @json-render Spec pipeline.",
+  "trigger": "PostFileSave",
+  "matcher": "(packages|apps)/.*\\.(ts|tsx)$",
+  "action": {
+    "type": "prompt",
+    "prompt": "Audit the saved file against Invariant 1 (No-JSX / No-HTML Law in .kiro/steering/genui-invariants.md). Confirm that dangerouslySetInnerHTML, eval(), new Function(), and unvalidated raw HTML strings are not used, and that all dynamic UI rendering flows through @json-render Spec validation."
+  }
+}

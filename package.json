@@ -1,0 +1,33 @@
+{
+  "name": "genui-studio-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GenUI Studio: Commercial-Grade Generative UI Skeleton Framework & Verification Workbench powered by @json-render and orchestrated by Kiro.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
+    "dev:workbench": "pnpm --filter @genui-studio/workbench dev",
+    "dev:spatial": "pnpm --filter @genui-studio/spatial-ops dev",
+    "test": "pnpm -r test",
+    "test:fuzz": "pnpm --filter @genui-studio/core test:fuzz",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "fast-check": "^4.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0",
+    "zod": "^4.3.6"
+  }
+}

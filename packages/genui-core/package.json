@@ -1,0 +1,42 @@
+{
+  "name": "@genui-studio/core",
+  "version": "1.0.0",
+  "description": "Reusable Generative UI Skeleton Engine: Guardrailed Catalog Synchronizer, RFC 6902 Stream Sanitizer, DAG Cycle Detector, Bidirectional State Store, Telemetry Error Boundary, and fast-check Fuzzing Arbitraries for @json-render.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./src/testing/index.ts",
+      "import": "./src/testing/index.ts",
+      "default": "./dist/testing/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:fuzz": "vitest run src/__tests__/invariants.fuzz.test.ts"
+  },
+  "dependencies": {
+    "@json-render/core": "^0.22.0",
+    "@json-render/react": "^0.22.0",
+    "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "fast-check": "^4.10.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vitest": "^3.0.0"
+  }
+}

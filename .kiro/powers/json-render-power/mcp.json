@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "genui-studio-mcp": {
+      "command": "node",
+      "args": ["./packages/genui-core/dist/mcp/stdio-server.js"],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "validate_genui_spec",
+        "compile_jsonl_stream",
+        "inspect_catalog_contract"
+      ]
+    }
+  }
+}
