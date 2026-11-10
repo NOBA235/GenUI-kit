@@ -102,8 +102,17 @@ GenUI-kit/
 │           ├── testing/index.ts             # Zod-to-fast-check Arbitraries & invariant runner
 │           └── __tests__/invariants.fuzz.test.ts # Automated fast-check property test suite
 └── apps/
-    ├── workbench/                           # Domain App 1: GenUI Verification & Chaos Workbench
-    └── spatial-ops/                         # Domain App 2: Aegis 3D Spatial Ops Command Center
+    ├── finops-command/                      # Application #1: FinOps Command Center (2D B2B SaaS Dashboard)
+    │   ├── catalog/                         # 14-Component FinOps Verified Catalog & React Registry
+    │   ├── components/                      # Spec & Telemetry X-Ray Drawer & Chaos Injector
+    │   ├── data/                            # 240-Account SaaS Ledger Seed & Mutation Engine
+    │   └── streams/                         # Dual-Mode RFC 6902 JSONL Stream Engine & Playbooks
+    └── spatial-ops/                         # Application #2: Aegis 3D Spatial Incident War-Room (3D + 2D)
+        ├── catalog/                         # 14-Component Hybrid 3D (R3F) + 2D (HUD) Verified Catalog
+        ├── three/                           # Zero-allocation WebGL canvas, OrbitControls & geometry cache
+        ├── components/                      # Spec & Telemetry X-Ray Drawer & SRE incident HUD
+        ├── data/                            # 16-Node Microservice Topology & SRE Mutation Engine
+        └── streams/                         # RFC 6902 JSONL Incident Scenarios & Spatial Chaos Engine
 ```
 
 ---
@@ -137,16 +146,20 @@ Every build and file save in `packages/genui-core` is verified against 4 formal 
 # 1. Install workspace dependencies
 pnpm install
 
-# 2. Typecheck & build @genui-studio/core
-pnpm --filter @genui-studio/core typecheck
-pnpm --filter @genui-studio/core build
+# 2. Run the fast-check Property-Based Testing (PBT) suite across all apps
+pnpm test
 
-# 3. Run the fast-check Property-Based Testing (PBT) verification suite
-pnpm test:fuzz
-
-# 4. Run the Kiro Catalog Audit & Auto-PBT hooks directly
+# 3. Run the Kiro Catalog Audit & Auto-PBT hooks directly
 node .kiro/hooks/scripts/catalog-audit.mjs
 node .kiro/hooks/scripts/run-pbt-suite.mjs
+
+# 4. Launch Application #1: FinOps Command Center (2D B2B SaaS Dashboard)
+pnpm dev:finops
+# Open http://localhost:5173
+
+# 5. Launch Application #2: Aegis 3D Spatial Incident War-Room (Three.js WebGL + 2D HUD)
+pnpm dev:spatial
+# Open http://localhost:5174
 ```
 
 ---

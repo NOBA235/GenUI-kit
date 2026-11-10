@@ -23,7 +23,11 @@ GenUi-kit/
 │   │   │   ├── design.md
 │   │   │   ├── correctness.md
 │   │   │   └── tasks.md
-│   │   └── app-finops-command/
+│   │   ├── app-finops-command/
+│   │   │   ├── requirements.md
+│   │   │   ├── design.md
+│   │   │   └── tasks.md
+│   │   └── app-spatial-warroom/
 │   │       ├── requirements.md
 │   │       ├── design.md
 │   │       └── tasks.md
