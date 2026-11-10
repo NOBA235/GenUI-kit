@@ -249,4 +249,18 @@ export interface GuardrailedStreamStepResult {
   readonly rejectedLines: readonly string[];
   readonly issues: readonly GraphIssue[];
   readonly telemetry: StreamTelemetrySnapshot;
+  /**
+   * Healing provenance for the current Spec, keyed by element key.
+   * The compiler heals props *before* render, so without this map the renderer would
+   * receive already-valid props and could never show a `<DiagnosticHealedBadge />`
+   * for streamed content (BUG-INT-01). Pass to `<SafeGenUIRenderer healedDiagnostics />`.
+   */
+  readonly healedDiagnostics: HealedDiagnosticsByElement;
 }
+
+/**
+ * Map of element key to the prop diagnostics healed for that element by the stream compiler.
+ */
+export type HealedDiagnosticsByElement = Readonly<
+  Record<string, readonly PropDiagnostic[]>
+>;

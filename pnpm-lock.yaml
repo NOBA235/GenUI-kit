@@ -30,6 +30,55 @@ importers:
         specifier: ^4.3.6
         version: 4.6.7
 
+  apps/finops-command:
+    dependencies:
+      '@genui-studio/core':
+        specifier: workspace:*
+        version: link:../../packages/genui-core
+      '@json-render/core':
+        specifier: ^0.22.0
+        version: 0.22.0(zod@4.6.7)
+      '@json-render/mcp':
+        specifier: ^0.22.0
+        version: 0.22.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.7)
+      '@json-render/react':
+        specifier: ^0.22.0
+        version: 0.22.0(react@19.3.1)(zod@4.6.7)
+      '@json-render/shadcn':
+        specifier: ^0.22.0
+        version: 0.22.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(tailwindcss@4.3.5)(zod@4.6.7)
+      fast-check:
+        specifier: ^4.10.2
+        version: 4.10.2
+      lucide-react:
+        specifier: ^0.475.0
+        version: 0.475.0(react@19.3.1)
+      react:
+        specifier: ^19.0.0
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.3.1(react@19.3.1)
+      zod:
+        specifier: ^4.3.6
+        version: 4.6.7
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.0.0
+        version: 4.3.5(vite@6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0))
+      '@vitejs/plugin-react':
+        specifier: ^4.3.4
+        version: 4.7.0(vite@6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0))
+      tailwindcss:
+        specifier: ^4.0.0
+        version: 4.3.5
+      vite:
+        specifier: ^6.1.0
+        version: 6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0)
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0)
+
   apps/spatial-ops:
     dependencies:
       '@genui-studio/core':
@@ -75,55 +124,6 @@ importers:
       '@types/three':
         specifier: ^0.173.0
         version: 0.173.0
-      '@vitejs/plugin-react':
-        specifier: ^4.3.4
-        version: 4.7.0(vite@6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0))
-      tailwindcss:
-        specifier: ^4.0.0
-        version: 4.3.5
-      vite:
-        specifier: ^6.1.0
-        version: 6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0)
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0)
-
-  apps/workbench:
-    dependencies:
-      '@genui-studio/core':
-        specifier: workspace:*
-        version: link:../../packages/genui-core
-      '@json-render/core':
-        specifier: ^0.22.0
-        version: 0.22.0(zod@4.6.7)
-      '@json-render/mcp':
-        specifier: ^0.22.0
-        version: 0.22.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.7)
-      '@json-render/react':
-        specifier: ^0.22.0
-        version: 0.22.0(react@19.3.1)(zod@4.6.7)
-      '@json-render/shadcn':
-        specifier: ^0.22.0
-        version: 0.22.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(tailwindcss@4.3.5)(zod@4.6.7)
-      fast-check:
-        specifier: ^4.10.2
-        version: 4.10.2
-      lucide-react:
-        specifier: ^0.475.0
-        version: 0.475.0(react@19.3.1)
-      react:
-        specifier: ^19.0.0
-        version: 19.3.1
-      react-dom:
-        specifier: ^19.0.0
-        version: 19.3.1(react@19.3.1)
-      zod:
-        specifier: ^4.3.6
-        version: 4.6.7
-    devDependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.0.0
-        version: 4.3.5(vite@6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0))
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@6.4.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.33.0))

@@ -1,0 +1,22 @@
+# Implementation Tasks: Application #1 — FinOps Command Center
+
+- [x] 1. Workspace scaffold (`apps/finops-command`: package.json, tsconfig, vite.config, index.html, styles.css)
+- [x] 2. Deterministic 240-account ledger seed + `executeFinOpsMutation` (`src/data/ledger-seed.ts`)
+  - _Requirements: 2.1, 2.2_
+- [x] 3. 14-component `finopsVerifiedCatalog` with Zod bounds + `fallbackProps` (`src/catalog/finops-catalog.ts`)
+  - _Requirements: 1.1, 1.3_
+- [x] 4. React registry for all 14 components + 4 ledger action handlers (`src/catalog/finops-registry.tsx`)
+  - [x] 4.1 `CustomerLedgerTable` — sortable/responsive table, filters, pagination bound to `/ledger/filters/*`
+  - [x] 4.2 Mutation cards — post-interaction validation, light-dismiss confirmation `<dialog>`
+  - _Requirements: 1.2, 3.1, 3.2, 3.3_
+- [x] 5. Dual-mode stream engine: 3 playbooks, intent synthesizer, live SSE adapter, chaos packets (`src/streams/finops-streams.ts`)
+  - _Requirements: 4.1, 4.2, 5.2_
+- [x] 6. Spec & Telemetry X-Ray Drawer with in-browser `fast-check` runner (`src/components/XRayDrawer.tsx`)
+  - _Requirements: 5.1_
+- [x] 7. App shell: command bar, playbook switcher, undo/redo, webhook simulator (`src/App.tsx`)
+  - _Requirements: 2.3_
+- [x] 8. Verification suite (`src/__tests__/finops-app.test.tsx`)
+  - [x] 8.1 Catalog ↔ registry parity (components + actions)
+  - [x] 8.2 `runCatalogInvariantSuite` INV-1..INV-4 on the FinOps catalog
+  - [x] 8.3 All 4 mutations + undo/redo round-trip
+  - [x] 8.4 Stream + chaos packet SSR render: healed badge, fault cards, severed cycle, intact parent

@@ -1,4 +1,10 @@
-import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import React, {
+  Component,
+  createContext,
+  useContext,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import {
   Renderer,
   type ComponentRegistry,
@@ -10,9 +16,22 @@ import { sanitizeSpecGraph } from "../stream/dag-sanitizer.js";
 import type { TelemetryTracker } from "../telemetry/telemetry-tracker.js";
 import type {
   ElementFaultRecord,
+  HealedDiagnosticsByElement,
   PropDiagnostic,
   VerifiedCatalog,
 } from "../types.js";
+
+/**
+ * Non-prop field stamped onto each element by `<SafeGenUIRenderer />` so wrapped components
+ * can recover their spec element key (json-render's ComponentRenderProps does not expose it).
+ */
+export const GENUI_ELEMENT_KEY_FIELD = "__genuiKey";
+
+/**
+ * Carries stream-compiler healing provenance down to every wrapped component so the
+ * `<DiagnosticHealedBadge />` renders even when props were healed upstream (BUG-INT-01).
+ */
+const HealedProvenanceContext = createContext<HealedDiagnosticsByElement>({});
 
 export interface DiagnosticBadgeProps {
   readonly elementKey: string;
@@ -275,12 +294,16 @@ export function wrapRegistryWithTelemetry(
     const SafeWrappedComponent: ComponentRenderer<any> = (
       renderProps: ComponentRenderProps<any>,
     ) => {
+      // Must be the first hook so hook order is stable across every return path.
+      const upstreamProvenance = useContext(HealedProvenanceContext);
       const rawElement = renderProps.element ?? {
         type: compName,
         props: {},
       };
+      const elementRecord = rawElement as unknown as Record<string, unknown>;
       const elementKey =
-        ((rawElement as unknown as Record<string, unknown>).key as string | undefined) ??
+        (elementRecord[GENUI_ELEMENT_KEY_FIELD] as string | undefined) ??
+        (elementRecord.key as string | undefined) ??
         `${compName}-${++nodeCounter}`;
 
       const rawProps =
@@ -349,9 +372,10 @@ export function wrapRegistryWithTelemetry(
         propsSignature = `${compName}-dynamic`;
       }
 
-      const healedDiagnostics = validation.diagnostics.filter(
-        (d) => d.status === "healed",
-      );
+      const healedDiagnostics = [
+        ...(upstreamProvenance[elementKey] ?? []),
+        ...validation.diagnostics.filter((d) => d.status === "healed"),
+      ];
 
       let renderedSubtree: ReactNode;
       try {
@@ -422,6 +446,8 @@ export interface SafeGenUIRendererProps {
   readonly catalog?: VerifiedCatalog<any, any>;
   readonly loading?: boolean;
   readonly telemetryTracker?: TelemetryTracker;
+  /** Healing provenance from `GuardrailedStreamCompiler` step results (`result.healedDiagnostics`) */
+  readonly healedDiagnostics?: HealedDiagnosticsByElement;
 }
 
 /**
@@ -455,6 +481,7 @@ export function SafeGenUIRenderer({
   catalog,
   loading,
   telemetryTracker,
+  healedDiagnostics,
 }: SafeGenUIRendererProps): React.JSX.Element | null {
   if (!spec || !spec.root) {
     return null;
@@ -481,12 +508,21 @@ export function SafeGenUIRenderer({
     });
   }
 
+  // Stamp element keys (shallow copies only; never mutates the caller's spec).
+  const keyedElements: Record<string, UIElement> = {};
+  for (const [key, el] of Object.entries(sanitized.spec.elements)) {
+    keyedElements[key] = { ...el, [GENUI_ELEMENT_KEY_FIELD]: key } as UIElement;
+  }
+  const keyedSpec: Spec = { ...sanitized.spec, elements: keyedElements };
+
   return (
-    <Renderer
-      spec={sanitized.spec}
-      registry={registry}
-      loading={loading}
-      fallback={DefaultUnknownComponentFallback}
-    />
+    <HealedProvenanceContext.Provider value={healedDiagnostics ?? {}}>
+      <Renderer
+        spec={keyedSpec}
+        registry={registry}
+        loading={loading}
+        fallback={DefaultUnknownComponentFallback}
+      />
+    </HealedProvenanceContext.Provider>
   );
 }

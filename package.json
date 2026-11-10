@@ -14,7 +14,8 @@
   ],
   "scripts": {
     "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
-    "dev:workbench": "pnpm --filter @genui-studio/workbench dev",
+    "dev:finops": "pnpm --filter @genui-studio/finops-command dev",
+    "dev:workbench": "pnpm --filter @genui-studio/finops-command dev",
     "dev:spatial": "pnpm --filter @genui-studio/spatial-ops dev",
     "test": "pnpm -r test",
     "test:fuzz": "pnpm --filter @genui-studio/core test:fuzz",

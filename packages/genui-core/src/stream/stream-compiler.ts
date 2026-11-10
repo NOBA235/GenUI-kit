@@ -18,6 +18,7 @@ import {
 import type {
   GraphIssue,
   GuardrailedStreamStepResult,
+  HealedDiagnosticsByElement,
   PropDiagnostic,
   SanitizeGraphOptions,
   StreamTelemetrySnapshot,
@@ -57,6 +58,8 @@ export interface GuardrailedStreamCompiler {
   getAppliedPatches(): readonly SpecStreamLine[];
   /** Get all rejected/malformed lines encountered so far */
   getRejectedLines(): readonly string[];
+  /** Get per-element healing provenance for the current Spec */
+  getHealedDiagnostics(): HealedDiagnosticsByElement;
   /** Get the live telemetry snapshot */
   getTelemetry(): StreamTelemetrySnapshot;
   /** Subscribe to telemetry changes */
@@ -241,8 +244,25 @@ export function createGuardrailedStreamCompiler(
     options.initialSpec,
   );
   let currentSanitizedSpec: Spec = sanitizeAndHealCurrentState(false).spec;
+  let currentHealedDiagnostics: HealedDiagnosticsByElement = {};
   const appliedPatches: SpecStreamLine[] = [];
   const rejectedLines: string[] = [];
+
+  /**
+   * Groups healed diagnostics by element key. Because sanitizeAndHealCurrentState re-evaluates
+   * the full raw patch state, the result always reflects the *current* Spec (stale entries for
+   * removed or later-corrected elements disappear automatically).
+   */
+  function groupHealedByElement(
+    diagnostics: readonly PropDiagnostic[],
+  ): HealedDiagnosticsByElement {
+    const grouped: Record<string, PropDiagnostic[]> = Object.create(null);
+    for (const d of diagnostics) {
+      if (d.status !== "healed") continue;
+      (grouped[d.elementKey] ??= []).push(d);
+    }
+    return grouped;
+  }
 
   function createInitialRawState(initial?: Spec): Record<string, unknown> {
     if (!initial) {
@@ -469,6 +489,9 @@ export function createGuardrailedStreamCompiler(
       if (stepApplied.length > 0) {
         sanitizeResult = sanitizeAndHealCurrentState(false);
         currentSanitizedSpec = sanitizeResult.spec;
+        currentHealedDiagnostics = groupHealedByElement(
+          sanitizeResult.diagnostics,
+        );
       }
 
       const latencyMs = performance.now() - startTime;
@@ -493,6 +516,7 @@ export function createGuardrailedStreamCompiler(
         rejectedLines: stepRejected,
         issues: allStepIssues,
         telemetry: tracker.getSnapshot(),
+        healedDiagnostics: currentHealedDiagnostics,
       };
     },
 
@@ -523,6 +547,7 @@ export function createGuardrailedStreamCompiler(
       // Run final lossy sanitization (pruning any unresolved dangling child keys)
       const sanitizeResult = sanitizeAndHealCurrentState(true);
       currentSanitizedSpec = sanitizeResult.spec;
+      currentHealedDiagnostics = groupHealedByElement(sanitizeResult.diagnostics);
 
       const latencyMs = performance.now() - startTime;
       const allStepIssues = [...stepIssues, ...sanitizeResult.issues];
@@ -547,6 +572,7 @@ export function createGuardrailedStreamCompiler(
         rejectedLines: stepRejected,
         issues: allStepIssues,
         telemetry: tracker.getSnapshot(),
+        healedDiagnostics: currentHealedDiagnostics,
       };
     },
 
@@ -560,6 +586,10 @@ export function createGuardrailedStreamCompiler(
 
     getRejectedLines(): readonly string[] {
       return rejectedLines;
+    },
+
+    getHealedDiagnostics(): HealedDiagnosticsByElement {
+      return currentHealedDiagnostics;
     },
 
     getTelemetry(): StreamTelemetrySnapshot {
@@ -577,6 +607,7 @@ export function createGuardrailedStreamCompiler(
       rawPatchState = createInitialRawState(nextInitialSpec);
       tracker.reset();
       currentSanitizedSpec = sanitizeAndHealCurrentState(false).spec;
+      currentHealedDiagnostics = {};
     },
   };
 }

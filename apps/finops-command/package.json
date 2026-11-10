@@ -1,8 +1,8 @@
 {
-  "name": "@genui-studio/workbench",
+  "name": "@genui-studio/finops-command",
   "version": "1.0.0",
   "private": true,
-  "description": "Domain App 1: GenUI Studio Verification & Chaos Workbench — Live RFC 6902 JSONL Stream Compiler, Schema-Prompt Synchronizer, fast-check Chaos Fuzzing Runner, and MCP App Exporter.",
+  "description": "Application #1: RevOps / FinOps Generative Command Center — Guardrailed SaaS Financial Operations, Stripe Webhook Recovery, Cohort Analytics & Live Mutation Cards built on @genui-studio/core.",
   "license": "MIT",
   "type": "module",
   "scripts": {
