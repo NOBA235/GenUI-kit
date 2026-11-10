@@ -1,12 +1,12 @@
 {
   "version": "v1",
   "enabled": true,
-  "name": "Fast-Check Property Invariant Verification on Save",
-  "description": "Automatically executes the @genui-studio/core Vitest & fast-check property-based invariant test suite when core stream, DAG, or state store files are updated.",
+  "name": "Auto-PBT Verification Hook",
+  "description": "Runs the fast-check property-based testing suite whenever a catalog schema or core parser/sanitizer file is modified.",
   "trigger": "PostFileSave",
-  "matcher": "packages/genui-core/src/.*\\.(ts|tsx)$",
+  "matcher": "(packages/genui-core|apps/workbench|apps/spatial-ops)/src/.*(catalog|stream|state|boundary|testing).*\\.(ts|tsx)$",
   "action": {
     "type": "command",
-    "command": "pnpm --filter @genui-studio/core test"
+    "command": "node .kiro/hooks/scripts/run-pbt-suite.mjs"
   }
 }

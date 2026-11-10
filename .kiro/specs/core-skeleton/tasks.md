@@ -20,22 +20,22 @@
 ---
 
 ## Phase 2: Skeleton Core Engine Implementation (`packages/genui-core`)
-- [ ] **Task 2.1: Catalog Registry & Prompt Synchronizer (`src/catalog/`)**
+- [x] **Task 2.1: Catalog Registry & Prompt Synchronizer (`src/catalog/`)**
   - Implement `createVerifiedCatalog()`, deterministic SHA-256/FNV-1a catalog fingerprinting, `generateSynchronizedPrompt()`, and `validateSpecAgainstCatalog()`.
   - _Maps to:_ `REQ-CAT-01`, `REQ-CAT-02`, `REQ-CAT-03`, `REQ-CAT-04`, `REQ-CAT-05`.
-- [ ] **Task 2.2: DAG Cycle Detector & Structural Graph Sanitizer (`src/stream/dag-sanitizer.ts`)**
+- [x] **Task 2.2: DAG Cycle Detector & Structural Graph Sanitizer (`src/stream/dag-sanitizer.ts`)**
   - Implement 3-color DFS (`inspectSpecGraph`, `sanitizeSpecGraph`) handling `children`, `slots`, cyclic back-edges, self-loops, depth bounds (`maxDepth`), and element count budgets (`maxElements`).
   - _Maps to:_ `REQ-STR-04`, `REQ-STR-05`, `REQ-STR-06`.
-- [ ] **Task 2.3: Guardrailed RFC 6902 JSONL Stream Compiler (`src/stream/stream-compiler.ts`)**
+- [x] **Task 2.3: Guardrailed RFC 6902 JSONL Stream Compiler (`src/stream/stream-compiler.ts`)**
   - Wrap `@json-render/core` `createSpecStreamCompiler`, `parseSpecStreamLine`, `applySpecPatch`, and `autoFixSpec` with RFC 6901 prototype pollution guards (`__proto__`, `constructor`, `prototype`), unsafe URI blocking, lossless streaming auto-fix, and finalization DAG pruning.
   - _Maps to:_ `REQ-STR-01`, `REQ-STR-02`, `REQ-STR-03`, `REQ-STR-06`.
-- [ ] **Task 2.4: Time-Travel Bidirectional State Store & Watch Cascade Guard (`src/state/time-travel-store.ts`)**
+- [x] **Task 2.4: Time-Travel Bidirectional State Store & Watch Cascade Guard (`src/state/time-travel-store.ts`)**
   - Implement `createTimeTravelStateStore()` using `@json-render/core/store-utils` `immutableSetByPath` and `flattenToPointers`, with bounded snapshot history (`undo`, `redo`, `jumpTo`), pointer normalization, and synchronous cascade depth circuit breaker (`maxCascadeDepth`).
   - _Maps to:_ `REQ-STA-01`, `REQ-STA-02`, `REQ-STA-03`, `REQ-STA-04`.
-- [ ] **Task 2.5: Per-Element Telemetry Error Boundary & Safe Renderer (`src/boundary/`)**
+- [x] **Task 2.5: Per-Element Telemetry Error Boundary & Safe Renderer (`src/boundary/`)**
   - Implement `<GenUIElementErrorBoundary>`, `<ElementFaultCard>`, `wrapRegistryWithTelemetry()`, and `<SafeGenUIRenderer>` with automatic error recovery when element props change.
   - _Maps to:_ `REQ-BND-01`, `REQ-BND-02`, `REQ-BND-03`.
-- [ ] **Task 2.6: `fast-check` Arbitraries & Formal Invariant Test Suite (`src/testing/` & `src/__tests__/`)**
+- [x] **Task 2.6: `fast-check` Arbitraries & Formal Invariant Test Suite (`src/testing/` & `src/__tests__/`)**
   - Implement `arbitraryValidSpec`, `arbitraryAdversarialSpec`, `arbitraryPatchStream`, and `runCatalogFuzzSuite()`. Execute comprehensive Vitest + `fast-check` verification suite proving DAG acyclicity, idempotence, prototype safety, and structural sharing.
   - _Maps to:_ `REQ-FUZ-01`, `REQ-FUZ-02`.
 

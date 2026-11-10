@@ -1,12 +1,12 @@
 {
   "version": "v1",
   "enabled": true,
-  "name": "Catalog-Registry-Prompt Synchronization Guard",
-  "description": "Triggers whenever a catalog or registry file is saved to verify 1:1 parity between defineCatalog() Zod schemas, defineRegistry() implementations, and system prompt fingerprints.",
+  "name": "Catalog Sync & Audit Hook",
+  "description": "Scans registered UI components and catalogs, validates that every component has a matching Zod schema, description, and fallback boundary state, and flags drift.",
   "trigger": "PostFileSave",
-  "matcher": "(packages/genui-core|apps/workbench|apps/spatial-ops)/src/.*catalog.*\\.(ts|tsx)$",
+  "matcher": "(packages/genui-core|apps/workbench|apps/spatial-ops)/src/.*\\.(ts|tsx)$",
   "action": {
-    "type": "prompt",
-    "prompt": "A catalog or registry file was modified. Verify Invariant 2 (Catalog-Registry-Prompt Tri-Synchronization): ensure every component in defineCatalog() has a strict Zod object schema, a non-empty description, and a matching implementation in defineRegistry(), and run `pnpm typecheck`."
+    "type": "command",
+    "command": "node .kiro/hooks/scripts/catalog-audit.mjs"
   }
 }
