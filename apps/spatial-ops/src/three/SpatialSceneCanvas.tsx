@@ -82,15 +82,15 @@ interface SharedGeometries {
 
 function createSharedGeometries(): SharedGeometries {
   return {
-    sphere: new THREE.SphereGeometry(0.42, 32, 24),
+    sphere: new THREE.SphereGeometry(0.42, 16, 12),
     box: new THREE.BoxGeometry(0.7, 0.7, 0.7),
-    cylinder: new THREE.CylinderGeometry(0.4, 0.4, 0.75, 32),
+    cylinder: new THREE.CylinderGeometry(0.4, 0.4, 0.75, 16),
     octahedron: new THREE.OctahedronGeometry(0.5),
-    torusKnot: new THREE.TorusKnotGeometry(0.28, 0.09, 64, 8),
-    fractureShell: new THREE.IcosahedronGeometry(0.72, 1),
-    selectionRing: new THREE.TorusGeometry(0.78, 0.025, 8, 64),
-    particle: new THREE.SphereGeometry(0.055, 8, 8),
-    blast: new THREE.SphereGeometry(1, 32, 24),
+    torusKnot: new THREE.TorusKnotGeometry(0.28, 0.09, 32, 6),
+    fractureShell: new THREE.IcosahedronGeometry(0.72, 0),
+    selectionRing: new THREE.TorusGeometry(0.78, 0.025, 6, 24),
+    particle: new THREE.SphereGeometry(0.055, 6, 6),
+    blast: new THREE.SphereGeometry(1, 16, 12),
   };
 }
 
@@ -590,9 +590,9 @@ export function SpatialSceneCanvas(props: SpatialSceneCanvasProps): React.JSX.El
     <div className="absolute inset-0" data-testid="spatial-webgl-viewport">
       <Canvas
         frameloop={hidden ? "never" : "always"}
-        dpr={[1, 1.75]}
+        dpr={1}
         camera={{ position: [7, 5, 9], fov: cameraFov, near: 0.1, far: 80 }}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        gl={{ antialias: false, powerPreference: "low-power" }}
         onCreated={({ gl }) => {
           canvasElRef.current = gl.domElement;
         }}

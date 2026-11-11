@@ -121,8 +121,6 @@ export class TelemetryBridge {
     }
 
     if (hasChanges) {
-      this.store.set("/cluster/services", updatedServices);
-
       // Recompute summary
       const serviceList = Object.values(updatedServices);
       let unhealthyCount = 0;
@@ -140,22 +138,25 @@ export class TelemetryBridge {
       const globalErrorRate = totalRps > 0 ? Math.round((weightedErrors / (totalRps / 1000)) * 10) / 10 : 0;
       const severity = unhealthyCount >= 3 ? "SEV-1" : unhealthyCount > 0 ? "SEV-2" : "NOMINAL";
 
-      this.store.set("/cluster/summary", {
-        activeIncidents: unhealthyCount > 0 ? 1 : 0,
-        severity,
-        incidentTitle:
-          unhealthyCount >= 3
-            ? "CRITICAL: PostgreSQL Aurora Pool Starvation Cascading to Ingress"
-            : unhealthyCount > 0
-            ? "WARNING: Elevated latency and packet degradation in US-East"
-            : "Fleet Operating Normally — All Systems NOMINAL",
-        elapsedMinutes: unhealthyCount > 0 ? 4 : 0,
-        globalErrorRatePercent: globalErrorRate,
-        globalRps: totalRps,
-        totalNodes: serviceList.length,
-        unhealthyNodes: unhealthyCount,
-        clusterMttdMinutes: 1.4,
-        errorBudgetRemainingPercent: Math.max(0, Math.round(98 - globalErrorRate * 2.5)),
+      this.store.update({
+        "/cluster/services": updatedServices,
+        "/cluster/summary": {
+          activeIncidents: unhealthyCount > 0 ? 1 : 0,
+          severity,
+          incidentTitle:
+            unhealthyCount >= 3
+              ? "CRITICAL: PostgreSQL Aurora Pool Starvation Cascading to Ingress"
+              : unhealthyCount > 0
+              ? "WARNING: Elevated latency and packet degradation in US-East"
+              : "Fleet Operating Normally — All Systems NOMINAL",
+          elapsedMinutes: unhealthyCount > 0 ? 4 : 0,
+          globalErrorRatePercent: globalErrorRate,
+          globalRps: totalRps,
+          totalNodes: serviceList.length,
+          unhealthyNodes: unhealthyCount,
+          clusterMttdMinutes: 1.4,
+          errorBudgetRemainingPercent: Math.max(0, Math.round(98 - globalErrorRate * 2.5)),
+        },
       });
     }
   }

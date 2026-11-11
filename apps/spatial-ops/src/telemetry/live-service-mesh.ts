@@ -93,10 +93,10 @@ export class LiveServiceMeshSimulator {
   private circuitBreakers = new Set<string>();
 
   constructor() {
-    this.startEmitting();
+    this.startEmitting(3500);
   }
 
-  public startEmitting(intervalMs = 1200): void {
+  public startEmitting(intervalMs = 3500): void {
     if (this.intervalTimer) return;
     this.intervalTimer = setInterval(() => {
       this.tick();

@@ -145,6 +145,12 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
         // 3D SPATIAL COMPONENTS
         // ==========================================
         AegisWarRoomShell: ({ props, slots, children }) => {
+          const [viewMode, setViewMode] = useState<"3D" | "2D">("3D");
+          const { get, set } = useStateStore();
+          const services =
+            (get("/cluster/services") as Record<string, ServiceNodeData> | undefined) ?? {};
+          const selectedId = get("/cluster/selectedServiceId") as string | undefined;
+
           const sevBadge =
             props.severity === "SEV-0"
               ? "bg-rose-600/25 text-rose-300 border-rose-500/60 animate-pulse"
@@ -183,17 +189,111 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
 
               {/* Viewport Split Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                {/* 3D Spatial Viewport (Left/Center: 7 columns) */}
+                {/* 3D/2D Spatial Viewport (Left/Center: 7 columns) */}
                 <div className="lg:col-span-7 space-y-3">
                   <div className="flex items-center justify-between font-mono text-xs text-slate-400">
                     <span className="flex items-center gap-1.5 font-semibold text-slate-200">
                       <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                      3D SPATIAL TOPOLOGY CANVAS
+                      {viewMode === "3D"
+                        ? "3D SPATIAL TOPOLOGY (WebGL)"
+                        : "2D LIGHTWEIGHT TOPOLOGY (Zero-GPU Low RAM)"}
                     </span>
-                    <span>Raycast Hover & Selection Active</span>
+                    <div className="flex items-center gap-1 rounded bg-slate-900 border border-slate-800 p-0.5 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode("3D")}
+                        className={`rounded px-2 py-0.5 transition cursor-pointer ${
+                          viewMode === "3D"
+                            ? "bg-cyan-500/25 text-cyan-200 border border-cyan-500/40"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        3D WebGL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode("2D")}
+                        data-testid="toggle-2d-mode-btn"
+                        className={`rounded px-2 py-0.5 transition cursor-pointer ${
+                          viewMode === "2D"
+                            ? "bg-emerald-500/25 text-emerald-200 border border-emerald-500/40"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        ⚡ 2D Low-RAM Mode
+                      </button>
+                    </div>
                   </div>
                   <div className="relative min-h-[440px] rounded-lg border border-slate-800/90 bg-[#04060E] overflow-hidden">
-                    {slots?.spatial ?? children}
+                    {viewMode === "3D" ? (
+                      slots?.spatial ?? children
+                    ) : (
+                      <div className="p-4 space-y-3 h-[440px] overflow-y-auto">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                          {Object.values(services).map((srv) => {
+                            const isSelected = srv.id === selectedId;
+                            const isCritical = srv.status === "CRITICAL_OUTAGE";
+                            const isDegraded = srv.status === "DEGRADED";
+                            const isCircuit = srv.status === "CIRCUIT_OPEN";
+                            return (
+                              <button
+                                key={srv.id}
+                                type="button"
+                                onClick={() => set("/cluster/selectedServiceId", srv.id)}
+                                className={`text-left p-2.5 rounded-lg border transition cursor-pointer flex flex-col justify-between font-mono ${
+                                  isSelected
+                                    ? "bg-slate-900 border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.3)]"
+                                    : isCritical
+                                    ? "bg-rose-950/40 border-rose-500/50 hover:bg-rose-950/70"
+                                    : isDegraded
+                                    ? "bg-amber-950/40 border-amber-500/50 hover:bg-amber-950/70"
+                                    : "bg-slate-900/50 border-slate-800/80 hover:bg-slate-850 hover:border-slate-700"
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between gap-1 mb-1">
+                                    <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-slate-800 text-slate-400 font-bold">
+                                      {srv.tier}
+                                    </span>
+                                    <span
+                                      className={`h-2 w-2 rounded-full ${
+                                        isCritical
+                                          ? "bg-rose-500 animate-pulse"
+                                          : isDegraded
+                                          ? "bg-amber-400"
+                                          : isCircuit
+                                          ? "bg-indigo-400"
+                                          : "bg-emerald-400"
+                                      }`}
+                                    />
+                                  </div>
+                                  <div className="text-xs font-semibold text-slate-100 truncate">
+                                    {srv.name}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 truncate">
+                                    {srv.id}
+                                  </div>
+                                </div>
+                                <div className="mt-2 pt-1.5 border-t border-slate-800/60 flex items-center justify-between text-[10px]">
+                                  <span className="text-slate-400">{srv.rps} rps</span>
+                                  <span
+                                    className={`font-bold ${
+                                      isCritical
+                                        ? "text-rose-400"
+                                        : isDegraded
+                                        ? "text-amber-400"
+                                        : "text-emerald-400"
+                                    }`}
+                                  >
+                                    {srv.p95LatencyMs}ms
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
