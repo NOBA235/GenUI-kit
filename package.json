@@ -13,10 +13,13 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:all": "pnpm --parallel --filter \"./apps/*\" dev",
     "dev:finops": "pnpm --filter @genui-studio/finops-command dev",
     "dev:workbench": "pnpm --filter @genui-studio/finops-command dev",
     "dev:spatial": "pnpm --filter @genui-studio/spatial-ops dev",
+    "mcp": "node packages/genui-mcp/dist/cli.js",
+    "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
     "test": "pnpm -r test",
     "test:fuzz": "pnpm --filter @genui-studio/core test:fuzz",
     "typecheck": "pnpm -r typecheck",
@@ -30,5 +33,10 @@
     "typescript": "^5.7.2",
     "vitest": "^3.0.0",
     "zod": "^4.3.6"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@types/jszip": "^3.4.1",
+    "jszip": "^3.10.2"
   }
 }

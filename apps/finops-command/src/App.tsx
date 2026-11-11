@@ -373,6 +373,22 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
             </div>
           </div>
 
+          {/* Quick App Switcher Navigation */}
+          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/90 p-0.5 font-mono text-xs">
+            <span className="rounded bg-cyan-500/20 px-2.5 py-1 font-semibold text-cyan-200 border border-cyan-500/40">
+              App 1: FinOps (Active)
+            </span>
+            <a
+              href="http://localhost:5174"
+              target="_blank"
+              rel="noreferrer"
+              title="Launch App 2: Aegis Spatial Ops & 3D WebGL Incident Command Center"
+              className="rounded px-2.5 py-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition flex items-center gap-1"
+            >
+              App 2: Spatial War-Room 3D ↗
+            </a>
+          </div>
+
           {/* Live Ledger KPI Pill Strip */}
           <div className="hidden xl:flex items-center gap-4 rounded-lg border border-slate-800 bg-slate-900/75 px-3.5 py-1.5 font-mono text-xs">
             <div>
