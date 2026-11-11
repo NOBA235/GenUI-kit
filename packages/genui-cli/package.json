@@ -1,0 +1,33 @@
+{
+  "name": "genui-studio",
+  "version": "1.0.0",
+  "description": "GenUI Studio CLI: Token-Gated Installer & Registry Client for Agent-Ready 2D/3D Generative UI Template Packs, Zod Catalogs, and AI Skills (npx genui-studio add <pack>).",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "genui-studio": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@genui-studio/core": "workspace:*",
+    "jszip": "^3.10.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

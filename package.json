@@ -19,6 +19,7 @@
     "dev:workbench": "pnpm --filter @genui-studio/finops-command dev",
     "dev:spatial": "pnpm --filter @genui-studio/spatial-ops dev",
     "mcp": "node packages/genui-mcp/dist/cli.js",
+    "genui-studio": "node packages/genui-cli/dist/cli.js",
     "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
     "test": "pnpm -r test",
     "test:fuzz": "pnpm --filter @genui-studio/core test:fuzz",

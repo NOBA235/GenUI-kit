@@ -16,6 +16,7 @@ import {
   HealedDiagnosticsByElement,
   specToJsonlStream,
   StreamTelemetrySnapshot,
+  TemplateExportModal,
 } from "@genui-studio/core";
 import { finopsVerifiedCatalog } from "./catalog/finops-catalog.js";
 import {
@@ -108,6 +109,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
   );
   const [patchLog, setPatchLog] = useState<XRayPatchLogItem[]>([]);
   const [isXRayOpen, setIsXRayOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // 6. Dual-Mode Stream Engine state (Recorded Judge Mode vs Live OpenAI-compatible SSE)
   const [streamMode, setStreamMode] = useState<"RECORDED_JUDGE" | "LIVE_API">(
@@ -373,20 +375,31 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
             </div>
           </div>
 
-          {/* Quick App Switcher Navigation */}
-          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/90 p-0.5 font-mono text-xs">
-            <span className="rounded bg-cyan-500/20 px-2.5 py-1 font-semibold text-cyan-200 border border-cyan-500/40">
-              App 1: FinOps (Active)
-            </span>
-            <a
-              href="http://localhost:5174"
-              target="_blank"
-              rel="noreferrer"
-              title="Launch App 2: Aegis Spatial Ops & 3D WebGL Incident Command Center"
-              className="rounded px-2.5 py-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition flex items-center gap-1"
+          {/* Quick App Switcher Navigation & Template Export */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/90 p-0.5 font-mono text-xs">
+              <span className="rounded bg-cyan-500/20 px-2.5 py-1 font-semibold text-cyan-200 border border-cyan-500/40">
+                App 1: FinOps (Active)
+              </span>
+              <a
+                href="http://localhost:5174"
+                target="_blank"
+                rel="noreferrer"
+                title="Launch App 2: Aegis Spatial Ops & 3D WebGL Incident Command Center"
+                className="rounded px-2.5 py-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition flex items-center gap-1"
+              >
+                App 2: Spatial War-Room 3D ↗
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              title="Export Agent-Ready Template Pack (.zip, npx CLI, MCP)"
+              className="flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1 font-mono text-xs font-semibold text-purple-300 hover:bg-purple-500/20 transition cursor-pointer shadow-sm shadow-purple-950/50"
             >
-              App 2: Spatial War-Room 3D ↗
-            </a>
+              <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
+              Export Template 📦
+            </button>
           </div>
 
           {/* Live Ledger KPI Pill Strip */}
@@ -658,6 +671,13 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
         patchLog={patchLog}
         currentSpec={currentSpec}
         onInjectChaosPacket={handleInjectChaosPacket}
+      />
+
+      {/* Commercial Template Pack Exporter Modal */}
+      <TemplateExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        packId="finops-command-pro"
       />
     </div>
   );

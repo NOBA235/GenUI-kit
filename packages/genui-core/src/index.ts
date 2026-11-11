@@ -67,3 +67,6 @@ export {
   type SafeGenUIRendererProps,
   type WrapRegistryOptions,
 } from "./boundary/safe-renderer.js";
+
+export * from "./registry/index.js";
+

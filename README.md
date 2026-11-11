@@ -106,7 +106,12 @@ GenUI-kit/
 │   │       ├── state/time-travel-store.ts   # Structural-sharing StateStore with undo/redo
 │   │       ├── boundary/safe-renderer.tsx   # Per-node error boundary & <DiagnosticHealedBadge />
 │   │       ├── telemetry/telemetry-tracker.ts # Real-time tok/s, latency & compliance tracking
+│   │       ├── registry/                    # Commercial Template Packs, API endpoints & Exporter
 │   │       └── testing/index.ts             # fast-check arbitraries & runCatalogInvariantSuite()
+│   ├── genui-cli/                           # genui-studio — Token-gated CLI Installer & Registry Client
+│   │   └── src/
+│   │       ├── cli.ts                       # npx genui-studio add <pack> command runner
+│   │       └── installer.ts                 # Pack unpacker, license verification & skill injector
 │   └── genui-mcp/                           # @genui-studio/mcp — Model Context Protocol Server
 │       └── src/
 │           ├── server.ts                    # McpServer with list, validate, and fuzz tools
@@ -201,6 +206,52 @@ Triggers a live property-based fuzz test against a component schema or the entir
 # Start standalone stdio MCP server
 pnpm mcp
 ```
+
+---
+
+## 📦 Commercial Distribution & Agent Skill Registry (`npx genui-studio add <pack>`)
+
+GenUI Studio is also a **creator distribution and monetization platform for agent-ready 2D/3D templates, generative UI blocks, and AI Agent Skills**.
+
+### 1. The "Agent-Ready Template Pack" Standard
+Every pack in `packages/genui-core/src/registry/` is a self-contained commercial distribution bundle combining:
+- **Production React / Three.js Components:** Zero-drift code with fallback props and telemetry instrumentation.
+- **Strict Zod Catalog & Canonical Hash (`catalog.ts`):** Cryptographically deterministic schema ensuring the LLM cannot hallucinate props.
+- **AI Agent Skill & Kiro Power (`SKILL.md` + `.kiro/powers/`):** Full context injection for Claude Code, Cursor, and Kiro IDE detailing props, camera math, and design system tokens.
+- **`fast-check` Property Test Suite (`*.fuzz.test.ts`):** 100-iteration adversarial test verifying zero whiteout crashes.
+
+### 2. Available Template Packs
+
+| Pack ID | Tier | Price | Category | Components | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`finops-command-pro`** | **Pro** | **$49** | FinOps / RevOps | 14 Components | Full B2B SaaS ledger, 4 live financial mutations, time-travel store, Stripe webhook recovery. |
+| **`spatial-ops-3d-pro`** | **Pro** | **$79** | Spatial 3D WebGL | 14 Spatial / HUD | Three.js microservice mesh, dual-viewport state sync, circuit breaker & failover controls. |
+| **`saas-kpi-starter`** | **Free** | **$0** | SaaS Dashboards | 6 Components | Metric cards, MRR churn charts, retention heatmap, and audit trail banner. |
+| **`spatial-mesh-starter`** | **Free** | **$0** | Spatial 3D | 5 Spatial Nodes | Interactive WebGL cluster canvas, 3D nodes, and latency histogram cards. |
+
+### 3. Token-Gated CLI Installer (`npx genui-studio add`)
+
+Developers and AI coding agents install packs directly into their repositories:
+
+```bash
+# Install a free starter pack (no license required)
+npx genui-studio add saas-kpi-starter
+
+# Install a Pro commercial template pack (token-gated)
+npx genui-studio add finops-command-pro --license=kiroween-2026-judge-pass
+
+# Install a 3D WebGL Pro pack into a target directory
+npx genui-studio add spatial-ops-3d-pro --license=kiroween-2026-judge-pass --outDir=./src/components/spatial
+
+# Inspect available packs in the registry
+npx genui-studio list
+```
+
+### 4. In-UI Template Exporter Modal
+Both showcase applications feature an interactive **"Export Template 📦"** button in their navigation header:
+- **Tab 1 (CLI Install):** Pre-configured `npx genui-studio add` command with live license token input.
+- **Tab 2 (Download `.ZIP`):** Generates and downloads a complete, runnable Next.js / React project zip containing all components, catalogs, tests, and `.kiro` configuration.
+- **Tab 3 (MCP Connect):** One-click JSON snippet to configure the template pack catalog in Kiro IDE (`.kiro/settings/mcp.json`) or Claude Desktop.
 
 ---
 

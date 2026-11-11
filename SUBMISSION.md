@@ -120,6 +120,12 @@ An autonomous SRE incident command center combining a **3D WebGL distributed mic
 - **Dual-Surface State Coherence:** Adjusting an SRE runbook slider in the 2D HUD instantly updates the 3D WebGL scene's emissive node colors, traffic packet velocities, and volumetric blast radius spheres at 60fps without re-rendering the WebGL canvas.
 - **Incident Remediation:** Trip circuit breakers, trigger regional cross-datacenter failovers, scale container pod replicas, and execute canary rollbacks with full time-travel audit logging.
 
+### Commercial Distribution & Agent Skill Registry Layer
+GenUI Studio is a creator distribution platform for monetizing and sharing Generative UI:
+- **Agent-Ready Template Packs:** Self-contained bundles uniting React/Three.js code, Zod Catalogs (`catalog.ts`), AI Agent Skills (`SKILL.md` + `.kiro/powers/`), and `fast-check` PBT suites.
+- **Token-Gated CLI Installer (`npx genui-studio add <pack>`):** Installs free packs (`saas-kpi-starter`, `spatial-mesh-starter`) or verifies bearer license keys for Pro packs (`finops-command-pro`, `spatial-ops-3d-pro`).
+- **One-Click `.ZIP` & MCP Exporter Modal:** Embedded in both applications with tabs for CLI install, client-side streaming `.zip` project generation, and MCP server configuration.
+
 ---
 
 ## ⏱️ Second-by-Second Demo Video Script (2:45)
@@ -142,8 +148,9 @@ An autonomous SRE incident command center combining a **3D WebGL distributed mic
 
 ## 🛠️ Verification Checklist
 
-- [x] **Monorepo Build:** `pnpm build` completes with exit code 0 across all 5 workspace projects (`@genui-studio/core`, `@genui-studio/mcp`, `@genui-studio/finops-command`, `@genui-studio/spatial-ops`).
-- [x] **Unit & PBT Test Suite:** `pnpm test` passes 100% (29 tests across core invariants, MCP server tools, and both domain applications).
+- [x] **Monorepo Build:** `pnpm build` completes with exit code 0 across all 6 workspace projects (`@genui-studio/core`, `@genui-studio/mcp`, `genui-studio` CLI, `@genui-studio/finops-command`, `@genui-studio/spatial-ops`).
+- [x] **Unit & PBT Test Suite:** `pnpm test` passes 100% (40 tests across core invariants, CLI installer, MCP server tools, and both domain applications).
+- [x] **Commercial Distribution & Skill Registry:** Token-gated CLI installer (`npx genui-studio add`), shadcn/Next.js compatible registry API, and in-UI one-click `.ZIP` project exporter.
 - [x] **Model Context Protocol (MCP) Server:** Tested and verified over stdio JSON-RPC protocol (`node packages/genui-mcp/dist/cli.js`), configured in `.kiro/settings/mcp.json`.
-- [x] **Frictionless Developer DX:** Single root commands (`pnpm dev`, `pnpm mcp`, `pnpm test`), zero setup, zero API keys required.
+- [x] **Frictionless Developer DX:** Single root commands (`pnpm dev`, `pnpm mcp`, `pnpm test`, `pnpm genui-studio`), zero setup, zero API keys required.
 - [x] **Kiro Ecosystem Integration:** Formal Specs in EARS syntax, Steering Documents, Agent Hooks with Node scripts, Custom Kiro Power (`json-render-power`), and MCP Server configuration.
