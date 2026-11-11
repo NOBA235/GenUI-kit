@@ -32,12 +32,12 @@ import {
 } from "../streams/spatial-streams.js";
 
 describe("@genui-studio/spatial-ops — Application #2 Verification Suite", () => {
-  it("1. Catalog-Registry Parity Audit: confirms 100% synchronization across all 14 spatial components and 4 actions", () => {
+  it("1. Catalog-Registry Parity Audit: confirms 100% synchronization across all 15 spatial components and 4 actions", () => {
     const { rawComponentRegistry, actionHandlers } = createSpatialRegistry();
     const registeredComponentNames = Object.keys(rawComponentRegistry);
 
-    expect(registeredComponentNames.length).toBe(14);
-    expect(spatialVerifiedCatalog.metadata.componentNames.length).toBe(14);
+    expect(registeredComponentNames.length).toBe(15);
+    expect(spatialVerifiedCatalog.metadata.componentNames.length).toBe(15);
     expect(spatialVerifiedCatalog.metadata.actionNames.length).toBe(4);
 
     const audit = auditCatalogRegistryParity(

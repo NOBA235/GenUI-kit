@@ -795,6 +795,185 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
             </div>
           );
         },
+
+        TraceWaterfallViewer: ({ props }) => {
+          const [selectedSpanId, setSelectedSpanId] = useState<string | null>(
+            (props.highlightServiceId &&
+              props.spans.find((s) => s.serviceId === props.highlightServiceId)
+                ?.spanId) ??
+              props.spans.find((s) => s.status === "ERROR")?.spanId ??
+              props.spans[0]?.spanId ??
+              null
+          );
+
+          const maxDuration = Math.max(1, props.totalDurationMs);
+          const isSlow = props.totalDurationMs > 300;
+          const hasError = props.spans.some((s) => s.status === "ERROR");
+
+          const selectedSpan = props.spans.find((s) => s.spanId === selectedSpanId);
+
+          return (
+            <div
+              className="rounded-lg border border-slate-800/90 bg-slate-950/95 p-3.5 space-y-3 font-mono shadow-2xl"
+              data-testid="trace-waterfall-viewer"
+            >
+              {/* Header */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/70 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      hasError
+                        ? "bg-rose-500 animate-pulse"
+                        : isSlow
+                        ? "bg-amber-400"
+                        : "bg-emerald-400"
+                    }`}
+                  />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-100">
+                    {props.title}
+                  </h4>
+                  <span className="rounded bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-300">
+                    {props.rootSpanName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400 text-[11px]">
+                    Trace ID: <code className="text-cyan-300">{props.traceId}</code>
+                  </span>
+                  <span
+                    className={`rounded px-2 py-0.5 text-[11px] font-bold ${
+                      hasError
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        : isSlow
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    }`}
+                  >
+                    {props.totalDurationMs.toLocaleString()} ms
+                  </span>
+                </div>
+              </div>
+
+              {/* Waterfall Timeline Scale */}
+              <div className="relative h-4 w-full bg-slate-900/60 rounded border border-slate-800/60 text-[9px] text-slate-400 flex items-center justify-between px-2">
+                <span>0 ms</span>
+                <span>{Math.round(maxDuration / 2)} ms</span>
+                <span>{maxDuration} ms</span>
+              </div>
+
+              {/* Spans Gantt Rows */}
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {props.spans.map((span) => {
+                  const leftPercent = (span.startOffsetMs / maxDuration) * 100;
+                  const widthPercent = Math.max(3, (span.durationMs / maxDuration) * 100);
+                  const isSelected = span.spanId === selectedSpanId;
+                  const isError = span.status === "ERROR";
+                  const isBottleneck = span.durationMs > maxDuration * 0.4;
+
+                  return (
+                    <div
+                      key={span.spanId}
+                      onClick={() => setSelectedSpanId(span.spanId)}
+                      className={`cursor-pointer rounded p-1.5 transition-colors border ${
+                        isSelected
+                          ? "bg-slate-900 border-cyan-500/60"
+                          : "bg-slate-900/40 border-slate-800/60 hover:bg-slate-850 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span
+                            className={`font-semibold ${
+                              isError
+                                ? "text-rose-400"
+                                : span.serviceId === props.highlightServiceId
+                                ? "text-cyan-300"
+                                : "text-slate-200"
+                            }`}
+                          >
+                            {span.serviceName}
+                          </span>
+                          <span className="text-slate-400 text-[10px] truncate">
+                            {span.operation}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isError && (
+                            <span className="rounded bg-rose-500/25 px-1 py-0.2 text-[9px] font-bold text-rose-300 uppercase">
+                              ERROR
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] font-mono ${
+                              isError
+                                ? "text-rose-300 font-bold"
+                                : isBottleneck
+                                ? "text-amber-300 font-bold"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {span.durationMs} ms
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bar Visualization */}
+                      <div className="relative h-2.5 w-full bg-slate-950/80 rounded-full overflow-hidden">
+                        <div
+                          style={{
+                            left: `${Math.min(97, leftPercent)}%`,
+                            width: `${Math.min(100 - leftPercent, widthPercent)}%`,
+                          }}
+                          className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ${
+                            isError
+                              ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                              : isBottleneck
+                              ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.4)]"
+                              : "bg-cyan-500/70"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Selected Span Drilldown Inspector */}
+              {selectedSpan && (
+                <div className="rounded border border-slate-800 bg-slate-900/80 p-2.5 text-[11px] space-y-1.5">
+                  <div className="flex items-center justify-between text-slate-300 font-semibold border-b border-slate-800/80 pb-1">
+                    <span>
+                      Span Attributes: {selectedSpan.serviceName} - {selectedSpan.operation}
+                    </span>
+                    <span className="text-[10px] text-slate-400">ID: {selectedSpan.spanId}</span>
+                  </div>
+                  {selectedSpan.statusMessage && (
+                    <div className="rounded bg-rose-950/60 border border-rose-800/70 p-1.5 text-rose-300 text-[10px]">
+                      <strong>Failure Reason:</strong> {selectedSpan.statusMessage}
+                    </div>
+                  )}
+                  {selectedSpan.attributes && Object.keys(selectedSpan.attributes).length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px]">
+                      {Object.entries(selectedSpan.attributes).map(([key, val]) => (
+                        <div
+                          key={key}
+                          className="bg-slate-950/70 p-1 rounded border border-slate-800/50 flex flex-col"
+                        >
+                          <span className="text-slate-400 font-mono text-[9px]">{key}</span>
+                          <span className="text-cyan-200 font-mono truncate">{String(val)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-500 text-[10px]">
+                      No extra attributes recorded on span.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        },
       },
 
       actions: sreActionHandlers,

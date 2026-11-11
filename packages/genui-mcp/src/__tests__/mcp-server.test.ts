@@ -8,10 +8,10 @@ import {
 
 describe("GenUI Studio MCP Server & Tool Handlers", () => {
   describe("Tool 1: list_catalog_components", () => {
-    it("lists all 28 components and actions across both catalogs by default", () => {
+    it("lists all 29 components and actions across both catalogs by default", () => {
       const result = handleListCatalogComponents({ app: "all" });
 
-      expect(result.totalComponents).toBe(28); // 14 FinOps + 14 Spatial
+      expect(result.totalComponents).toBe(29); // 14 FinOps + 15 Spatial
       expect(result.catalogs).toHaveLength(2);
       expect(result.catalogs.map((c) => c.app)).toEqual(["finops", "spatial"]);
       expect(result.totalActions).toBeGreaterThanOrEqual(8); // 4 in FinOps + 4 in Spatial
@@ -43,11 +43,12 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
 
     it("filters components by specific app (spatial)", () => {
       const result = handleListCatalogComponents({ app: "spatial" });
-      expect(result.totalComponents).toBe(14);
+      expect(result.totalComponents).toBe(15);
       expect(result.components.every((c) => c.app === "spatial")).toBe(true);
       expect(result.components.map((c) => c.name)).toContain("AegisWarRoomShell");
       expect(result.components.map((c) => c.name)).toContain("ServiceMeshNode3D");
       expect(result.components.map((c) => c.name)).toContain("TrafficFlowEdge3D");
+      expect(result.components.map((c) => c.name)).toContain("TraceWaterfallViewer");
     });
 
     it("filters to a specific component by name", () => {

@@ -259,6 +259,63 @@ export const spatialCatalogDefinitions = {
         maxEntries: 5,
       },
     },
+
+    TraceWaterfallViewer: {
+      description:
+        "High-density distributed trace waterfall Gantt visualizer rendering hierarchical spans, critical-path bottlenecks, database query statements, and error statuses.",
+      props: z.object({
+        title: z.string().min(1).max(100),
+        traceId: z.string().min(1).max(64),
+        rootSpanName: z.string().min(1).max(100),
+        totalDurationMs: z.number().nonnegative(),
+        spans: z.array(
+          z.object({
+            spanId: z.string().min(1).max(48),
+            parentSpanId: z.string().nullable().optional(),
+            serviceName: z.string().min(1).max(64),
+            serviceId: z.string().min(1).max(48),
+            operation: z.string().min(1).max(100),
+            startOffsetMs: z.number().nonnegative(),
+            durationMs: z.number().nonnegative(),
+            status: z.enum(["OK", "ERROR"]),
+            statusMessage: z.string().optional(),
+            attributes: z
+              .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+              .optional(),
+          })
+        ),
+        highlightServiceId: z.string().optional(),
+      }),
+      slots: [],
+      fallbackProps: {
+        title: "Live Distributed Trace Waterfall",
+        traceId: "tr-seed-sample",
+        rootSpanName: "HTTP POST /api/v2/checkout",
+        totalDurationMs: 42,
+        spans: [
+          {
+            spanId: "sp-1",
+            parentSpanId: null,
+            serviceName: "Edge Ingress Router",
+            serviceId: "srv-ingress",
+            operation: "HTTP POST /api/v2/checkout",
+            startOffsetMs: 0,
+            durationMs: 42,
+            status: "OK" as const,
+          },
+          {
+            spanId: "sp-2",
+            parentSpanId: "sp-1",
+            serviceName: "API Gateway Core",
+            serviceId: "srv-api-gateway",
+            operation: "dispatch.route_checkout",
+            startOffsetMs: 2,
+            durationMs: 38,
+            status: "OK" as const,
+          },
+        ],
+      },
+    },
   },
 
   actions: {
