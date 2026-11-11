@@ -28,7 +28,12 @@ import {
   ClusterSummary,
   createInitialClusterState,
   ServiceNodeData,
+  SreAuditEntry,
 } from "./data/cluster-seed.js";
+import {
+  telemetryBridge,
+  liveMeshSimulator,
+} from "./telemetry/index.js";
 import {
   buildSpatialChaosPackets,
   chunkJsonlForStreaming,
@@ -63,7 +68,13 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
     [telemetryTracker]
   );
 
-  // 3. Subscribe to store changes for Top HUD and Undo/Redo
+  // 3. Connect live OpenTelemetry bridge to TimeTravelStateStore
+  useEffect(() => {
+    telemetryBridge.attachToStore(timeTravelStore);
+    return () => telemetryBridge.detach();
+  }, [timeTravelStore]);
+
+  // 4. Subscribe to store changes for Top HUD and Undo/Redo
   const [storeVersion, setStoreVersion] = useState(0);
   useEffect(() => {
     return timeTravelStore.subscribe(() => {
@@ -293,6 +304,40 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
     ]);
   }, [applyCompilerStep, currentSpec?.root, telemetryTracker]);
 
+  const handleMutationExecuted = useCallback((entry: SreAuditEntry) => {
+    const actionMap: Record<
+      string,
+      "tripCircuitBreaker" | "triggerRegionalFailover" | "scaleServiceReplicas" | "rollbackDeployment"
+    > = {
+      TRIP_CIRCUIT_BREAKER: "tripCircuitBreaker",
+      TRIGGER_REGIONAL_FAILOVER: "triggerRegionalFailover",
+      SCALE_SERVICE_REPLICAS: "scaleServiceReplicas",
+      ROLLBACK_DEPLOYMENT: "rollbackDeployment",
+    };
+    const mappedAction = actionMap[entry.actionType];
+    if (mappedAction) {
+      telemetryBridge.executeRemediation({
+        action: mappedAction,
+        targetServiceId: entry.targetServiceId,
+        operator: entry.operator,
+      });
+    }
+  }, []);
+
+  const handleInjectLiveChaos = useCallback(() => {
+    telemetryBridge.injectDbPoolChaos();
+    // Automatically stream the cascading outage investigation spec with Trace Waterfall
+    const preset = SPATIAL_SCENARIO_PRESETS[0]!;
+    setActiveScenarioId(preset.id);
+    setPromptInput("Diagnose Postgres connection pool saturation and propose mitigation playbook");
+    const jsonl = specToJsonlStream(preset.buildSpec());
+    runGuardrailedJsonlStream(jsonl);
+  }, [runGuardrailedJsonlStream]);
+
+  const handleClearLiveChaos = useCallback(() => {
+    telemetryBridge.clearChaos();
+  }, []);
+
   const handleSimulateChaosSpike = () => {
     const services = {
       ...((timeTravelStore.get("/cluster/services") as Record<string, ServiceNodeData>) ?? {}),
@@ -339,7 +384,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                 </span>
               </div>
               <p className="font-mono text-[11px] text-slate-400">
-                14 Spatial Components · 16 Cluster Nodes · Dual-Viewport WebGL
+                15 Spatial Components · Live OTLP Telemetry · Dual-Viewport WebGL
               </p>
             </div>
           </div>
@@ -438,11 +483,23 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
 
             <button
               type="button"
-              onClick={handleInjectChaosPacket}
-              data-testid="header-inject-spatial-chaos-btn"
-              className="rounded-lg border border-rose-500/45 bg-rose-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-rose-200 hover:bg-rose-500/25 transition"
+              onClick={handleInjectLiveChaos}
+              data-testid="header-inject-live-chaos-btn"
+              title="Inject Postgres DB connection pool exhaustion (1,820ms timeout)"
+              className="rounded-lg border border-rose-500/60 bg-rose-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-rose-200 hover:bg-rose-500/30 transition shadow-sm shadow-rose-950 flex items-center gap-1.5"
             >
-              ⚡ Inject Cascading Outage
+              <span className="h-2 w-2 rounded-full bg-rose-400 animate-ping" />
+              💥 Inject Live Chaos
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearLiveChaos}
+              data-testid="header-recover-chaos-btn"
+              title="Clear chaos and recover fleet health"
+              className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25 transition flex items-center gap-1"
+            >
+              <span>⚡ Remediate & Recover</span>
             </button>
 
             <button
@@ -606,7 +663,9 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
 
       {/* Main Dual-Viewport Workspace Surface */}
       <main className="mx-auto w-full max-w-[1680px] flex-1 px-5 py-6">
-        <SpatialRuntimeContext.Provider value={{ timeTravelStore }}>
+        <SpatialRuntimeContext.Provider
+          value={{ timeTravelStore, onMutationExecuted: handleMutationExecuted }}
+        >
           <JSONUIProvider registry={safeRegistry} store={timeTravelStore}>
             <SafeGenUIRenderer
               spec={currentSpec}
