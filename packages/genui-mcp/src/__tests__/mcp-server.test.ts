@@ -4,6 +4,9 @@ import {
   handleFuzzTestCatalog,
   handleListCatalogComponents,
   handleValidateUiSpec,
+  handleQueryTelemetryMetrics,
+  handleFetchTraceSpans,
+  handleExecuteRemediation,
 } from "../index.js";
 
 describe("GenUI Studio MCP Server & Tool Handlers", () => {
@@ -230,6 +233,65 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       expect(result.mode).toBe("FULL_PBT_SUITE");
       expect(result.suiteReport?.theorems).toHaveLength(4);
       expect(result.suiteReport?.theorems.every((t) => t.passed)).toBe(true);
+    });
+  });
+
+  describe("Tool 4: query_telemetry_metrics", () => {
+    it("queries real-time telemetry metrics and detects anomalous services", () => {
+      const result = handleQueryTelemetryMetrics();
+      expect(result.clusterSummary.activeIncidents).toBeGreaterThanOrEqual(1);
+      expect(result.clusterSummary.severity).toBe("SEV-1");
+      expect(result.services.length).toBeGreaterThanOrEqual(4);
+
+      // Verify specific anomalous database service
+      const dbService = result.services.find((s) => s.serviceId === "srv-payment-db");
+      expect(dbService).toBeDefined();
+      expect(dbService?.status).toBe("CRITICAL_OUTAGE");
+      expect(dbService?.errorRatePercent).toBeGreaterThan(90);
+      expect(dbService?.connectionPoolUsagePercent).toBe(100);
+    });
+
+    it("filters telemetry by serviceId", () => {
+      const result = handleQueryTelemetryMetrics({ serviceId: "srv-payment-db" });
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0]?.serviceId).toBe("srv-payment-db");
+    });
+  });
+
+  describe("Tool 5: fetch_trace_spans", () => {
+    it("retrieves distributed trace waterfall and identifies root cause hypothesis", () => {
+      const result = handleFetchTraceSpans({ onlyAnomalous: true });
+
+      expect(result.hasError).toBe(true);
+      expect(result.totalDurationMs).toBeGreaterThan(1800);
+      expect(result.bottleneckServiceId).toBe("srv-payment-db");
+      expect(result.rootCauseHypothesis).toContain("PostgreSQL primary connection lease saturation");
+      expect(result.spans.length).toBeGreaterThanOrEqual(5);
+
+      // Find the offending span
+      const dbSpan = result.spans.find((s) => s.serviceId === "srv-payment-db");
+      expect(dbSpan).toBeDefined();
+      expect(dbSpan?.statusCode).toBe("ERROR");
+      expect(dbSpan?.attributes["db.pool.active_connections"]).toBe(100);
+    });
+  });
+
+  describe("Tool 6: execute_remediation", () => {
+    it("executes verified remediation action and verifies recovery", () => {
+      const result = handleExecuteRemediation({
+        action: "tripCircuitBreaker",
+        targetServiceId: "srv-payment-v2",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.verificationPassed).toBe(true);
+      expect(result.action).toBe("tripCircuitBreaker");
+      expect(result.message).toContain("verified");
+
+      // Verify telemetry metrics recovered after remediation
+      const metricsAfter = handleQueryTelemetryMetrics();
+      expect(metricsAfter.clusterSummary.severity).toBe("NOMINAL");
+      expect(metricsAfter.clusterSummary.activeIncidents).toBe(0);
     });
   });
 

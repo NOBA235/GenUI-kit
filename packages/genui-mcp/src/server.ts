@@ -3,6 +3,11 @@ import { z } from "zod";
 import { handleListCatalogComponents } from "./tools/list-components.js";
 import { handleValidateUiSpec } from "./tools/validate-spec.js";
 import { handleFuzzTestCatalog } from "./tools/fuzz-test.js";
+import {
+  handleQueryTelemetryMetrics,
+  handleFetchTraceSpans,
+  handleExecuteRemediation,
+} from "./tools/telemetry-tools.js";
 
 export interface CreateMcpServerOptions {
   name?: string;
@@ -144,6 +149,136 @@ export function createGenUIMcpServer(
             {
               type: "text",
               text: `Error during fuzz testing: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Tool 4: query_telemetry_metrics
+  server.tool(
+    "query_telemetry_metrics",
+    "Query real-time service mesh telemetry metrics (RPS, error rate, p95 latency, health status) to detect anomalies.",
+    {
+      serviceId: z
+        .string()
+        .optional()
+        .describe("Optional service ID to filter (e.g. 'srv-payment-db')"),
+      minErrorRate: z
+        .number()
+        .optional()
+        .describe("Optional minimum error rate percent to filter anomalous nodes"),
+    },
+    async (args) => {
+      try {
+        const result = handleQueryTelemetryMetrics(args);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error querying telemetry: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Tool 5: fetch_trace_spans
+  server.tool(
+    "fetch_trace_spans",
+    "Fetch distributed trace waterfall spans for root-cause diagnosis. Identifies the exact bottleneck span and database query causing latency or failure.",
+    {
+      traceId: z
+        .string()
+        .optional()
+        .describe("Optional specific trace ID to inspect"),
+      onlyAnomalous: z
+        .boolean()
+        .optional()
+        .describe("Whether to fetch anomalous slow/error traces (default: true)"),
+    },
+    async (args) => {
+      try {
+        const result = handleFetchTraceSpans(args);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error fetching trace spans: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Tool 6: execute_remediation
+  server.tool(
+    "execute_remediation",
+    "Execute a verified SRE remediation action (tripCircuitBreaker, scaleServiceReplicas, triggerRegionalFailover, rollbackDeployment) against the live infrastructure target.",
+    {
+      action: z
+        .enum([
+          "tripCircuitBreaker",
+          "scaleServiceReplicas",
+          "triggerRegionalFailover",
+          "rollbackDeployment",
+        ])
+        .describe("Target remediation action"),
+      targetServiceId: z
+        .string()
+        .describe("Target service ID (e.g. 'srv-payment-v2')"),
+      parameters: z
+        .record(z.string(), z.any())
+        .optional()
+        .describe("Optional action parameters"),
+    },
+    async (args) => {
+      try {
+        const result = handleExecuteRemediation(args);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error executing remediation: ${
                 err instanceof Error ? err.message : String(err)
               }`,
             },

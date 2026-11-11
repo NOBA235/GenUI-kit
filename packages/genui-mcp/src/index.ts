@@ -24,6 +24,18 @@ export {
   type ComponentFuzzReport,
 } from "./tools/fuzz-test.js";
 
+export {
+  handleQueryTelemetryMetrics,
+  handleFetchTraceSpans,
+  handleExecuteRemediation,
+  setMcpTelemetryProvider,
+  getMcpTelemetryProvider,
+  type McpSpan,
+  type McpTraceWaterfall,
+  type McpServiceMetric,
+  type McpTelemetryProvider,
+} from "./tools/telemetry-tools.js";
+
 export { describeZodSchema } from "./schema-describer.js";
 
 export {
