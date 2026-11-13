@@ -274,6 +274,97 @@ export const finopsCatalogDefinitions = {
         maxEntries: 5,
       },
     },
+
+    PaymentTraceInspector: {
+      description:
+        "Distributed Stripe/Adyen payment gateway trace waterfall showing hop-by-hop execution latency, 3DS2 decline codes, payload drilldown, and direct fallback gateway failover.",
+      props: z.object({
+        title: z.string().min(1).max(120),
+        traceId: z.string().min(1).max(80),
+        accountId: z.string().min(1).max(40),
+        invoiceId: z.string().min(1).max(60),
+        gateway: z.enum([
+          "STRIPE_PRIMARY",
+          "STRIPE_EU_FALLBACK",
+          "ADYEN_BACKUP_MID",
+        ]),
+        recommendedGateway: z.enum([
+          "STRIPE_PRIMARY",
+          "STRIPE_EU_FALLBACK",
+          "ADYEN_BACKUP_MID",
+        ]),
+        totalDurationMs: z.number().min(1).max(60_000),
+        recommendedAction: z.string().min(1).max(220),
+        spans: z
+          .array(
+            z.object({
+              spanId: z.string().min(1).max(48),
+              stepName: z.string().min(1).max(100),
+              gatewayService: z.string().min(1).max(80),
+              startOffsetMs: z.number().min(0).max(60_000),
+              durationMs: z.number().min(1).max(60_000),
+              status: z.enum(["OK", "ERROR"]),
+              errorCode: z.string().max(80).optional(),
+              detailMessage: z.string().max(240).optional(),
+            })
+          )
+          .min(1)
+          .max(12),
+      }),
+      slots: [],
+      fallbackProps: {
+        title: "Distributed Payment & 3DS2 Gateway Trace Waterfall",
+        traceId: "tr_pay_eu_9001",
+        accountId: "acct_1001",
+        invoiceId: "in_eu_9001",
+        gateway: "STRIPE_PRIMARY",
+        recommendedGateway: "STRIPE_EU_FALLBACK",
+        totalDurationMs: 1689,
+        recommendedAction:
+          "3DS2 ACS challenge timed out on STRIPE_PRIMARY — fail over to STRIPE_EU_FALLBACK & replay invoice webhook.",
+        spans: [
+          {
+            spanId: "sp_1",
+            stepName: "POST /v1/charges/renewal",
+            gatewayService: "edge-webhook-router",
+            startOffsetMs: 0,
+            durationMs: 12,
+            status: "OK",
+            detailMessage: "Verified webhook signature & idempotency key",
+          },
+          {
+            spanId: "sp_2",
+            stepName: "Create PaymentIntent",
+            gatewayService: "stripe-api (STRIPE_PRIMARY)",
+            startOffsetMs: 12,
+            durationMs: 27,
+            status: "OK",
+            detailMessage: "Intent pi_in_eu_9001 initialized ($18,500.00)",
+          },
+          {
+            spanId: "sp_3",
+            stepName: "PSD2 / 3DS2 ACS Auth Challenge",
+            gatewayService: "3ds2-acs-directory",
+            startOffsetMs: 39,
+            durationMs: 1632,
+            status: "ERROR",
+            errorCode: "three_d_secure_timeout",
+            detailMessage:
+              "Upstream EMEA ACS bank challenge timed out (>1500ms SLA)",
+          },
+          {
+            spanId: "sp_4",
+            stepName: "DLQ Enqueue & Retry Schedule",
+            gatewayService: "finops-settlement-worker",
+            startOffsetMs: 1671,
+            durationMs: 18,
+            status: "ERROR",
+            errorCode: "gateway_circuit_open",
+            detailMessage: "Queued for STRIPE_EU_FALLBACK automated replay",
+          },
+        ],
+      },
+    },
   },
 
   actions: {

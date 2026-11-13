@@ -11,10 +11,10 @@ import {
 
 describe("GenUI Studio MCP Server & Tool Handlers", () => {
   describe("Tool 1: list_catalog_components", () => {
-    it("lists all 29 components and actions across both catalogs by default", () => {
+    it("lists all 30 components and actions across both catalogs by default", () => {
       const result = handleListCatalogComponents({ app: "all" });
 
-      expect(result.totalComponents).toBe(29); // 14 FinOps + 15 Spatial
+      expect(result.totalComponents).toBe(30); // 15 FinOps + 15 Spatial
       expect(result.catalogs).toHaveLength(2);
       expect(result.catalogs.map((c) => c.app)).toEqual(["finops", "spatial"]);
       expect(result.totalActions).toBeGreaterThanOrEqual(8); // 4 in FinOps + 4 in Spatial
@@ -38,10 +38,13 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
 
     it("filters components by specific app (finops)", () => {
       const result = handleListCatalogComponents({ app: "finops" });
-      expect(result.totalComponents).toBe(14);
+      expect(result.totalComponents).toBe(15);
       expect(result.components.every((c) => c.app === "finops")).toBe(true);
       expect(result.components.map((c) => c.name)).toContain("WorkspaceShell");
       expect(result.components.map((c) => c.name)).toContain("MrrChurnChart");
+      expect(result.components.map((c) => c.name)).toContain(
+        "PaymentTraceInspector",
+      );
     });
 
     it("filters components by specific app (spatial)", () => {

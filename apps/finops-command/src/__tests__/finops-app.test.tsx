@@ -33,12 +33,12 @@ import {
 } from "../streams/finops-streams.js";
 
 describe("@genui-studio/finops-command — Application #1 Verification Suite", () => {
-  it("1. Catalog-Registry Parity Audit: confirms 100% synchronization across all 14 FinOps components and 4 actions", () => {
+  it("1. Catalog-Registry Parity Audit: confirms 100% synchronization across all 15 FinOps components and 4 actions", () => {
     const { rawComponentRegistry, actionHandlers } = createFinOpsRegistry();
     const registeredComponentNames = Object.keys(rawComponentRegistry);
 
-    expect(registeredComponentNames.length).toBe(14);
-    expect(finopsVerifiedCatalog.metadata.componentNames.length).toBe(14);
+    expect(registeredComponentNames.length).toBe(15);
+    expect(finopsVerifiedCatalog.metadata.componentNames.length).toBe(15);
     expect(finopsVerifiedCatalog.metadata.actionNames.length).toBe(4);
 
     const audit = auditCatalogRegistryParity(
@@ -54,7 +54,7 @@ describe("@genui-studio/finops-command — Application #1 Verification Suite", (
     expect(audit.missingDescriptions).toEqual([]);
   });
 
-  it("2. Formal Property-Based Testing (PBT) Suite: verifies INV-1 through INV-4 on the 14-component FinOps Catalog", () => {
+  it("2. Formal Property-Based Testing (PBT) Suite: verifies INV-1 through INV-4 on the 15-component FinOps Catalog", () => {
     const report = runCatalogInvariantSuite(finopsVerifiedCatalog, {
       numRuns: 25,
     });

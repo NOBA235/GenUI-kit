@@ -65,6 +65,246 @@ function useFinOpsMutation() {
   };
 }
 
+interface PaymentTraceSpanItem {
+  spanId: string;
+  stepName: string;
+  gatewayService: string;
+  startOffsetMs: number;
+  durationMs: number;
+  status: "OK" | "ERROR";
+  errorCode?: string;
+  detailMessage?: string;
+}
+
+interface PaymentTraceInspectorProps {
+  title: string;
+  traceId: string;
+  accountId: string;
+  invoiceId: string;
+  gateway: "STRIPE_PRIMARY" | "STRIPE_EU_FALLBACK" | "ADYEN_BACKUP_MID";
+  recommendedGateway: "STRIPE_PRIMARY" | "STRIPE_EU_FALLBACK" | "ADYEN_BACKUP_MID";
+  totalDurationMs: number;
+  recommendedAction: string;
+  spans: PaymentTraceSpanItem[];
+}
+
+function PaymentTraceInspectorView({
+  props,
+}: {
+  props: PaymentTraceInspectorProps;
+}) {
+  const { get } = useStateStore();
+  const mutate = useFinOpsMutation();
+
+  const defaultSelected =
+    props.spans.find((s) => s.status === "ERROR")?.spanId ??
+    props.spans[0]?.spanId ??
+    null;
+  const [selectedSpanId, setSelectedSpanId] = useState<string | null>(
+    defaultSelected
+  );
+  const [replayed, setReplayed] = useState(false);
+
+  const webhooks =
+    (get("/ledger/webhooks") as WebhookEventRecord[] | undefined) ?? [];
+  const matchingWebhook =
+    webhooks.find(
+      (w) =>
+        (w.accountId === props.accountId || w.invoiceId === props.invoiceId) &&
+        w.status !== "DELIVERED"
+    ) ??
+    webhooks.find((w) => w.status !== "DELIVERED") ??
+    webhooks[0];
+
+  const hasErrors = props.spans.some((s) => s.status === "ERROR") && !replayed;
+  const maxDuration = Math.max(
+    1,
+    props.totalDurationMs,
+    ...props.spans.map((s) => s.startOffsetMs + s.durationMs)
+  );
+  const selectedSpan =
+    props.spans.find((s) => s.spanId === selectedSpanId) ?? props.spans[0];
+
+  const handleFailoverReplay = () => {
+    mutate("retryFailedWebhook", {
+      webhookId: matchingWebhook?.id ?? "wh_3001",
+      routeGateway: props.recommendedGateway,
+    });
+    setReplayed(true);
+  };
+
+  return (
+    <div
+      className="rounded-xl border border-slate-800/90 bg-slate-950/90 p-4 shadow-lg"
+      data-testid="payment-trace-inspector"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-800/80 pb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                hasErrors
+                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              }`}
+            >
+              {hasErrors ? "FAILURE TRACE" : "RECOVERED / SETTLED"}
+            </span>
+            <span className="font-mono text-xs text-slate-400">
+              {props.traceId}
+            </span>
+          </div>
+          <h3 className="mt-1 font-sans text-sm font-semibold text-slate-100">
+            {props.title}
+          </h3>
+          <div className="mt-1 flex flex-wrap items-center gap-3 font-mono text-[11px] text-slate-400">
+            <span>
+              Gateway:{" "}
+              <strong className="text-slate-200">
+                {replayed ? props.recommendedGateway : props.gateway}
+              </strong>
+            </span>
+            <span>
+              Account: <strong className="text-slate-200">{props.accountId}</strong>
+            </span>
+            <span>
+              Invoice: <strong className="text-slate-200">{props.invoiceId}</strong>
+            </span>
+            <span>
+              Total Latency:{" "}
+              <strong
+                className={
+                  props.totalDurationMs > 1000 && !replayed
+                    ? "text-rose-300"
+                    : "text-emerald-300"
+                }
+              >
+                {replayed ? "84ms (Post-Failover)" : `${props.totalDurationMs}ms`}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleFailoverReplay}
+          data-testid="payment-trace-failover-btn"
+          className={`rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition ${
+            replayed
+              ? "border-emerald-500/45 bg-emerald-500/15 text-emerald-200"
+              : "border-cyan-400/50 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25"
+          }`}
+        >
+          {replayed
+            ? `✓ Replayed via ${props.recommendedGateway}`
+            : `⚡ Failover & Replay via ${props.recommendedGateway}`}
+        </button>
+      </div>
+
+      {/* Gantt Execution Span Waterfall */}
+      <div className="mt-3 space-y-1.5">
+        {props.spans.map((span) => {
+          const isError = span.status === "ERROR" && !replayed;
+          const isSelected = selectedSpan?.spanId === span.spanId;
+          const leftPct = Math.min(
+            94,
+            Math.max(0, (span.startOffsetMs / maxDuration) * 100)
+          );
+          const widthPct = Math.max(
+            4,
+            Math.min(100 - leftPct, (span.durationMs / maxDuration) * 100)
+          );
+
+          return (
+            <button
+              key={span.spanId}
+              type="button"
+              onClick={() => setSelectedSpanId(span.spanId)}
+              className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                isSelected
+                  ? "border-cyan-500/50 bg-slate-900/90"
+                  : "border-slate-800/70 bg-slate-900/40 hover:bg-slate-900/70"
+              }`}
+            >
+              <div className="grid grid-cols-12 items-center gap-2 font-mono text-xs">
+                <div className="col-span-5 truncate">
+                  <span
+                    className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
+                      isError ? "bg-rose-400" : "bg-emerald-400"
+                    }`}
+                  />
+                  <span className="font-semibold text-slate-200">
+                    {span.stepName}
+                  </span>
+                  <span className="ml-2 text-[10px] text-slate-400">
+                    ({span.gatewayService})
+                  </span>
+                </div>
+
+                <div className="col-span-5 relative h-3 rounded bg-slate-800/90 overflow-hidden">
+                  <div
+                    className={`absolute top-0 bottom-0 rounded ${
+                      isError ? "bg-rose-500" : "bg-cyan-400"
+                    }`}
+                    style={{
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="col-span-2 text-right font-semibold">
+                  <span className={isError ? "text-rose-300" : "text-slate-300"}>
+                    {span.durationMs}ms
+                  </span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected Span Diagnostics & Action Recommendation */}
+      <div className="mt-3 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+        {selectedSpan && (
+          <div className="rounded-lg border border-slate-800/80 bg-slate-900/75 p-2.5 font-mono text-[11px]">
+            <div className="flex items-center justify-between text-slate-400">
+              <span>Selected Hop: {selectedSpan.spanId}</span>
+              <span
+                className={
+                  selectedSpan.status === "ERROR" && !replayed
+                    ? "text-rose-300 font-bold"
+                    : "text-emerald-300 font-bold"
+                }
+              >
+                {replayed ? "OK (RECOVERED)" : selectedSpan.status}
+              </span>
+            </div>
+            {selectedSpan.errorCode && (
+              <div className="mt-1 text-rose-300">
+                error_code: <strong>{selectedSpan.errorCode}</strong>
+              </div>
+            )}
+            <div className="mt-1 font-sans text-xs text-slate-200">
+              {selectedSpan.detailMessage ??
+                `${selectedSpan.stepName} completed in ${selectedSpan.durationMs}ms`}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 font-mono text-[11px] text-amber-100">
+          <div className="font-bold uppercase tracking-wider text-amber-300">
+            Recommended Automated Runbook
+          </div>
+          <p className="mt-1 font-sans text-xs text-amber-100/90">
+            {props.recommendedAction}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Mandatory light-dismiss backdrop click fallback for browsers without native `closedby="any"` support.
  */
@@ -1708,6 +1948,10 @@ export function createFinOpsRegistry(telemetry?: TelemetryTracker) {
           </div>
         );
       },
+
+      PaymentTraceInspector: ({ props }) => (
+        <PaymentTraceInspectorView props={props} />
+      ),
     },
 
     actions: finopsActionHandlers,
