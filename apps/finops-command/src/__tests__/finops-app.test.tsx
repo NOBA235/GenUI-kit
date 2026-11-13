@@ -173,8 +173,8 @@ describe("@genui-studio/finops-command — Application #1 Verification Suite", (
 
     expect(compiled.spec.root).toBe("root-shell");
     // 1 shell + 4 sections + 4 KPIs + waterfall + chart + matrix + anomaly + ticker
-    // + 4 mutation cards + ledger + audit banner = 20 elements
-    expect(Object.keys(compiled.spec.elements).length).toBe(20);
+    // + payment trace + 4 mutation cards + ledger + audit banner = 21 elements
+    expect(Object.keys(compiled.spec.elements).length).toBe(21);
 
     const initialHtml = renderToStaticMarkup(
       React.createElement(
@@ -198,6 +198,10 @@ describe("@genui-studio/finops-command — Application #1 Verification Suite", (
     expect(initialHtml).toContain("Interactive 240-Account Subscription &amp; Invoice Ledger");
     expect(initialHtml).toContain('aria-sort="descending"');
     expect(initialHtml).not.toContain('aria-sort="none"');
+    expect(initialHtml).toContain(
+      "Distributed Payment &amp; 3DS2 Gateway Trace Waterfall"
+    );
+    expect(initialHtml).toContain("three_d_secure_timeout");
 
     // Now inject the Hostile / Corrupted AI Packet Batch into the active compiler
     const chaosPackets = buildCorruptedChaosPackets("root-shell");

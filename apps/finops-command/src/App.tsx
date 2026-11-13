@@ -25,10 +25,11 @@ import {
 } from "./catalog/finops-registry.js";
 import {
   createInitialFinOpsState,
+  FinOpsAuditEntry,
   FinOpsMetrics,
   formatUsdCents,
-  WebhookEventRecord,
 } from "./data/ledger-seed.js";
+import { billingBridge, BillingTelemetrySnapshot } from "./billing/index.js";
 import {
   buildCorruptedChaosPackets,
   chunkJsonlForStreaming,
@@ -82,6 +83,27 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
       setTelemetry(telemetryTracker.getSnapshot());
     });
   }, [telemetryTracker]);
+
+  // 4b. Attach live Stripe/Adyen billing gateway simulator + bridge
+  const [gatewaySnapshot, setGatewaySnapshot] =
+    useState<BillingTelemetrySnapshot>(() => billingBridge.getSnapshot());
+  useEffect(() => {
+    billingBridge.attachToStore(timeTravelStore, {
+      startInterval: !instantStreamForTest,
+      intervalMs: 3800,
+    });
+    const unsubscribe = billingBridge.subscribe((snap) => {
+      setGatewaySnapshot(snap);
+    });
+    return () => {
+      unsubscribe();
+      billingBridge.detach();
+    };
+  }, [timeTravelStore, instantStreamForTest]);
+
+  const handleMutationExecuted = useCallback((entry: FinOpsAuditEntry) => {
+    billingBridge.handleOperatorMutation(entry);
+  }, []);
 
   // 5. Active GuardrailedStreamCompiler & Spec state
   const compilerRef = useRef<GuardrailedStreamCompiler | null>(null);
@@ -308,36 +330,43 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
   }, [currentSpec?.root, telemetryTracker]);
 
   /**
-   * Simulates a live incoming Stripe webhook failure event in the ledger store
+   * Ingests a raw Stripe webhook failure JSON event through the live billing gateway bridge
    */
   const handleSimulateWebhookArrival = () => {
-    const webhooks = [
-      ...((timeTravelStore.get("/ledger/webhooks") as WebhookEventRecord[]) ??
-        []),
-    ];
-    const metrics = {
-      ...((timeTravelStore.get("/ledger/metrics") as FinOpsMetrics) ?? {}),
-    };
-    const newWhId = `wh_${3000 + webhooks.length + 1}`;
-    const newEvent: WebhookEventRecord = {
-      id: newWhId,
-      eventType: "invoice.payment_failed",
-      accountId: "acct_1004",
-      companyName: "Vanguard Cloud Systems",
-      invoiceId: `in_${9100 + webhooks.length}`,
-      amountCents: 320_000,
-      status: "FAILED",
-      failureReason: "card_declined: authentication_required (3DS2 timeout)",
-      attemptCount: 1,
-      createdAt: new Date().toISOString(),
-    };
-    webhooks.unshift(newEvent);
-    metrics.failedChargesTotal = (metrics.failedChargesTotal ?? 0) + 1;
-    metrics.disputedCents = (metrics.disputedCents ?? 0) + 320_000;
-    timeTravelStore.update({
-      "/ledger/webhooks": webhooks,
-      "/ledger/metrics": metrics,
+    const seq = gatewaySnapshot.tick + 1;
+    billingBridge.ingestCustomWebhookJson({
+      id: `wh_stripe_live_${seq}`,
+      type: "invoice.payment_failed",
+      data: {
+        object: {
+          id: `in_eu_live_${9100 + seq}`,
+          customer: "acct_1004",
+          customer_name: "Vanguard Cloud Systems",
+          amount_due: 320_000,
+          failure_code: "three_d_secure_timeout",
+          failure_message:
+            "card_declined: 3DS2 ACS authentication timeout on STRIPE_PRIMARY",
+          attempt_count: 1,
+          region: "EMEA",
+        },
+      },
     });
+  };
+
+  /**
+   * Injects a real EU 3DS2 gateway outage into the billing simulator and opens
+   * the PaymentTraceInspector incident triage surface.
+   */
+  const handleInjectGatewayOutage = () => {
+    billingBridge.injectEu3dsOutage();
+    handleSelectScenario("stripe-recovery");
+  };
+
+  /**
+   * Executes verified payment gateway failover to STRIPE_EU_FALLBACK and replays failed webhooks.
+   */
+  const handleRecoverGateway = () => {
+    billingBridge.failoverAndRecover("STRIPE_EU_FALLBACK", "acct_1001");
   };
 
   const metrics = timeTravelStore.get("/ledger/metrics") as
@@ -370,7 +399,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                 </span>
               </div>
               <p className="font-mono text-[11px] text-slate-400">
-                14 Zod Components · 240 Seeded Accounts · RFC 6902 JSONL Stream
+                15 Zod Components · 240 Seeded Accounts · RFC 6902 JSONL Stream
               </p>
             </div>
           </div>
@@ -472,6 +501,48 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                 ↷ Redo
               </button>
             </div>
+
+            {/* Live Gateway Status & Outage / Failover Loop */}
+            <div
+              className={`hidden md:flex items-center gap-2 rounded-lg border px-2.5 py-1 font-mono text-[11px] ${
+                gatewaySnapshot.chaosActive
+                  ? "border-rose-500/50 bg-rose-500/15 text-rose-200"
+                  : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+              }`}
+              data-testid="header-gateway-status"
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  gatewaySnapshot.chaosActive
+                    ? "bg-rose-400 animate-ping"
+                    : "bg-emerald-400"
+                }`}
+              />
+              <span>
+                {gatewaySnapshot.activeGateway} ·{" "}
+                {gatewaySnapshot.chaosActive ? "OUTAGE" : "NOMINAL"}
+              </span>
+            </div>
+
+            {!gatewaySnapshot.chaosActive ? (
+              <button
+                type="button"
+                onClick={handleInjectGatewayOutage}
+                data-testid="header-inject-gateway-outage-btn"
+                className="rounded-lg border border-amber-500/45 bg-amber-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-amber-200 hover:bg-amber-500/25 transition"
+              >
+                💥 Inject 3DS2 Gateway Outage
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRecoverGateway}
+                data-testid="header-recover-gateway-btn"
+                className="rounded-lg border border-emerald-400/60 bg-emerald-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-200 hover:bg-emerald-500/30 transition"
+              >
+                🛡️ Failover to EU Fallback MID
+              </button>
+            )}
 
             {/* Quick Chaos Packet Injection Button */}
             <button
@@ -649,7 +720,9 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
 
       {/* Main Generative UI Workspace Surface */}
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-5 py-6">
-        <FinOpsRuntimeContext.Provider value={{ timeTravelStore }}>
+        <FinOpsRuntimeContext.Provider
+          value={{ timeTravelStore, onMutationExecuted: handleMutationExecuted }}
+        >
           <JSONUIProvider registry={safeRegistry} store={timeTravelStore}>
             <SafeGenUIRenderer
               spec={currentSpec}
