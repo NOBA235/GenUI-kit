@@ -7,6 +7,9 @@ import {
   handleQueryTelemetryMetrics,
   handleFetchTraceSpans,
   handleExecuteRemediation,
+  handleQueryFinopsLedger,
+  handleInspectFailedWebhooks,
+  handleExecuteFinopsRemediation,
 } from "../index.js";
 
 describe("GenUI Studio MCP Server & Tool Handlers", () => {
@@ -295,6 +298,65 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       const metricsAfter = handleQueryTelemetryMetrics();
       expect(metricsAfter.clusterSummary.severity).toBe("NOMINAL");
       expect(metricsAfter.clusterSummary.activeIncidents).toBe(0);
+    });
+  });
+
+  describe("Tool 7: query_finops_ledger", () => {
+    it("queries FinOps ledger summary and detects at-risk EMEA accounts during outage", () => {
+      const result = handleQueryFinopsLedger({
+        region: "EMEA",
+        onlyAtRisk: true,
+      });
+
+      expect(result.summary.gatewayStatus).toBe("OUTAGE");
+      expect(result.summary.atRiskMrrCents).toBeGreaterThan(0);
+      expect(result.summary.failedChargesTotal).toBeGreaterThan(0);
+      expect(result.accounts.length).toBeGreaterThanOrEqual(2);
+      expect(result.accounts.every((a) => a.region === "EMEA")).toBe(true);
+    });
+  });
+
+  describe("Tool 8: inspect_failed_webhooks", () => {
+    it("retrieves failed Stripe webhooks and 3DS2 payment trace bottleneck spans", () => {
+      const result = handleInspectFailedWebhooks({ onlyFailed: true });
+
+      expect(result.gatewayStatus).toBe("OUTAGE");
+      expect(result.failedCount).toBeGreaterThanOrEqual(2);
+      expect(result.latestTrace.hasError).toBe(true);
+      expect(result.latestTrace.totalDurationMs).toBeGreaterThan(1500);
+      expect(result.latestTrace.rootCauseHypothesis).toContain(
+        "STRIPE_EU_FALLBACK",
+      );
+
+      const errorSpan = result.latestTrace.spans.find(
+        (s) => s.status === "ERROR",
+      );
+      expect(errorSpan?.errorCode).toBe("three_d_secure_timeout");
+    });
+  });
+
+  describe("Tool 9: execute_finops_remediation", () => {
+    it("executes verified gateway failover remediation and restores FinOps ledger health", () => {
+      const res = handleExecuteFinopsRemediation({
+        action: "failoverPaymentGateway",
+        targetAccountId: "acct_1001",
+        parameters: { routeGateway: "STRIPE_EU_FALLBACK" },
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.verificationPassed).toBe(true);
+      expect(res.targetGateway).toBe("STRIPE_EU_FALLBACK");
+      expect(res.recoveredMrrCents).toBeGreaterThan(0);
+
+      // Verify closed-loop recovery across both FinOps query tools
+      const ledgerAfter = handleQueryFinopsLedger();
+      expect(ledgerAfter.summary.gatewayStatus).toBe("NOMINAL");
+      expect(ledgerAfter.summary.activeGateway).toBe("STRIPE_EU_FALLBACK");
+      expect(ledgerAfter.summary.failedChargesTotal).toBe(0);
+
+      const webhooksAfter = handleInspectFailedWebhooks({ onlyFailed: true });
+      expect(webhooksAfter.failedCount).toBe(0);
+      expect(webhooksAfter.latestTrace.hasError).toBe(false);
     });
   });
 

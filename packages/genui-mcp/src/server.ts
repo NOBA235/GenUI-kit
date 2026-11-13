@@ -8,6 +8,11 @@ import {
   handleFetchTraceSpans,
   handleExecuteRemediation,
 } from "./tools/telemetry-tools.js";
+import {
+  handleQueryFinopsLedger,
+  handleInspectFailedWebhooks,
+  handleExecuteFinopsRemediation,
+} from "./tools/finops-tools.js";
 
 export interface CreateMcpServerOptions {
   name?: string;
@@ -279,6 +284,141 @@ export function createGenUIMcpServer(
             {
               type: "text",
               text: `Error executing remediation: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Tool 7: query_finops_ledger
+  server.tool(
+    "query_finops_ledger",
+    "Query live SaaS revenue ledger metrics (MRR, At-Risk MRR, Disputed Balance, failed charges) and filter enterprise accounts.",
+    {
+      region: z
+        .enum(["NA", "EMEA", "APAC", "LATAM"])
+        .optional()
+        .describe("Optional region filter (e.g. 'EMEA')"),
+      status: z
+        .string()
+        .optional()
+        .describe("Optional subscription status filter (e.g. 'PAST_DUE')"),
+      onlyAtRisk: z
+        .boolean()
+        .optional()
+        .describe("Return only PAST_DUE, DISPUTED, or AT_RISK accounts"),
+    },
+    async (args) => {
+      try {
+        const result = handleQueryFinopsLedger(args);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error querying FinOps ledger: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Tool 8: inspect_failed_webhooks
+  server.tool(
+    "inspect_failed_webhooks",
+    "Inspect live Stripe/Adyen failed payment webhooks and distributed 3DS2 gateway trace waterfall spans to diagnose decline root causes.",
+    {
+      webhookId: z
+        .string()
+        .optional()
+        .describe("Optional specific webhook event ID to inspect"),
+      onlyFailed: z
+        .boolean()
+        .optional()
+        .describe("Only return failed or pending retry webhooks"),
+    },
+    async (args) => {
+      try {
+        const result = handleInspectFailedWebhooks(args);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error inspecting failed webhooks: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Tool 9: execute_finops_remediation
+  server.tool(
+    "execute_finops_remediation",
+    "Execute verified FinOps recovery operations (failoverPaymentGateway, retryFailedWebhook, issuePartialRefund, applyRetentionDiscount, extendTrialPeriod) and verify gateway recovery.",
+    {
+      action: z
+        .enum([
+          "retryFailedWebhook",
+          "failoverPaymentGateway",
+          "issuePartialRefund",
+          "applyRetentionDiscount",
+          "extendTrialPeriod",
+        ])
+        .describe("FinOps remediation action to execute"),
+      targetAccountId: z
+        .string()
+        .describe("Target enterprise customer account ID (e.g. 'acct_1001')"),
+      parameters: z
+        .record(z.string(), z.any())
+        .optional()
+        .describe("Optional action parameters such as routeGateway or amountCents"),
+    },
+    async (args) => {
+      try {
+        const result = handleExecuteFinopsRemediation(args);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error executing FinOps remediation: ${
                 err instanceof Error ? err.message : String(err)
               }`,
             },
