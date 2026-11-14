@@ -4,7 +4,52 @@ import type {
   ClueRecord,
   EncounterDefinition,
   EncounterId,
+  TransformationStage,
 } from "../types.js";
+
+export const LIGHT_MODE_SWITCH_SPEC = {
+  id: "light-switch" as const,
+  switchId: "breaker-01",
+  plaqueLabel: "LIGHT MODE",
+  promptLabel: "Press [E] to Activate LIGHT MODE",
+  position: [-4.0, -3.2, -50.22] as readonly [number, number, number],
+  standPoint: [-4.0, -4.5 + 1.7, -52.1] as readonly [number, number, number],
+  interactRadius: 4.4,
+} as const;
+
+export interface TransformationStageMeta {
+  readonly stage: TransformationStage;
+  readonly minSeconds: number;
+  readonly cueText: string;
+}
+
+/** Deterministic 10-Stage Cinematic Transformation Sequence (6.2s total) */
+export const TRANSFORMATION_SEQUENCE_STAGES: readonly TransformationStageMeta[] = [
+  { stage: 1, minSeconds: 0.0, cueText: "STAGE 01 · FOCUSING CRYPT BREAKER" },
+  { stage: 2, minSeconds: 0.4, cueText: "STAGE 02 · THROWING IRON LEVER TO ON" },
+  { stage: 3, minSeconds: 0.9, cueText: "STAGE 03 · MECHANICAL CONTACT ENGAGED" },
+  { stage: 4, minSeconds: 1.4, cueText: "STAGE 04 · DEEP TRANSFORMER SURGE" },
+  { stage: 5, minSeconds: 2.0, cueText: "STAGE 05 · CRYPT & CHAPEL CASCADE" },
+  { stage: 6, minSeconds: 2.7, cueText: "STAGE 06 · CEMETERY LANTERN IGNITION" },
+  { stage: 7, minSeconds: 3.4, cueText: "STAGE 07 · VOLUMETRIC FOG DISSIPATION" },
+  { stage: 8, minSeconds: 4.1, cueText: "STAGE 08 · DAWN SKYBOX TRANSITION" },
+  { stage: 9, minSeconds: 4.9, cueText: "STAGE 09 · CEMETERY ARCHITECTURE REVEAL" },
+  { stage: 10, minSeconds: 5.7, cueText: "STAGE 10 · RESTORED EDITORIAL CROSSFADE" },
+];
+
+export function resolveTransformationStage(
+  elapsedSeconds: number,
+): TransformationStage {
+  let stage: TransformationStage = 1;
+  for (const s of TRANSFORMATION_SEQUENCE_STAGES) {
+    if (elapsedSeconds >= s.minSeconds) {
+      stage = s.stage;
+    }
+  }
+  return stage;
+}
+
+export const TOTAL_TRANSFORMATION_DURATION = 6.2;
 
 export const CLUE_RECORDS: readonly ClueRecord[] = [
   {
@@ -174,6 +219,26 @@ export function evaluateInteractableFocus(
   }
 
   return bestClue;
+}
+
+/**
+ * Pure deterministic focus evaluator for the physical Zone E LIGHT MODE switch.
+ */
+export function evaluateLightSwitchFocus(
+  playerPos: readonly [number, number, number],
+  yaw: number,
+  pitch: number,
+): boolean {
+  if (playerPos[1] > 0.2) return false;
+  const swPos = LIGHT_MODE_SWITCH_SPEC.position;
+  const dist = Math.hypot(
+    swPos[0] - playerPos[0],
+    swPos[1] - playerPos[1],
+    swPos[2] - playerPos[2],
+  );
+  if (dist > LIGHT_MODE_SWITCH_SPEC.interactRadius) return false;
+  const dot = computeLookDotProduct(playerPos, yaw, pitch, swPos);
+  return dot >= 0.52 || dist <= 2.35;
 }
 
 export interface EncounterTickInput {

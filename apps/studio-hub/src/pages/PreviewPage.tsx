@@ -311,7 +311,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
     streamSpecJsonl(specToJsonlStream(baseSpec));
   };
 
-  const handleInjectChaosPacket = () => {
+  const handleInjectChaosPacket = useCallback(() => {
     if (!template) return;
     const rootKey = currentSpec?.root ?? "site-shell";
     const lines = template.buildChaosPackets
@@ -333,7 +333,27 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           }),
         ];
     streamSpecJsonl(lines.join("\n") + "\n", true);
-  };
+  }, [template, currentSpec, streamSpecJsonl]);
+
+  // Allow Restored Website / immersive widgets to trigger Live Remix or Chaos Self-Healing
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onStreamRemix = (ev: Event) => {
+      const custom = ev as CustomEvent<{ prompt?: string }>;
+      if (custom.detail?.prompt) {
+        handleSubmitRemixPrompt(custom.detail.prompt);
+      }
+    };
+    const onInjectChaos = () => {
+      handleInjectChaosPacket();
+    };
+    window.addEventListener("genui:stream-remix", onStreamRemix);
+    window.addEventListener("genui:inject-chaos", onInjectChaos);
+    return () => {
+      window.removeEventListener("genui:stream-remix", onStreamRemix);
+      window.removeEventListener("genui:inject-chaos", onInjectChaos);
+    };
+  }, [handleSubmitRemixPrompt, handleInjectChaosPacket]);
 
   if (!template) {
     return (

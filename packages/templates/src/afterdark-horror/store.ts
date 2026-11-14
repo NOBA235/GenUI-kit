@@ -16,34 +16,41 @@ import type {
   CemeteryZoneId,
   ClueId,
   EncounterId,
+  InteractableId,
+  LightingPreviewPreset,
   QualityBudget,
   QualityPreset,
+  TransformationStage,
 } from "./types.js";
 
-const AFTERDARK_PROGRESS_STORAGE_KEY = "afterdark-archive-progress-v2";
+export const AFTERDARK_PROGRESS_STORAGE_KEY = "afterdark-archive-progress-v2";
 
 interface PersistedArchiveProgress {
   readonly discoveredClues: readonly ClueId[];
   readonly triggeredEncounters: readonly EncounterId[];
   readonly weepingGuideActive: boolean;
+  readonly lightModeRestored: boolean;
+  readonly timeSpentDarkSeconds: number;
+  readonly distanceWalkedMeters: number;
 }
+
+const EMPTY_PERSISTED_PROGRESS: PersistedArchiveProgress = {
+  discoveredClues: [],
+  triggeredEncounters: [],
+  weepingGuideActive: false,
+  lightModeRestored: false,
+  timeSpentDarkSeconds: 0,
+  distanceWalkedMeters: 0,
+};
 
 function readPersistedProgress(): PersistedArchiveProgress {
   if (typeof window === "undefined") {
-    return {
-      discoveredClues: [],
-      triggeredEncounters: [],
-      weepingGuideActive: false,
-    };
+    return EMPTY_PERSISTED_PROGRESS;
   }
   try {
     const raw = window.localStorage.getItem(AFTERDARK_PROGRESS_STORAGE_KEY);
     if (!raw) {
-      return {
-        discoveredClues: [],
-        triggeredEncounters: [],
-        weepingGuideActive: false,
-      };
+      return EMPTY_PERSISTED_PROGRESS;
     }
     const parsed = JSON.parse(raw) as Partial<PersistedArchiveProgress>;
     const validClues: ClueId[] = ["clue-01", "clue-02", "clue-03"];
@@ -64,13 +71,22 @@ function readPersistedProgress(): PersistedArchiveProgress {
           )
         : [],
       weepingGuideActive: Boolean(parsed.weepingGuideActive),
+      lightModeRestored: Boolean(parsed.lightModeRestored),
+      timeSpentDarkSeconds:
+        typeof parsed.timeSpentDarkSeconds === "number" &&
+        Number.isFinite(parsed.timeSpentDarkSeconds) &&
+        parsed.timeSpentDarkSeconds >= 0
+          ? Math.round(parsed.timeSpentDarkSeconds)
+          : 0,
+      distanceWalkedMeters:
+        typeof parsed.distanceWalkedMeters === "number" &&
+        Number.isFinite(parsed.distanceWalkedMeters) &&
+        parsed.distanceWalkedMeters >= 0
+          ? Number(parsed.distanceWalkedMeters.toFixed(1))
+          : 0,
     };
   } catch {
-    return {
-      discoveredClues: [],
-      triggeredEncounters: [],
-      weepingGuideActive: false,
-    };
+    return EMPTY_PERSISTED_PROGRESS;
   }
 }
 
@@ -83,6 +99,15 @@ function writePersistedProgress(progress: PersistedArchiveProgress): void {
     );
   } catch {
     // Ignore storage quota or sandbox restrictions
+  }
+}
+
+function clearPersistedProgress(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(AFTERDARK_PROGRESS_STORAGE_KEY);
+  } catch {
+    // Ignore sandbox restrictions
   }
 }
 
@@ -173,7 +198,7 @@ export interface AfterdarkState {
 
   // Milestone 2: Interaction, 3-Clue Chain & 5 Supernatural Encounters
   readonly discoveredClues: readonly ClueId[];
-  readonly activeInteractableId: ClueId | null;
+  readonly activeInteractableId: InteractableId | null;
   readonly activeReaderClueId: ClueId | null;
   readonly chapelBeaconPulseUntil: number;
   readonly triggeredEncounters: readonly EncounterId[];
@@ -182,6 +207,15 @@ export interface AfterdarkState {
   readonly encounterSubtitle: string | null;
   readonly weepingGuideActive: boolean;
   readonly cryptIntimidationActive: boolean;
+
+  // Milestone 3: Zone E Physical Switch, 10-Stage Transformation & Survival Telemetry
+  readonly lightSwitchActivated: boolean;
+  readonly lightSwitchLeverProgress: number;
+  readonly transformationStage: TransformationStage;
+  readonly runStartedAtMs: number | null;
+  readonly timeSpentDarkSeconds: number;
+  readonly distanceWalkedMeters: number;
+  readonly lightingPreview: LightingPreviewPreset;
 
   // Actions
   readonly startSequence: () => void;
@@ -219,8 +253,8 @@ export interface AfterdarkState {
   readonly restoreLightMode: () => void;
   readonly resetExperience: () => void;
 
-  // Milestone 2 Actions
-  readonly setActiveInteractable: (id: ClueId | null) => void;
+  // Milestone 2 & 3 Actions
+  readonly setActiveInteractable: (id: InteractableId | null) => void;
   readonly examineClue: (id: ClueId) => void;
   readonly closeClueReader: () => void;
   readonly revealClue: (id: ClueId) => void;
@@ -232,6 +266,15 @@ export interface AfterdarkState {
   ) => void;
   readonly clearVisualEncounter: (dissipatedGarden?: boolean) => void;
   readonly setCryptIntimidation: (active: boolean) => void;
+  readonly addDistanceWalked: (meters: number) => void;
+  readonly setLightingPreview: (preset: LightingPreviewPreset) => void;
+  readonly triggerLightModeSequence: () => void;
+  readonly setTransformationProgress: (
+    stage: TransformationStage,
+    leverProgress: number,
+  ) => void;
+  readonly completeLightModeTransition: () => void;
+  readonly plungeBackIntoDarkness: () => void;
 }
 
 const INITIAL_SPAWN_POS: readonly [number, number, number] = [
@@ -266,8 +309,26 @@ function playEncounterCueAudio(id: EncounterId): void {
   }
 }
 
+function persistSnapshot(
+  s: AfterdarkState,
+  overrides: Partial<PersistedArchiveProgress> = {},
+): void {
+  writePersistedProgress({
+    discoveredClues: overrides.discoveredClues ?? [...s.discoveredClues],
+    triggeredEncounters:
+      overrides.triggeredEncounters ?? [...s.triggeredEncounters],
+    weepingGuideActive:
+      overrides.weepingGuideActive ?? s.weepingGuideActive,
+    lightModeRestored: overrides.lightModeRestored ?? s.lightModeRestored,
+    timeSpentDarkSeconds:
+      overrides.timeSpentDarkSeconds ?? s.timeSpentDarkSeconds,
+    distanceWalkedMeters:
+      overrides.distanceWalkedMeters ?? s.distanceWalkedMeters,
+  });
+}
+
 const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
-  phase: "shutdown",
+  phase: initialPersisted.lightModeRestored ? "restored_light" : "shutdown",
   typographyStep: 0,
   gateOpenProgress: 0,
   gateLockedBehind: false,
@@ -286,11 +347,11 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
   fps: 60,
   lightningIntensity: 0,
   fogDensity: QUALITY_BUDGETS.medium.baseFogDensity,
-  darknessLevel: 0.94,
+  darknessLevel: initialPersisted.lightModeRestored ? 0.05 : 0.94,
   windStrength: 0.65,
   lightningEnabled: true,
   encounterTension: 0.15,
-  lightModeRestored: false,
+  lightModeRestored: initialPersisted.lightModeRestored,
   virtualMove: [0, 0],
   virtualSprint: false,
   touchControlsForced: false,
@@ -307,9 +368,18 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
   weepingGuideActive: initialPersisted.weepingGuideActive,
   cryptIntimidationActive: false,
 
+  lightSwitchActivated: initialPersisted.lightModeRestored,
+  lightSwitchLeverProgress: initialPersisted.lightModeRestored ? 1 : 0,
+  transformationStage: initialPersisted.lightModeRestored ? 10 : 0,
+  runStartedAtMs: null,
+  timeSpentDarkSeconds: initialPersisted.timeSpentDarkSeconds,
+  distanceWalkedMeters: initialPersisted.distanceWalkedMeters,
+  lightingPreview: initialPersisted.lightModeRestored ? "dawn" : "storm",
+
   startSequence: () =>
     set((s) => ({
       audioUnlocked: true,
+      runStartedAtMs: s.runStartedAtMs ?? Date.now(),
       phase: s.phase === "shutdown" ? "typography" : s.phase,
       typographyStep: s.typographyStep === 0 ? 1 : s.typographyStep,
     })),
@@ -317,8 +387,9 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
   setTypographyStep: (step) => set({ typographyStep: step }),
 
   beginGateTransition: () =>
-    set({
+    set((s) => ({
       audioUnlocked: true,
+      runStartedAtMs: s.runStartedAtMs ?? Date.now(),
       phase: "gate_transition",
       typographyStep: 4,
       gateOpenProgress: 0,
@@ -326,21 +397,22 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       playerPosition: INITIAL_SPAWN_POS,
       playerYaw: 0,
       playerPitch: 0.02,
-    }),
+    })),
 
   setGateState: (gateOpenProgress, gateLockedBehind) =>
     set({ gateOpenProgress, gateLockedBehind }),
 
   finishGateEntry: () =>
-    set({
+    set((s) => ({
       phase: "exploration",
+      runStartedAtMs: s.runStartedAtMs ?? Date.now(),
       gateOpenProgress: 0,
       gateLockedBehind: true,
       playerPosition: [0, PLAYER_EYE_HEIGHT, 24.8],
       playerYaw: 0,
       playerPitch: 0,
       currentZone: "gatehouse",
-    }),
+    })),
 
   setPointerLocked: (pointerLocked) => set({ pointerLocked }),
 
@@ -385,12 +457,22 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       ),
     }),
 
+  addDistanceWalked: (meters) => {
+    if (!Number.isFinite(meters) || meters <= 0) return;
+    set((s) => ({
+      distanceWalkedMeters: Number((s.distanceWalkedMeters + meters).toFixed(1)),
+    }));
+  },
+
+  setLightingPreview: (lightingPreview) => set({ lightingPreview }),
+
   teleportToZone: (zoneId) => {
     const target = ZONE_TELEPORT_TARGETS.find((t) => t.zoneId === zoneId);
     if (!target) return;
     teleportSeq += 1;
-    set({
+    set((s) => ({
       phase: "exploration",
+      runStartedAtMs: s.runStartedAtMs ?? Date.now(),
       gateLockedBehind: true,
       gateOpenProgress: 0,
       playerPosition: target.position,
@@ -403,7 +485,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
         yaw: target.yaw,
         seq: teleportSeq,
       },
-    });
+    }));
   },
 
   setLightningIntensity: (lightningIntensity) => set({ lightningIntensity }),
@@ -417,24 +499,87 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       quality: patch.qualityPreset ?? s.quality,
       debugEnabled: patch.debugMode ?? s.debugEnabled,
       lightModeRestored: patch.lightModeRestored ?? s.lightModeRestored,
-      phase: patch.lightModeRestored ? "restored_light" : s.phase,
+      phase:
+        patch.lightModeRestored === true
+          ? "restored_light"
+          : patch.lightModeRestored === false && s.phase === "restored_light"
+            ? "exploration"
+            : s.phase,
     })),
 
-  restoreLightMode: () =>
+  triggerLightModeSequence: () => {
+    const s = get();
+    if (s.phase === "restoring_light" || s.phase === "restored_light") return;
+    const elapsedSec = s.runStartedAtMs
+      ? Math.max(1, Math.round((Date.now() - s.runStartedAtMs) / 1000))
+      : Math.max(s.timeSpentDarkSeconds, 1);
+    getAfterdarkSoundscape().setIntimidationLevel(0);
+    getAfterdarkSoundscape().playBreakerSwitchThrow();
     set({
-      lightModeRestored: true,
-      phase: "restored_light",
+      phase: "restoring_light",
+      lightSwitchActivated: true,
+      lightSwitchLeverProgress: 0,
+      transformationStage: 1,
       pointerLocked: false,
-      darknessLevel: 0.05,
+      activeInteractableId: null,
       activeReaderClueId: null,
       activeVisualEncounter: null,
       encounterSubtitle: null,
       cryptIntimidationActive: false,
+      timeSpentDarkSeconds: Math.max(s.timeSpentDarkSeconds, elapsedSec),
+    });
+  },
+
+  setTransformationProgress: (transformationStage, lightSwitchLeverProgress) =>
+    set({
+      transformationStage,
+      lightSwitchLeverProgress: Math.max(
+        0,
+        Math.min(1, lightSwitchLeverProgress),
+      ),
     }),
 
-  resetExperience: () => {
+  completeLightModeTransition: () => {
+    const s = get();
+    getAfterdarkSoundscape().playDawnRevealChord();
+    const darkSec = s.runStartedAtMs
+      ? Math.max(
+          s.timeSpentDarkSeconds,
+          Math.max(1, Math.round((Date.now() - s.runStartedAtMs) / 1000)),
+        )
+      : Math.max(s.timeSpentDarkSeconds, 1);
+    persistSnapshot(s, {
+      lightModeRestored: true,
+      timeSpentDarkSeconds: darkSec,
+    });
+    set({
+      lightModeRestored: true,
+      lightSwitchActivated: true,
+      lightSwitchLeverProgress: 1,
+      transformationStage: 10,
+      phase: "restored_light",
+      pointerLocked: false,
+      darknessLevel: 0.05,
+      fogDensity: 0.008,
+      timeSpentDarkSeconds: darkSec,
+      lightingPreview: "dawn",
+      activeInteractableId: null,
+      activeReaderClueId: null,
+      activeVisualEncounter: null,
+      encounterSubtitle: null,
+      cryptIntimidationActive: false,
+    });
+  },
+
+  restoreLightMode: () => {
+    get().completeLightModeTransition();
+  },
+
+  plungeBackIntoDarkness: () => {
     teleportSeq += 1;
+    clearPersistedProgress();
     getAfterdarkSoundscape().setIntimidationLevel(0);
+    getAfterdarkSoundscape().setBreakerHumProximity(0);
     set({
       phase: "shutdown",
       typographyStep: 0,
@@ -442,6 +587,53 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       gateLockedBehind: false,
       pointerLocked: false,
       lightModeRestored: false,
+      lightSwitchActivated: false,
+      lightSwitchLeverProgress: 0,
+      transformationStage: 0,
+      fogDensity: QUALITY_BUDGETS[get().quality].baseFogDensity,
+      darknessLevel: 0.94,
+      lightningIntensity: 0,
+      playerPosition: INITIAL_SPAWN_POS,
+      playerYaw: 0,
+      playerPitch: 0,
+      playerSpeed: 0,
+      currentZone: "gatehouse",
+      discoveredClues: [],
+      triggeredEncounters: [],
+      weepingGuideActive: false,
+      activeInteractableId: null,
+      activeReaderClueId: null,
+      activeVisualEncounter: null,
+      encounterCooldownUntil: {},
+      encounterSubtitle: null,
+      cryptIntimidationActive: false,
+      runStartedAtMs: null,
+      timeSpentDarkSeconds: 0,
+      distanceWalkedMeters: 0,
+      lightingPreview: "storm",
+      pendingTeleport: {
+        position: INITIAL_SPAWN_POS,
+        yaw: 0,
+        seq: teleportSeq,
+      },
+    });
+  },
+
+  resetExperience: () => {
+    teleportSeq += 1;
+    getAfterdarkSoundscape().setIntimidationLevel(0);
+    getAfterdarkSoundscape().setBreakerHumProximity(0);
+    set({
+      phase: "shutdown",
+      typographyStep: 0,
+      gateOpenProgress: 0,
+      gateLockedBehind: false,
+      pointerLocked: false,
+      lightModeRestored: false,
+      lightSwitchActivated: false,
+      lightSwitchLeverProgress: 0,
+      transformationStage: 0,
+      fogDensity: QUALITY_BUDGETS[get().quality].baseFogDensity,
       darknessLevel: 0.94,
       lightningIntensity: 0,
       playerPosition: INITIAL_SPAWN_POS,
@@ -455,6 +647,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       encounterCooldownUntil: {},
       encounterSubtitle: null,
       cryptIntimidationActive: false,
+      runStartedAtMs: null,
       pendingTeleport: {
         position: INITIAL_SPAWN_POS,
         yaw: 0,
@@ -476,11 +669,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       ? s.discoveredClues
       : [...s.discoveredClues, id];
     getAfterdarkSoundscape().playClueChime();
-    writePersistedProgress({
-      discoveredClues,
-      triggeredEncounters: [...s.triggeredEncounters],
-      weepingGuideActive: s.weepingGuideActive,
-    });
+    persistSnapshot(s, { discoveredClues });
     set({
       discoveredClues,
       activeReaderClueId: id,
@@ -496,11 +685,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
     const discoveredClues = s.discoveredClues.includes(id)
       ? s.discoveredClues
       : [...s.discoveredClues, id];
-    writePersistedProgress({
-      discoveredClues,
-      triggeredEncounters: [...s.triggeredEncounters],
-      weepingGuideActive: s.weepingGuideActive,
-    });
+    persistSnapshot(s, { discoveredClues });
     set({
       discoveredClues,
       activeReaderClueId: id,
@@ -510,11 +695,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
   },
 
   resetClues: () => {
-    writePersistedProgress({
-      discoveredClues: [],
-      triggeredEncounters: [],
-      weepingGuideActive: false,
-    });
+    clearPersistedProgress();
     set({
       discoveredClues: [],
       triggeredEncounters: [],
@@ -543,8 +724,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
       : [...s.triggeredEncounters, id];
 
     playEncounterCueAudio(id);
-    writePersistedProgress({
-      discoveredClues: [...s.discoveredClues],
+    persistSnapshot(s, {
       triggeredEncounters,
       weepingGuideActive: s.weepingGuideActive || id === "enc-03",
     });
@@ -568,11 +748,7 @@ const afterdarkBaseStore = create<AfterdarkState>((set, get) => ({
     const s = get();
     const weepingGuideActive = s.weepingGuideActive || dissipatedGarden;
     if (dissipatedGarden) {
-      writePersistedProgress({
-        discoveredClues: [...s.discoveredClues],
-        triggeredEncounters: [...s.triggeredEncounters],
-        weepingGuideActive: true,
-      });
+      persistSnapshot(s, { weepingGuideActive: true });
     }
     set({
       activeVisualEncounter: null,

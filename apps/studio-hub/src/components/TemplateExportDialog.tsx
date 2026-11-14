@@ -291,8 +291,8 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   {manifest.mode === "standalone"
-                    ? "Packages the clean standalone source tree (node_modules, .next, .git, and .env excluded) alongside genui/catalog.ts, SKILL.md, and Kiro POWER.md."
-                    : "Merges GenUI Studio's base-nextjs-shell (Next.js 15 App Router, Tailwind v4, TypeScript) with this template's components, catalog.ts, scoped theme.css, SKILL.md, and POWER.md."}
+                    ? "Packages the clean standalone source tree (node_modules, .next, .git, and .env excluded) alongside genui/catalog.ts, SKILL.md, POWER.md, and ASSET_MANIFEST.md."
+                    : "Merges GenUI Studio's base-nextjs-shell (Next.js 15 App Router, Tailwind v4, TypeScript) with this template's components, catalog.ts, scoped theme.css, SKILL.md, POWER.md, and ASSET_MANIFEST.md."}
                 </p>
                 <button
                   type="button"

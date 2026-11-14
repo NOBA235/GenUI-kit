@@ -3,6 +3,7 @@ export type AfterdarkPhase =
   | "typography"
   | "gate_transition"
   | "exploration"
+  | "restoring_light"
   | "restored_light";
 
 export type QualityPreset = "low" | "medium" | "high";
@@ -18,6 +19,9 @@ export type CemeteryZoneId =
   | "crypt_entrance";
 
 export type ClueId = "clue-01" | "clue-02" | "clue-03";
+export type InteractableId = ClueId | "light-switch";
+export type TransformationStage = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type LightingPreviewPreset = "storm" | "crypt" | "dawn";
 
 export type EncounterId =
   | "enc-01"

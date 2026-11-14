@@ -29,6 +29,10 @@ const _tempFogColor = new THREE.Color("#010205");
 const _warmFlameColor = new THREE.Color("#ff9436");
 const _gardenMistColor = new THREE.Color("#7da4d4");
 const _breakerStandbyColor = new THREE.Color("#d97706");
+const _breakerActiveColor = new THREE.Color("#10b981");
+const _dawnLightColor = new THREE.Color("#fef3c7");
+const _moonTintColor = new THREE.Color("#8da6d6");
+const _tempMoonColor = new THREE.Color("#8da6d6");
 
 const PERIMETER_PICKET_SEGMENTS = (() => {
   const coords: Array<[number, number]> = [];
@@ -57,12 +61,71 @@ interface SharedMaterials {
   readonly lanternGlowMat: THREE.MeshStandardMaterial;
   readonly stainedGlassMat: THREE.MeshStandardMaterial;
   readonly emberWaxMat: THREE.MeshStandardMaterial;
+  readonly brassMetalMat: THREE.MeshStandardMaterial;
+  readonly copperConduitMat: THREE.MeshStandardMaterial;
+  readonly breakerAmberMat: THREE.MeshStandardMaterial;
+  readonly breakerEmeraldMat: THREE.MeshStandardMaterial;
+  readonly breakerPlaqueMat: THREE.MeshStandardMaterial;
+  readonly breakerPlaqueTex: THREE.CanvasTexture | null;
   readonly wireWallMat: THREE.MeshBasicMaterial;
   readonly wireGateLockedMat: THREE.MeshBasicMaterial;
   readonly wireCircleMat: THREE.MeshBasicMaterial;
 }
 
+function createBreakerPlaqueTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  // Brushed antique brass plate background
+  const grad = ctx.createLinearGradient(0, 0, 512, 256);
+  grad.addColorStop(0, "#7c6234");
+  grad.addColorStop(0.5, "#caa760");
+  grad.addColorStop(1, "#6b5329");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 256);
+
+  // Dark recessed border
+  ctx.strokeStyle = "#18130d";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(14, 14, 484, 228);
+
+  // Corner brass rivets
+  ctx.fillStyle = "#1f1910";
+  for (const [rx, ry] of ([
+    [34, 34],
+    [478, 34],
+    [34, 222],
+    [478, 222],
+  ] as const)) {
+    ctx.beginPath();
+    ctx.arc(rx, ry, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Engraved typography
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#1b140b";
+  ctx.font = "bold 20px monospace";
+  ctx.fillText("SUB-STATION 04 · RAVENSHALLOW", 256, 68);
+
+  ctx.font = "900 58px monospace";
+  ctx.fillText("LIGHT MODE", 256, 148);
+
+  ctx.font = "bold 18px monospace";
+  ctx.fillStyle = "#2b1f10";
+  ctx.fillText("UP: ILLUMINATE  //  DOWN: 02:17", 256, 206);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+
 function createSharedMaterials(): SharedMaterials {
+  const breakerPlaqueTex = createBreakerPlaqueTexture();
   return {
     stoneMat: new THREE.MeshStandardMaterial({
       color: "#3b424c",
@@ -117,6 +180,35 @@ function createSharedMaterials(): SharedMaterials {
       emissiveIntensity: 2.2,
       roughness: 0.35,
     }),
+    brassMetalMat: new THREE.MeshStandardMaterial({
+      color: "#c89d54",
+      roughness: 0.32,
+      metalness: 0.86,
+    }),
+    copperConduitMat: new THREE.MeshStandardMaterial({
+      color: "#8f5133",
+      roughness: 0.42,
+      metalness: 0.82,
+    }),
+    breakerAmberMat: new THREE.MeshStandardMaterial({
+      color: "#f59e0b",
+      emissive: "#d97706",
+      emissiveIntensity: 2.1,
+      roughness: 0.24,
+    }),
+    breakerEmeraldMat: new THREE.MeshStandardMaterial({
+      color: "#10b981",
+      emissive: "#059669",
+      emissiveIntensity: 0.08,
+      roughness: 0.24,
+    }),
+    breakerPlaqueMat: new THREE.MeshStandardMaterial({
+      color: "#d4b475",
+      map: breakerPlaqueTex,
+      roughness: 0.36,
+      metalness: 0.68,
+    }),
+    breakerPlaqueTex,
     wireWallMat: new THREE.MeshBasicMaterial({
       color: "#22d3ee",
       wireframe: true,
@@ -143,6 +235,12 @@ function disposeSharedMaterials(mats: SharedMaterials): void {
   mats.lanternGlowMat.dispose();
   mats.stainedGlassMat.dispose();
   mats.emberWaxMat.dispose();
+  mats.brassMetalMat.dispose();
+  mats.copperConduitMat.dispose();
+  mats.breakerAmberMat.dispose();
+  mats.breakerEmeraldMat.dispose();
+  mats.breakerPlaqueMat.dispose();
+  mats.breakerPlaqueTex?.dispose();
   mats.wireWallMat.dispose();
   mats.wireGateLockedMat.dispose();
   mats.wireCircleMat.dispose();
@@ -183,10 +281,16 @@ const AtmosphereLightningRig: React.FC = () => {
       store.setLightningIntensity(0);
     }
 
-    // Periodic atmospheric lightning flash (suppressed visually inside deep subterranean crypt)
+    const isRestoring = phase === "restoring_light";
+    const stage = store.transformationStage;
+    const tProg = Math.min(1, Math.max(0, stage / 10));
+    const dawnMix = isRestoring ? Math.min(1, Math.max(0, (tProg - 0.5) / 0.36)) : 0;
+
+    // Periodic atmospheric lightning flash (suppressed visually inside deep subterranean crypt or daylight reveal)
     if (
       lightningEnabled &&
       !lightModeRestored &&
+      !isRestoring &&
       phase !== "shutdown"
     ) {
       cooldownRef.current -= dt;
@@ -208,7 +312,11 @@ const AtmosphereLightningRig: React.FC = () => {
     if (moonRef.current) {
       if (lightModeRestored) {
         moonRef.current.intensity = 1.65;
-        moonRef.current.color.set("#fef3c7");
+        moonRef.current.color.copy(_dawnLightColor);
+      } else if (isRestoring) {
+        moonRef.current.intensity = 0.08 + dawnMix * 1.7;
+        _tempMoonColor.lerpColors(_moonTintColor, _dawnLightColor, dawnMix);
+        moonRef.current.color.copy(_tempMoonColor);
       } else if (lightOverride) {
         moonRef.current.intensity = 1.2;
         moonRef.current.color.set("#b4c6e7");
@@ -220,13 +328,16 @@ const AtmosphereLightningRig: React.FC = () => {
       } else {
         moonRef.current.intensity =
           0.34 * (1 - darknessLevel * 0.35) + flash * 3.4;
-        moonRef.current.color.set("#8da6d6");
+        moonRef.current.color.copy(_moonTintColor);
       }
     }
 
     if (ambientRef.current) {
       if (lightModeRestored) {
         ambientRef.current.intensity = 0.95;
+      } else if (isRestoring) {
+        const cryptSurge = stage >= 3 ? 0.14 : 0.05;
+        ambientRef.current.intensity = cryptSurge + dawnMix * 0.88;
       } else if (lightOverride) {
         ambientRef.current.intensity = 0.72;
       } else if (isShutdownBlack) {
@@ -242,6 +353,11 @@ const AtmosphereLightningRig: React.FC = () => {
       if (lightModeRestored) {
         fogRef.current.density = 0.008;
         fogRef.current.color.copy(_lightModeSkyColor);
+      } else if (isRestoring) {
+        const fogClearMix = Math.min(1, Math.max(0, (tProg - 0.46) / 0.38));
+        fogRef.current.density = 0.052 - fogClearMix * 0.044;
+        _tempFogColor.lerpColors(_cryptSkyColor, _lightModeSkyColor, fogClearMix);
+        fogRef.current.color.copy(_tempFogColor);
       } else if (lightOverride) {
         fogRef.current.density = 0.015;
         fogRef.current.color.copy(_flashSkyColor);
@@ -261,9 +377,11 @@ const AtmosphereLightningRig: React.FC = () => {
 
     rootState.scene.background = lightModeRestored
       ? _lightModeSkyColor
-      : inCrypt
-        ? _cryptSkyColor
-        : _tempFogColor;
+      : isRestoring
+        ? _tempFogColor
+        : inCrypt
+          ? _cryptSkyColor
+          : _tempFogColor;
 
     // Pooled dynamic point lights re-anchor seamlessly to the player's active zone
     // Strictly obeys hardware cap (1 / 2 / 3 active point lights max) with ZERO allocations
@@ -273,6 +391,31 @@ const AtmosphereLightningRig: React.FC = () => {
       if (!l) continue;
       if (isShutdownBlack) {
         l.intensity = 0;
+        continue;
+      }
+
+      if (isRestoring) {
+        if (stage < 6) {
+          if (i === 0) l.position.set(3.9, -2.1, -52.5);
+          else if (i === 1) l.position.set(-4.2, -2.6, -54.8);
+          else l.position.set(-4.0, -3.1, -50.6);
+          l.color.copy(
+            i === 2
+              ? stage >= 2
+                ? _breakerActiveColor
+                : _breakerStandbyColor
+              : _dawnLightColor,
+          );
+          l.distance = 22;
+          l.intensity = stage >= 4 ? 4.8 : stage >= 3 ? 3.2 : 1.9;
+        } else {
+          if (i === 0) l.position.set(0.0, 3.2, -22.0);
+          else if (i === 1) l.position.set(-11.0, 3.0, -10.0);
+          else l.position.set(0.0, 3.2, 10.0);
+          l.color.copy(_dawnLightColor);
+          l.distance = 36;
+          l.intensity = 4.2;
+        }
         continue;
       }
 
@@ -492,8 +635,9 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
 
   const leftGateRef = useRef<THREE.Group>(null);
   const rightGateRef = useRef<THREE.Group>(null);
+  const leverGroupRef = useRef<THREE.Group>(null);
 
-  // Smooth hinge rotation aligned with Zustand gateOpenProgress
+  // Smooth hinge rotation & Zone E breaker throw animation aligned with Zustand
   useFrame(() => {
     const angle = gateOpenProgress * 1.42;
     if (leftGateRef.current) {
@@ -502,6 +646,14 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
     if (rightGateRef.current) {
       rightGateRef.current.rotation.y = -angle;
     }
+    const storeState = useAfterdarkStore.getState();
+    if (leverGroupRef.current) {
+      // Rests downward (+0.62 rad OFF), throws upward (-0.68 rad ON)
+      leverGroupRef.current.rotation.x = 0.62 - storeState.lightSwitchLeverProgress * 1.3;
+    }
+    const lit = storeState.lightSwitchActivated || storeState.lightModeRestored;
+    mats.breakerEmeraldMat.emissiveIntensity = lit ? 3.2 : 0.08;
+    mats.breakerAmberMat.emissiveIntensity = lit ? 0.12 : 2.1;
   });
 
   return (
@@ -969,17 +1121,79 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
           </group>
         ))}
 
-        {/* Dormant Milestone 3 Objective: Concealed LIGHT MODE Breaker Box Alcove [-4.0, -4.5, -50.2] */}
+        {/* Milestone 3 Primary Objective: Concealed Cast-Iron LIGHT MODE Breaker Box Alcove [-4.0, -3.2, -50.22] */}
+        {/* Mounted on North chamber wall (z=-50.2), facing South (-Z) toward approaching player */}
         <group position={[-4.0, -3.2, -50.22]}>
-          <mesh position={[0, 0, 0]} material={mats.darkIronMat}>
-            <boxGeometry args={[1.05, 1.35, 0.24]} />
+          {/* Heavy cast-iron cabinet housing */}
+          <mesh position={[0, 0, -0.02]} material={mats.darkIronMat}>
+            <boxGeometry args={[1.12, 1.46, 0.24]} />
           </mesh>
-          <mesh position={[0, -0.1, 0.15]} material={mats.stoneMat}>
-            <boxGeometry args={[0.16, 0.55, 0.16]} />
+          {/* Brass cabinet bezel & hinges */}
+          <mesh position={[0, 0, -0.14]} material={mats.brassMetalMat}>
+            <boxGeometry args={[0.98, 1.32, 0.03]} />
           </mesh>
-          <mesh position={[0.28, 0.42, 0.14]} material={mats.emberWaxMat}>
-            <boxGeometry args={[0.14, 0.14, 0.05]} />
+          {/* Inner recessed industrial slate plate */}
+          <mesh position={[0, 0, -0.155]} material={mats.pavingMat}>
+            <boxGeometry args={[0.88, 1.22, 0.02]} />
           </mesh>
+          {/* Engraved LIGHT MODE metal plaque (rotated PI around Y to face -Z) */}
+          <mesh
+            position={[0, 0.42, -0.172]}
+            rotation={[0, Math.PI, 0]}
+            material={mats.breakerPlaqueMat}
+          >
+            <planeGeometry args={[0.78, 0.34]} />
+          </mesh>
+          {/* Standby Amber pilot dome & Active Emerald pilot dome */}
+          <mesh position={[-0.31, 0.14, -0.18]} material={mats.breakerAmberMat}>
+            <sphereGeometry args={[0.055, 10, 10]} />
+          </mesh>
+          <mesh position={[0.31, 0.14, -0.18]} material={mats.breakerEmeraldMat}>
+            <sphereGeometry args={[0.055, 10, 10]} />
+          </mesh>
+          {/* Twin glass/ceramic substation fuse tubes on left panel */}
+          {[-0.24, -0.1].map((fx, fIdx) => (
+            <group key={`fuse-tube-${fIdx}`} position={[fx, -0.16, -0.18]}>
+              <mesh material={mats.marbleAltarMat}>
+                <cylinderGeometry args={[0.045, 0.045, 0.34, 8]} />
+              </mesh>
+              <mesh position={[0, 0.18, 0]} material={mats.brassMetalMat}>
+                <cylinderGeometry args={[0.052, 0.052, 0.05, 8]} />
+              </mesh>
+              <mesh position={[0, -0.18, 0]} material={mats.brassMetalMat}>
+                <cylinderGeometry args={[0.052, 0.052, 0.05, 8]} />
+              </mesh>
+            </group>
+          ))}
+          {/* Upper dual copper conduit pipes disappearing into crypt stonework */}
+          {[-0.28, 0.28].map((cx, cIdx) => (
+            <mesh
+              key={`conduit-${cIdx}`}
+              position={[cx, 1.05, -0.06]}
+              material={mats.copperConduitMat}
+            >
+              <cylinderGeometry args={[0.042, 0.042, 0.9, 8]} />
+            </mesh>
+          ))}
+          {/* Pivoting heavy mechanical throw lever (rotates upward toward ON) */}
+          <group position={[0.18, -0.14, -0.16]}>
+            {/* Pivot axle bracket */}
+            <mesh rotation={[0, 0, Math.PI / 2]} material={mats.brassMetalMat}>
+              <cylinderGeometry args={[0.055, 0.055, 0.36, 10]} />
+            </mesh>
+            <group ref={leverGroupRef} rotation={[0.62, 0, 0]}>
+              <mesh position={[-0.12, 0, -0.18]} rotation={[Math.PI / 2, 0, 0]} material={mats.brassMetalMat}>
+                <cylinderGeometry args={[0.022, 0.022, 0.36, 8]} />
+              </mesh>
+              <mesh position={[0.12, 0, -0.18]} rotation={[Math.PI / 2, 0, 0]} material={mats.brassMetalMat}>
+                <cylinderGeometry args={[0.022, 0.022, 0.36, 8]} />
+              </mesh>
+              {/* Red/crimson insulated crossbar handle */}
+              <mesh position={[0, 0, -0.35]} rotation={[0, 0, Math.PI / 2]} material={mats.stainedGlassMat}>
+                <cylinderGeometry args={[0.042, 0.042, 0.34, 10]} />
+              </mesh>
+            </group>
+          </group>
         </group>
       </group>
 

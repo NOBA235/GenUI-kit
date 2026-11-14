@@ -192,6 +192,10 @@ export function mergeTemplateWithNextjsShell(
     out[`.claude/skills/${manifest.slug}/SKILL.md`] = skillMd;
     out[`.kiro/powers/${manifest.slug}/POWER.md`] = kiroPowerMd;
     out[`.kiro/steering/${manifest.slug}-steering.md`] = steeringMd;
+    const assetDoc = sourceFiles.find((f) => f.path === "ASSET_MANIFEST.md");
+    out["ASSET_MANIFEST.md"] =
+      assetDoc?.content ??
+      `# ${manifest.title} — Asset Manifest\n\nAll procedural meshes, styles, and catalog blocks for \`${manifest.slug}\`.\n`;
     return out;
   }
 
@@ -296,6 +300,12 @@ export default function ${toPascalCase(manifest.slug)}Page() {
   mergedFiles[`.claude/skills/${manifest.slug}/SKILL.md`] = skillMd;
   mergedFiles[`.kiro/powers/${manifest.slug}/POWER.md`] = kiroPowerMd;
   mergedFiles[`.kiro/steering/${manifest.slug}-steering.md`] = steeringMd;
+  const assetManifestFile = sourceFiles.find(
+    (f) => f.path === "ASSET_MANIFEST.md",
+  );
+  mergedFiles["ASSET_MANIFEST.md"] =
+    assetManifestFile?.content ??
+    `# ${manifest.title} — Asset Manifest\n\nExported from GenUI Studio Dual-Mode Registry.\n`;
   mergedFiles["__tests__/invariants.fuzz.test.ts"] =
     buildTemplateFuzzTest(manifest.slug);
   mergedFiles["README.md"] = `# ${manifest.title}

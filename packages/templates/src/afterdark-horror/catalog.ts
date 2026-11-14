@@ -49,7 +49,11 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
         title: z.string().min(1).max(80),
         inscription: z.string().min(1).max(240),
         yearStamped: z.string().min(1).max(24),
-        worldPosition: z.tuple([z.number(), z.number(), z.number()]),
+        worldPosition: z.tuple([
+          z.number().min(-120).max(120),
+          z.number().min(-25).max(60),
+          z.number().min(-120).max(120),
+        ]),
         discovered: z.boolean(),
       }),
       slots: [],
@@ -82,7 +86,11 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
       props: z.object({
         switchId: z.string().min(1).max(48),
         locationLabel: z.string().min(1).max(80),
-        worldPosition: z.tuple([z.number(), z.number(), z.number()]),
+        worldPosition: z.tuple([
+          z.number().min(-120).max(120),
+          z.number().min(-25).max(60),
+          z.number().min(-120).max(120),
+        ]),
         engaged: z.boolean(),
       }),
       slots: [],
@@ -322,11 +330,11 @@ export const initialPageSpecs: Record<string, Spec> = {
       "restored-hero": {
         type: "RestoredEditorialHero",
         props: {
-          editionLabel: "RESTORED DAYLIGHT EDITION · ISSUE 01",
-          headline: "Ravenshollow Municipal Archive: Illumination Restored",
+          editionLabel: "RESTORED DAYLIGHT EDITION · ISSUE 02",
+          headline: "YOU FOUND THE LIGHT.",
           standfirst:
-            "Every shadow in AFTERDARK ran live inside a single-server WebGL & Zod-verified Dual-Mode template—transitioning cleanly from horror exploration to editorial publication.",
-          primaryActionLabel: "Re-Enter 2:17 AM Shutdown",
+            "BUT DID YOU REALLY LEAVE? Every shadow in Ravenshollow ran live inside a single-server WebGL & Zod-verified Dual-Mode template—transitioning cleanly from nocturnal exploration to Swiss editorial publication.",
+          primaryActionLabel: "Plunge Back Into 2:17 AM Darkness",
         },
       },
       "restored-archive": {
@@ -394,6 +402,7 @@ export const initialPageSpecs: Record<string, Spec> = {
 export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): string {
   const base = currentSpec ?? initialPageSpecs.home!;
   const director = base.elements["horror-director"];
+  const hero = base.elements["restored-hero"];
   const lower = prompt.toLowerCase();
 
   let fogDensity = 0.056;
@@ -401,12 +410,39 @@ export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): strin
   let windStrength = 0.65;
   let lightningEnabled = true;
   let lightModeRestored = false;
+  let experienceTitle =
+    ((director?.props as Record<string, unknown> | undefined)?.experienceTitle as string | undefined) ??
+    "AFTERDARK · RAVENSHALLOW 02:17 AM";
+
+  let heroProps = {
+    editionLabel: "RESTORED DAYLIGHT EDITION · ISSUE 02",
+    headline: "YOU FOUND THE LIGHT.",
+    standfirst:
+      "BUT DID YOU REALLY LEAVE? Every shadow in Ravenshollow ran live inside a single-server WebGL & Zod-verified Dual-Mode template—transitioning cleanly from nocturnal exploration to Swiss editorial publication.",
+    primaryActionLabel: "Plunge Back Into 2:17 AM Darkness",
+    ...((hero?.props as Record<string, unknown>) ?? {}),
+  };
 
   if (lower.includes("storm") || lower.includes("thunder") || lower.includes("blood moon")) {
     fogDensity = 0.044;
     darknessLevel = 0.88;
     windStrength = 1.25;
     lightningEnabled = true;
+    lightModeRestored = false;
+    experienceTitle = "AFTERDARK · BLOOD MOON STORM";
+  } else if (lower.includes("brutalist") || lower.includes("swiss") || lower.includes("monolith")) {
+    fogDensity = 0.008;
+    darknessLevel = 0.02;
+    windStrength = 0.2;
+    lightningEnabled = false;
+    lightModeRestored = true;
+    heroProps = {
+      ...heroProps,
+      editionLabel: "BRUTALIST ARCHIVE · SWISS MONOLITH 02",
+      headline: "RAVENSHALLOW // SUB-STATION 04 [LIT]",
+      standfirst:
+        "Swiss grid archival monograph synthesized via live @genui-studio/core RFC 6902 JSONL patch streaming. All 5 cemetery zones and 5 entity acoustic triggers verified under 60 FPS hardware guardrails.",
+    };
   } else if (lower.includes("fog") || lower.includes("mist") || lower.includes("crypt")) {
     fogDensity = 0.095;
     darknessLevel = 0.96;
@@ -422,6 +458,11 @@ export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): strin
     windStrength = 0.25;
     lightningEnabled = false;
     lightModeRestored = true;
+    heroProps = {
+      ...heroProps,
+      editionLabel: "RESTORED DAYLIGHT EDITION · ISSUE 02",
+      headline: "YOU FOUND THE LIGHT.",
+    };
   }
 
   const nextSpec: Spec = {
@@ -432,6 +473,7 @@ export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): strin
         ...(director ?? { type: "DarknessAndWeatherController", children: [] }),
         props: {
           ...((director?.props as Record<string, unknown>) ?? {}),
+          experienceTitle,
           fogDensity,
           darknessLevel,
           windStrength,
@@ -439,8 +481,58 @@ export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): strin
           lightModeRestored,
         },
       },
+      "restored-hero": {
+        ...(hero ?? { type: "RestoredEditorialHero", children: [] }),
+        props: heroProps,
+      },
     },
   };
 
   return specToJsonlStream(nextSpec);
+}
+
+export function buildChaosPackets(rootKey: string): string[] {
+  return [
+    JSON.stringify({
+      op: "add",
+      path: "/elements/corrupted-encounter-trigger",
+      value: {
+        type: "SupernaturalEncounterTrigger",
+        props: {
+          triggerId: "chaos-enc-01",
+          label: "Corrupted Encounter Radius (Self-Healed to 25m)",
+          cueType: "the_watcher",
+          radiusMeters: 9999,
+          armed: true,
+        },
+        children: [],
+      },
+    }),
+    JSON.stringify({
+      op: "add",
+      path: `/elements/${rootKey}/children/-`,
+      value: "corrupted-encounter-trigger",
+    }),
+    JSON.stringify({
+      op: "add",
+      path: "/elements/corrupted-encounter-coord",
+      value: {
+        type: "ClueMonumentNode",
+        props: {
+          clueId: "",
+          title: "",
+          inscription: "",
+          yearStamped: "",
+          worldPosition: [9999, -999, 9999],
+          discovered: false,
+        },
+        children: [],
+      },
+    }),
+    JSON.stringify({
+      op: "add",
+      path: `/elements/${rootKey}/children/-`,
+      value: "corrupted-encounter-coord",
+    }),
+  ];
 }

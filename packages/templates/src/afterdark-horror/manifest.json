@@ -2,10 +2,10 @@
   "slug": "afterdark-horror",
   "id": "afterdark-horror",
   "name": "afterdark-horror",
-  "title": "AFTERDARK — 3D Horror Cemetery & Restored Editorial Website",
-  "description": "Flagship Website #1: Pitch-black monitor-shutdown opening, procedural Web Audio horror soundscape, first-person cemetery exploration with AABB/circle collision physics, environmental lightning/lantern reveals, and @genui-studio/core Zod catalog integration.",
+  "title": "AFTERDARK 2.0 — The Website You Cannot See",
+  "description": "Flagship Website #1: Pitch-black monitor-shutdown opening, 5 interconnected 3D cemetery & crypt zones, procedural Web Audio soundscape, [E] 3-clue investigation & 5 supernatural encounters, physical Zone E LIGHT MODE circuit breaker switch, 10-stage daylight transformation, and restored Swiss editorial publication powered by @genui-studio/core.",
   "mode": "native",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "GenUI Studio Flagship Lab",
   "license": "Commercial-Single",
   "tier": "pro",
@@ -13,6 +13,7 @@
   "category": "3D / WebGL",
   "tags": ["3D / WebGL", "GenUI Verified"],
   "verified": true,
+  "featured": true,
   "immersiveExperience": true,
   "theme": {
     "defaultColorScheme": "dark",
@@ -44,21 +45,21 @@
   "remixPresets": [
     {
       "id": "blood-moon-tempest",
-      "label": "Blood Moon Storm",
+      "label": "Remix Horror Preset: Blood Moon Storm",
       "description": "Amplifies crimson moonlight rim intensity, gale wind, and heavy lightning reveals.",
-      "prompt": "Intensify the nocturnal thunderstorm with heavier wind, thicker mist, and brighter lightning silhouettes."
+      "prompt": "Remix Horror Preset: Blood Moon Storm"
     },
     {
-      "id": "catacomb-whiteout-mist",
-      "label": "Sunken Crypt Fog",
-      "description": "Thickens exponential graveyard fog around the central avenue and weeping grove.",
-      "prompt": "Roll dense low-lying fog across the gravestones while keeping lanterns warm."
+      "id": "brutalist-archive",
+      "label": "Remix Restored Site into Brutalist Archive",
+      "description": "Shifts restored publication into stark Swiss Brutalist Archive typography and obsidian rules.",
+      "prompt": "Remix Restored Site into Brutalist Archive"
     },
     {
       "id": "restore-daylight-edition",
       "label": "Illuminate Editorial Site",
-      "description": "Previews the restored Light Mode editorial publication transition via @genui-studio/core.",
-      "prompt": "Trigger daylight restoration so the restored editorial website layout illuminates cleanly."
+      "description": "Triggers the Restored Daylight Edition reveal via @genui-studio/core.",
+      "prompt": "Illuminate Editorial Site"
     }
   ],
   "dependencies": {

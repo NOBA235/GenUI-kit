@@ -28,6 +28,8 @@
 - [x] Phase 5 — Stateful Cooldown-Governed `EncounterEntities` + `EncounterManager` (`enc-01` The Watcher with dot-product gaze vanish, `enc-02` The Moving Shadow, `enc-03` The Weeping Woman ember guide trail, `enc-04` The Presence rear ambush whisper, `enc-05` The Final Warning crypt intimidation flicker `< 2.5 Hz`) + `?debug=true` Teleports A–E, Clue 1–3 reveals, and Encounter 1–5 triggers.
 - [x] Verify Milestone 2 with `afterdark-horror.test.ts` + `studio-hub.test.tsx`, `pnpm sync:templates`, full workspace build/typecheck/test & Kiro PBT/catalog audits.
 
-## Milestone 3: Physical Light Mode Breaker Switch & Restored Illuminated Website (Final)
-- [ ] Physical 3D Zone E Crypt Breaker Switch interaction (`PhysicalLightModeSwitch` `[E]` hold/pull) dissolving exponential darkness into dawn sunlight.
-- [ ] Full editorial typography transformation (`lightModeRestored === true`) revealing the complete illuminated `@genui-studio/core` editorial documentary showcase fed by live discovered clues & encounters.
+## Milestone 3: Physical Light Mode Breaker Switch & Restored Illuminated Website (Verified Complete)
+- [x] Physical 3D Zone E Crypt Breaker Cabinet (`[-4.0, -3.2, -50.22]`) with procedural Canvas2D `LIGHT MODE` plaque, copper conduits, fuses, amber/emerald indicators, proximity substation hum, and animated throw lever.
+- [x] `[E]` Switch Interaction -> 10-Stage Cinematic Dawn Transformation Sequence (`phase: "restoring_light"`): camera focus, lever throw, electrical transformer surge audio, crypt/lantern cascade, fog burn-off, dawn skybox transition, and `#FAF9F5` editorial crossfade.
+- [x] Restored Illuminated AFTERDARK Editorial Website (`#FAF9F5` / `#0A0A0C` Swiss layout, persisted in `localStorage` `afterdark-archive-progress-v2`): `"YOU FOUND THE LIGHT."` / `"BUT DID YOU REALLY LEAVE?"` hero, Survival Run Dossier (Time, Clues X/3, Encounters X/5, Distance Walked), interactive 5-Entity + 5-Zone bento archive & 3D Lighting toggles, inline GenUI Live Remix & Zod Self-Healing triggers, and physical-style `Plunge Back Into Darkness` toggle.
+- [x] Full `fast-check` PBT verification (`packages/templates/src/__tests__/afterdark.pbt.test.ts`), Marketplace Flagship Spotlight, and `.zip` bundle (`SKILL.md`, `POWER.md`, `ASSET_MANIFEST.md`).

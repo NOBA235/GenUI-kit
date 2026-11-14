@@ -25,6 +25,9 @@ export interface AfterdarkAudioEngine {
   playWeepingAudio(panAmount?: number): void;
   playPresenceWhisperSteps(): void;
   playCryptWarningSpike(): void;
+  setBreakerHumProximity(level: number): void;
+  playBreakerSwitchThrow(): void;
+  playDawnRevealChord(): void;
   dispose(): void;
 }
 
@@ -33,6 +36,7 @@ class ProceduralWebAudioSoundscape implements AfterdarkAudioEngine {
   private masterGain: GainNode | null = null;
   private windGain: GainNode | null = null;
   private rumbleGain: GainNode | null = null;
+  private breakerHumGain: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   private activeNodes: AudioNode[] = [];
   private activeSources: AudioScheduledSourceNode[] = [];
@@ -171,6 +175,34 @@ class ProceduralWebAudioSoundscape implements AfterdarkAudioEngine {
     this.rumbleGain = rumbleGain;
     this.activeSources.push(oscA, oscB);
     this.activeNodes.push(rumbleFilter, rumbleGain);
+
+    // 2b. Subtle metallic 120Hz/240Hz electrical breaker cabinet hum (Audible in Zone E alcove)
+    const humOscA = ctx.createOscillator();
+    humOscA.type = "sawtooth";
+    humOscA.frequency.setValueAtTime(120, now);
+
+    const humOscB = ctx.createOscillator();
+    humOscB.type = "sine";
+    humOscB.frequency.setValueAtTime(240, now);
+
+    const humFilter = ctx.createBiquadFilter();
+    humFilter.type = "bandpass";
+    humFilter.frequency.setValueAtTime(185, now);
+    humFilter.Q.setValueAtTime(4.2, now);
+
+    const breakerHumGain = ctx.createGain();
+    breakerHumGain.gain.setValueAtTime(0.0, now);
+
+    humOscA.connect(humFilter);
+    humOscB.connect(humFilter);
+    humFilter.connect(breakerHumGain);
+    breakerHumGain.connect(master);
+
+    humOscA.start(now);
+    humOscB.start(now);
+    this.breakerHumGain = breakerHumGain;
+    this.activeSources.push(humOscA, humOscB);
+    this.activeNodes.push(humFilter, breakerHumGain);
 
     // 3. Occasional distant owl / creaking limb ambience
     this.ambientIntervalId = window.setInterval(() => {
@@ -690,8 +722,121 @@ class ProceduralWebAudioSoundscape implements AfterdarkAudioEngine {
     this.masterGain = null;
     this.windGain = null;
     this.rumbleGain = null;
+    this.breakerHumGain = null;
     this.noiseBuffer = null;
     this.started = false;
+  }
+
+  setBreakerHumProximity(level: number): void {
+    if (!this.ctx || !this.breakerHumGain) return;
+    const clamped = Math.max(0, Math.min(1, level));
+    try {
+      this.breakerHumGain.gain.setTargetAtTime(
+        this.muted ? 0 : clamped * 0.095,
+        this.ctx.currentTime,
+        0.18,
+      );
+    } catch {
+      // Ignore closed context
+    }
+  }
+
+  playBreakerSwitchThrow(): void {
+    if (!this.initAndStart() || !this.ctx || !this.masterGain || this.muted) {
+      return;
+    }
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // 1. Heavy iron breaker latch clunk (t = 0.05s)
+    const latch = ctx.createOscillator();
+    latch.type = "triangle";
+    latch.frequency.setValueAtTime(145, now + 0.05);
+    latch.frequency.exponentialRampToValueAtTime(42, now + 0.28);
+    const latchEnv = ctx.createGain();
+    latchEnv.gain.setValueAtTime(0.001, now);
+    latchEnv.gain.linearRampToValueAtTime(0.45, now + 0.06);
+    latchEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+    latch.connect(latchEnv);
+    latchEnv.connect(this.masterGain);
+    latch.start(now + 0.04);
+    latch.stop(now + 0.38);
+
+    // 2. Contact snap at top dead center (t = 0.42s)
+    const snap = ctx.createOscillator();
+    snap.type = "square";
+    snap.frequency.setValueAtTime(920, now + 0.42);
+    snap.frequency.exponentialRampToValueAtTime(220, now + 0.62);
+    const snapEnv = ctx.createGain();
+    snapEnv.gain.setValueAtTime(0.001, now + 0.4);
+    snapEnv.gain.linearRampToValueAtTime(0.24, now + 0.43);
+    snapEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.68);
+    snap.connect(snapEnv);
+    snapEnv.connect(this.masterGain);
+    snap.start(now + 0.4);
+    snap.stop(now + 0.72);
+
+    // 3. Deep 60Hz/120Hz electrical substation transformer surge (t = 0.55s -> 3.4s)
+    for (const [freq, amp] of [
+      [60, 0.22],
+      [120, 0.14],
+      [180, 0.08],
+    ] as const) {
+      const surge = ctx.createOscillator();
+      surge.type = "sawtooth";
+      surge.frequency.setValueAtTime(freq * 0.94, now + 0.55);
+      surge.frequency.linearRampToValueAtTime(freq, now + 1.3);
+
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.setValueAtTime(340, now + 0.55);
+      lp.frequency.linearRampToValueAtTime(980, now + 2.8);
+
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.001, now + 0.5);
+      env.gain.linearRampToValueAtTime(amp, now + 1.1);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 3.6);
+
+      surge.connect(lp);
+      lp.connect(env);
+      env.connect(this.masterGain);
+      surge.start(now + 0.5);
+      surge.stop(now + 3.65);
+    }
+  }
+
+  playDawnRevealChord(): void {
+    if (!this.isActive || !this.ctx || !this.masterGain || this.muted) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Quiet the horror wind/rumble/hum smoothly as daylight washes in
+    if (this.windGain) {
+      this.windGain.gain.setTargetAtTime(0.06, now, 0.8);
+    }
+    if (this.rumbleGain) {
+      this.rumbleGain.gain.setTargetAtTime(0.01, now, 0.6);
+    }
+    if (this.breakerHumGain) {
+      this.breakerHumGain.gain.setTargetAtTime(0.0, now, 0.4);
+    }
+
+    // Warm daylight Lydian chord resolve (C4 - G4 - B4 - E5)
+    for (const freq of [261.63, 392.0, 493.88, 659.25]) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now);
+
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.001, now);
+      env.gain.linearRampToValueAtTime(0.075, now + 0.9);
+      env.gain.exponentialRampToValueAtTime(0.0008, now + 3.4);
+
+      osc.connect(env);
+      env.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 3.45);
+    }
   }
 }
 

@@ -10,6 +10,11 @@ import {
   PLAYER_EYE_HEIGHT,
   resolvePlayerMovement,
 } from "../engine/collision.js";
+import {
+  LIGHT_MODE_SWITCH_SPEC,
+  resolveTransformationStage,
+  TOTAL_TRANSFORMATION_DURATION,
+} from "../engine/world-data.js";
 import { getQualityBudget, useAfterdarkStore } from "../store.js";
 
 // Pre-allocated scratch vectors (zero allocations inside useFrame)
@@ -41,9 +46,11 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
   const stridePhaseRef = useRef(0);
   const lastStepIndexRef = useRef(0);
   const transitionElapsedRef = useRef(0);
+  const restoreElapsedRef = useRef(0);
   const gateCreakPlayedRef = useRef(false);
   const gateSlamPlayedRef = useRef(false);
   const telemetryClockRef = useRef(0);
+  const distAccumRef = useRef(0);
   const fpsFramesRef = useRef(0);
   const fpsAccumRef = useRef(0);
   const lastTeleportSeqRef = useRef(0);
@@ -78,12 +85,16 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
       // Allow Alt+G & browser shortcuts through cleanly
       if (e.altKey || e.metaKey || e.ctrlKey) return;
 
-      // Handle [E] Examination & Reader dismiss on non-repeat key press
+      // Handle [E] Examination, LIGHT MODE Breaker Switch & Reader dismiss
       if (e.code === "KeyE" && !e.repeat) {
         const st = useAfterdarkStore.getState();
         if (st.phase === "exploration") {
           if (st.activeReaderClueId) {
             st.closeClueReader();
+            return;
+          }
+          if (st.activeInteractableId === "light-switch") {
+            st.triggerLightModeSequence();
             return;
           }
           if (st.activeInteractableId) {
@@ -239,6 +250,52 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
       return;
     }
 
+    // 4b. Phase 6: 10-Stage Cinematic Transformation Choreography
+    if (state.phase === "restoring_light") {
+      restoreElapsedRef.current += dt;
+      const elapsed = restoreElapsedRef.current;
+      const stage = resolveTransformationStage(elapsed);
+      const leverProgress = Math.max(
+        0,
+        Math.min(1, (elapsed - 0.35) / 0.65),
+      );
+      if (
+        stage !== state.transformationStage ||
+        Math.abs(leverProgress - state.lightSwitchLeverProgress) > 0.02
+      ) {
+        state.setTransformationProgress(stage, leverProgress);
+      }
+
+      if (stage <= 6) {
+        // Focus smoothly toward the Zone E cast-iron LIGHT MODE Breaker Box [-4.0, -3.2, -50.22]
+        const [sx, sy, sz] = LIGHT_MODE_SWITCH_SPEC.standPoint;
+        camera.position.x += (sx - camera.position.x) * Math.min(1, dt * 6);
+        camera.position.y += (sy - camera.position.y) * Math.min(1, dt * 6);
+        camera.position.z += (sz - camera.position.z) * Math.min(1, dt * 6);
+        // Facing +Z (yaw = PI) toward wall z = -50.22, tilted slightly down toward plaque
+        yawRef.current = Math.PI;
+        pitchRef.current = -0.14;
+        camera.rotation.set(pitchRef.current, yawRef.current, 0);
+      } else if (stage <= 9) {
+        // Stage 7-9: Elevate outward into panoramic view overlooking awakened Gothic Chapel & cemetery
+        const panFrac = Math.min(1, (elapsed - 3.4) / 2.2);
+        const eased = panFrac * panFrac * (3 - 2 * panFrac);
+        camera.position.set(
+          -4.0 * (1 - eased),
+          -2.8 + eased * 9.0,
+          -52.1 + eased * 59.5,
+        );
+        camera.rotation.set(-0.08 - eased * 0.14, Math.PI * (1 - eased), 0);
+      }
+
+      if (elapsed >= TOTAL_TRANSFORMATION_DURATION) {
+        restoreElapsedRef.current = 0;
+        state.completeLightModeTransition();
+      }
+      return;
+    }
+    restoreElapsedRef.current = 0;
+
     // 5. Scene 03+: Genuine First-Person Exploration + AABB/Circle Collision
     if (state.phase === "exploration") {
       // Freeze translation smoothly while reading an examined Clue Parchment
@@ -374,10 +431,16 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
       );
       camera.rotation.set(pitchRef.current, yawRef.current, bobSway * 0.35);
 
+      distAccumRef.current += Math.hypot(resolved.x - curX, resolved.z - curZ);
+
       // Throttled store update (~10 Hz) keeps HUD telemetry fresh without re-render jank
       telemetryClockRef.current += dt;
       if (telemetryClockRef.current >= 0.1) {
         telemetryClockRef.current = 0;
+        if (distAccumRef.current >= 0.3) {
+          state.addDistanceWalked(distAccumRef.current);
+          distAccumRef.current = 0;
+        }
         const measuredFps =
           fpsAccumRef.current > 0
             ? Math.round(fpsFramesRef.current / fpsAccumRef.current)

@@ -44,7 +44,10 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
     expect(html).toContain("Mode A · Native");
     expect(html).toContain("Mode B · Standalone");
 
-    // Required 6 filter tags
+    // Required Flagship Showcase Spotlight + 6 filter tags
+    expect(html).toContain('data-testid="marketplace-featured-flagship"');
+    expect(html).toContain("AFTERDARK 2.0");
+    expect(html).toContain("npx genui-studio add afterdark-horror");
     expect(html).toContain("3D / WebGL");
     expect(html).toContain("B2B SaaS");
     expect(html).toContain("E-Commerce");
@@ -222,9 +225,42 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       );
       expect(clueReaderHtml).toContain('data-testid="afterdark-clue-reader"');
       expect(clueReaderHtml).toContain("THE LIGHT WAS NEVER LOST. IT WAS HIDDEN.");
+
+      // 5. Milestone 3: Zone E LIGHT MODE Breaker Switch -> 10-Stage Dawn Transformation Overlay
+      useAfterdarkStore.getState().closeClueReader();
+      useAfterdarkStore.getState().setActiveInteractable("light-switch");
+      const switchPromptHtml = renderToStaticMarkup(
+        <App initialPath="/preview/afterdark-horror" instantStreamForTest />,
+      );
+      expect(switchPromptHtml).toContain("Press [E] to Activate LIGHT MODE");
+
+      useAfterdarkStore.getState().triggerLightModeSequence();
+      useAfterdarkStore.getState().setTransformationProgress(7, 1.0);
+      const transformHtml = renderToStaticMarkup(
+        <App initialPath="/preview/afterdark-horror" instantStreamForTest />,
+      );
+      expect(transformHtml).toContain('data-testid="afterdark-transformation-overlay"');
+      expect(transformHtml).toContain("07/10");
+      expect(transformHtml).toContain("VOLUMETRIC FOG DISSIPATION");
+
+      // 6. Restored Illuminated Editorial Website + Survival Dossier + Remix Strip + Plunge Toggle
+      useAfterdarkStore.getState().addDistanceWalked(42.5);
+      useAfterdarkStore.getState().completeLightModeTransition();
+      const restoredHtml = renderToStaticMarkup(
+        <App initialPath="/preview/afterdark-horror" instantStreamForTest />,
+      );
+      expect(restoredHtml).toContain('data-testid="afterdark-restored-editorial"');
+      expect(restoredHtml).toContain("YOU FOUND THE LIGHT.");
+      expect(restoredHtml).toContain("BUT DID YOU REALLY LEAVE?");
+      expect(restoredHtml).toContain('data-testid="afterdark-run-dossier"');
+      expect(restoredHtml).toContain("1/3");
+      expect(restoredHtml).toContain("1/5");
+      expect(restoredHtml).toContain("42.5 m");
+      expect(restoredHtml).toContain('data-testid="afterdark-restored-remix-bar"');
+      expect(restoredHtml).toContain('data-testid="afterdark-plunge-darkness-btn"');
+      expect(restoredHtml).toContain("Plunge Back Into Darkness");
     } finally {
-      useAfterdarkStore.getState().resetClues();
-      useAfterdarkStore.getState().resetExperience();
+      useAfterdarkStore.getState().plungeBackIntoDarkness();
       useAfterdarkStore.getState().toggleDebug(false);
     }
   });

@@ -8,7 +8,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, "..");
 
 const tscBin = require.resolve("typescript/bin/tsc");
-const viteBin = require.resolve("vite/bin/vite.js");
+// Vite's package "exports" map does not expose ./bin/vite.js, so resolve the
+// exported package.json and derive the bin path from its "bin" field.
+const vitePkgPath = require.resolve("vite/package.json");
+const vitePkg = require(vitePkgPath);
+const viteBinRel =
+  typeof vitePkg.bin === "string" ? vitePkg.bin : vitePkg.bin?.vite ?? "bin/vite.js";
+const viteBin = path.join(path.dirname(vitePkgPath), viteBinRel);
 const forwardArgs = process.argv.slice(2);
 
 const buildResult = spawnSync(

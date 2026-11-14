@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { getAfterdarkSoundscape } from "../audio/soundscape.js";
 import {
   CLUE_RECORDS,
   evaluateEncounterProximity,
   evaluateInteractableFocus,
+  evaluateLightSwitchFocus,
+  LIGHT_MODE_SWITCH_SPEC,
 } from "../engine/world-data.js";
 import { useAfterdarkStore } from "../store.js";
 
@@ -114,15 +117,36 @@ export const EncounterEntities: React.FC<EncounterEntitiesProps> = ({
     if (directorClockRef.current < 0.1) return;
     directorClockRef.current = 0;
 
-    // 1. Raycasted proximity focus check (`Press [E] to Examine`)
-    const focused = evaluateInteractableFocus(
+    // 1. Raycasted proximity focus check (`Press [E] to Examine` / `Activate LIGHT MODE`)
+    const lookingAtSwitch = evaluateLightSwitchFocus(
       state.playerPosition,
       state.playerYaw,
       state.playerPitch,
     );
-    const nextFocusId = focused?.id ?? null;
+    const focused = lookingAtSwitch
+      ? null
+      : evaluateInteractableFocus(
+          state.playerPosition,
+          state.playerYaw,
+          state.playerPitch,
+        );
+    const nextFocusId = lookingAtSwitch ? "light-switch" : (focused?.id ?? null);
     if (nextFocusId !== state.activeInteractableId) {
       state.setActiveInteractable(nextFocusId);
+    }
+
+    // 1b. Subtle metallic breaker hum proportional to proximity in Zone E
+    if (state.playerPosition[1] < 0) {
+      const sw = LIGHT_MODE_SWITCH_SPEC.position;
+      const d = Math.hypot(
+        sw[0] - state.playerPosition[0],
+        sw[1] - state.playerPosition[1],
+        sw[2] - state.playerPosition[2],
+      );
+      const prox = Math.max(0, Math.min(1, 1 - d / 11.5));
+      getAfterdarkSoundscape().setBreakerHumProximity(prox);
+    } else {
+      getAfterdarkSoundscape().setBreakerHumProximity(0);
     }
 
     // 2. Supernatural Encounter Director tick (cooldowns + gaze dot check)

@@ -19,9 +19,9 @@
 
 [data-template-theme="afterdark-horror"][data-color-scheme="light"] {
   color-scheme: only light;
-  --tpl-bg: #f8f5ef;
+  --tpl-bg: #FAF9F5;
   --tpl-surface: #ffffff;
-  --tpl-fg: #141418;
+  --tpl-fg: #0A0A0C;
   --tpl-muted: #52525b;
   --tpl-accent: #991b1b;
   background-color: var(--tpl-bg);

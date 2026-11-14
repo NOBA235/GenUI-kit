@@ -38,6 +38,10 @@ import {
   ENCOUNTER_DEFINITIONS,
   evaluateEncounterProximity,
   evaluateInteractableFocus,
+  evaluateLightSwitchFocus,
+  LIGHT_MODE_SWITCH_SPEC,
+  resolveTransformationStage,
+  TOTAL_TRANSFORMATION_DURATION,
 } from "../afterdark-horror/engine/world-data.js";
 import {
   createAfterdarkSharedGeometries,
@@ -63,6 +67,8 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
       const entry = getTemplateBySlug("afterdark-horror");
       expect(entry).toBeDefined();
       expect(entry!.manifest.mode).toBe("native");
+      expect(entry!.manifest.featured).toBe(true);
+      expect(entry!.manifest.title).toContain("AFTERDARK 2.0");
       expect(entry!.manifest.immersiveExperience).toBe(true);
       expect(entry!.manifest.category).toBe("3D / WebGL");
       expect(entry!.manifest.tags).toContain("3D / WebGL");
@@ -392,7 +398,7 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
         "enc-05",
       ]);
     });
-    it("progresses cleanly from shutdown -> typography -> gate_transition -> exploration -> restored_light", () => {
+    it("progresses cleanly from shutdown -> typography -> gate_transition -> exploration -> restoring_light -> restored_light -> plungeBackIntoDarkness", () => {
       const store = useAfterdarkStore.getState();
       expect(store.phase).toBe("shutdown");
 
@@ -408,15 +414,41 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
       expect(useAfterdarkStore.getState().phase).toBe("exploration");
       expect(useAfterdarkStore.getState().gateLockedBehind).toBe(true);
 
-      store.teleportToZone("chapel_steps");
-      expect(useAfterdarkStore.getState().currentZone).toBe("chapel_steps");
+      store.teleportToZone("crypt_entrance");
+      expect(useAfterdarkStore.getState().currentZone).toBe("crypt_entrance");
 
-      store.restoreLightMode();
+      // Looking directly toward LIGHT MODE breaker switch at [-4.0, -3.2, -50.22] from standPoint [-4.0, -2.8, -52.1] (+Z => yaw Math.PI)
+      const focusedSwitch = evaluateLightSwitchFocus(
+        LIGHT_MODE_SWITCH_SPEC.standPoint,
+        Math.PI,
+        -0.15,
+      );
+      expect(focusedSwitch).toBe(true);
+
+      store.triggerLightModeSequence();
+      expect(useAfterdarkStore.getState().phase).toBe("restoring_light");
+      expect(useAfterdarkStore.getState().lightSwitchActivated).toBe(true);
+
+      // Advance through Stages 1 -> 10
+      expect(resolveTransformationStage(0.1)).toBe(1);
+      expect(resolveTransformationStage(1.5)).toBe(4);
+      expect(resolveTransformationStage(4.3)).toBe(8);
+      expect(resolveTransformationStage(TOTAL_TRANSFORMATION_DURATION)).toBe(10);
+
+      useAfterdarkStore.getState().setTransformationProgress(9, 1.0);
+      expect(useAfterdarkStore.getState().transformationStage).toBe(9);
+
+      useAfterdarkStore.getState().completeLightModeTransition();
       expect(useAfterdarkStore.getState().lightModeRestored).toBe(true);
       expect(useAfterdarkStore.getState().phase).toBe("restored_light");
+
+      // Plunge Back Into Darkness resets light mode and local progress back to 2:17 AM shutdown
+      useAfterdarkStore.getState().plungeBackIntoDarkness();
+      expect(useAfterdarkStore.getState().lightModeRestored).toBe(false);
+      expect(useAfterdarkStore.getState().phase).toBe("shutdown");
     });
 
-    it("exports afterdark-horror into a standalone Next.js 15 .zip with all engine files", async () => {
+    it("exports afterdark-horror into a standalone Next.js 15 .zip with SKILL.md, POWER.md & ASSET_MANIFEST.md", async () => {
       const entry = getTemplateBySlug("afterdark-horror")!;
       const bytes = await generateTemplateZip(entry);
       const zip = await JSZip.loadAsync(bytes);
@@ -427,6 +459,7 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
       expect(zip.file("src/template/audio/soundscape.ts")).not.toBeNull();
       expect(zip.file("SKILL.md")).not.toBeNull();
       expect(zip.file(".kiro/powers/afterdark-horror/POWER.md")).not.toBeNull();
+      expect(zip.file("ASSET_MANIFEST.md")).not.toBeNull();
     });
   });
 });

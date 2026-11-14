@@ -70,6 +70,7 @@ export interface TemplateManifest {
   readonly category: string;
   readonly tags: readonly string[];
   readonly verified: boolean;
+  readonly featured?: boolean;
   readonly immersiveExperience?: boolean;
   readonly theme: TemplateThemeConfig;
   readonly pages: readonly TemplatePageDefinition[];

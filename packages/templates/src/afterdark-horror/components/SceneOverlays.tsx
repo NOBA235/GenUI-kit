@@ -4,6 +4,8 @@ import { ZONE_TELEPORT_TARGETS } from "../engine/collision.js";
 import {
   CLUE_RECORDS,
   ENCOUNTER_DEFINITIONS,
+  LIGHT_MODE_SWITCH_SPEC,
+  TRANSFORMATION_SEQUENCE_STAGES,
   getClueById,
 } from "../engine/world-data.js";
 import { useAfterdarkStore } from "../store.js";
@@ -51,6 +53,9 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
   const triggeredEncounters = useAfterdarkStore((s) => s.triggeredEncounters);
   const encounterSubtitle = useAfterdarkStore((s) => s.encounterSubtitle);
   const weepingGuideActive = useAfterdarkStore((s) => s.weepingGuideActive);
+  const transformationStage = useAfterdarkStore((s) => s.transformationStage);
+  const transformationProgress = Math.min(1, Math.max(0, transformationStage / 10));
+  const lightSwitchActivated = useAfterdarkStore((s) => s.lightSwitchActivated);
 
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [zoneBanner, setZoneBanner] = useState<string | null>(null);
@@ -297,21 +302,35 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
             </div>
           </div>
 
-          {/* Raycasted [E] Interaction Prompt (Appears ONLY when aimed near an inscription) */}
-          {activeInteractableId && !activeReaderClueId && (() => {
-            const focusedClue = getClueById(activeInteractableId);
-            if (!focusedClue) return null;
+          {/* Raycasted [E] Interaction Prompt (Clues 01-03 OR Zone E LIGHT MODE Switch) */}
+          {activeInteractableId && !activeReaderClueId && phase === "exploration" && (() => {
+            const isLightSwitch = activeInteractableId === "light-switch";
+            const focusedClue = isLightSwitch
+              ? null
+              : getClueById(activeInteractableId);
+            if (!isLightSwitch && !focusedClue) return null;
             return (
               <div className="pointer-events-auto fixed inset-x-0 bottom-24 z-20 flex justify-center px-4">
                 <button
                   type="button"
                   data-testid="afterdark-examine-prompt"
-                  onClick={() =>
-                    useAfterdarkStore.getState().examineClue(focusedClue.id)
-                  }
-                  className="afterdark-reveal-text rounded border border-amber-500/60 bg-black/85 px-4 py-2 font-mono text-xs tracking-[0.18em] text-amber-200 shadow-lg hover:border-amber-300 transition cursor-pointer"
+                  onClick={() => {
+                    if (isLightSwitch) {
+                      getAfterdarkSoundscape().playBreakerSwitchThrow();
+                      useAfterdarkStore.getState().triggerLightModeSequence();
+                    } else if (focusedClue) {
+                      useAfterdarkStore.getState().examineClue(focusedClue.id);
+                    }
+                  }}
+                  className={`afterdark-reveal-text rounded border px-4 py-2 font-mono text-xs tracking-[0.18em] shadow-lg transition cursor-pointer ${
+                    isLightSwitch
+                      ? "border-emerald-400/80 bg-zinc-950/90 text-emerald-200 hover:border-emerald-300"
+                      : "border-amber-500/60 bg-black/85 text-amber-200 hover:border-amber-300"
+                  }`}
                 >
-                  {focusedClue.promptLabel}
+                  {isLightSwitch
+                    ? LIGHT_MODE_SWITCH_SPEC.promptLabel
+                    : focusedClue?.promptLabel}
                 </button>
               </div>
             );
@@ -490,6 +509,77 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
                   className="min-h-[36px] rounded border border-amber-500/70 bg-amber-950/50 px-4 py-1.5 font-mono text-xs tracking-wider text-amber-200 hover:bg-amber-900/60 transition cursor-pointer"
                 >
                   Close [E / ESC]
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Milestone 3: 10-Stage LIGHT MODE Cinematic Dawn Sequence Overlay */}
+      {phase === "restoring_light" && (() => {
+        const activeMeta =
+          TRANSFORMATION_SEQUENCE_STAGES.find(
+            (item) => item.stage === transformationStage,
+          ) ?? TRANSFORMATION_SEQUENCE_STAGES[0]!;
+        const washOpacity =
+          transformationStage >= 10
+            ? 0.96
+            : transformationStage >= 8
+              ? Math.min(0.65, Math.max(0, (transformationProgress - 0.68) * 2.1))
+              : 0;
+
+        return (
+          <div
+            data-testid="afterdark-transformation-overlay"
+            role="status"
+            aria-live="polite"
+            className="pointer-events-auto fixed inset-0 z-40 flex flex-col justify-end pb-12 px-6"
+          >
+            {/* Crossfade wash into #FAF9F5 Editorial Website */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0 transition-opacity duration-500"
+              style={{
+                backgroundColor: "#FAF9F5",
+                opacity: washOpacity,
+              }}
+            />
+
+            <div className="relative z-10 mx-auto w-full max-w-xl rounded-lg border border-amber-500/50 bg-black/80 px-5 py-4 backdrop-blur-md shadow-2xl space-y-2.5">
+              <div className="flex items-center justify-between font-mono text-[10px] tracking-[0.22em] text-amber-300">
+                <span>
+                  TRANSFORMATION SEQUENCE ·{" "}
+                  {String(activeMeta.stage).padStart(2, "0")}/10
+                </span>
+                <span>{Math.round(transformationProgress * 100)}%</span>
+              </div>
+
+              <p className="font-serif text-base text-zinc-100 leading-snug">
+                {activeMeta.cueText}
+              </p>
+
+              <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 via-yellow-200 to-emerald-400 transition-all duration-150"
+                  style={{ width: `${Math.round(transformationProgress * 100)}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-mono text-[10px] text-zinc-400">
+                  Sub-Station 04 Breaker Engaged · LIGHT MODE: ON
+                </span>
+                <button
+                  type="button"
+                  data-testid="afterdark-finish-dawn-btn"
+                  onClick={() => {
+                    getAfterdarkSoundscape().playDawnRevealChord();
+                    useAfterdarkStore.getState().completeLightModeTransition();
+                  }}
+                  className="rounded border border-amber-400/70 bg-amber-950/60 px-3 py-1 font-mono text-[10px] tracking-wider text-amber-100 hover:bg-amber-900/70 cursor-pointer transition"
+                >
+                  Finish Dawn Reveal ▸
                 </button>
               </div>
             </div>
@@ -678,6 +768,25 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
                 );
               })}
             </div>
+          </div>
+
+          {/* Zone E Physical LIGHT MODE Switch Trigger */}
+          <div className="space-y-1 border-t border-zinc-800/80 pt-2">
+            <button
+              type="button"
+              data-testid="afterdark-debug-light-switch-btn"
+              onClick={() => {
+                useAfterdarkStore.getState().teleportToZone("crypt_entrance");
+                getAfterdarkSoundscape().playBreakerSwitchThrow();
+                useAfterdarkStore.getState().triggerLightModeSequence();
+              }}
+              className="w-full rounded border border-emerald-500/70 bg-emerald-950/50 px-2 py-1.5 text-left text-[10px] font-bold text-emerald-200 hover:bg-emerald-900/60 cursor-pointer transition"
+            >
+              ⚡{" "}
+              {lightSwitchActivated
+                ? "LIGHT MODE Switch Engaged (Stage " + transformationStage + "/10)"
+                : "Pull LIGHT MODE Switch (Zone E Crypt)"}
+            </button>
           </div>
         </aside>
       )}

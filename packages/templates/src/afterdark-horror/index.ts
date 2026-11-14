@@ -1,5 +1,6 @@
 import type { DualModeTemplateEntry } from "../types.js";
 import {
+  buildChaosPackets,
   buildRemixJsonl,
   initialPageSpecs,
   verifiedCatalog,
@@ -25,6 +26,7 @@ export const templateEntry: DualModeTemplateEntry = {
   kiroPowerMd: TEMPLATE_KIRO_POWER_MD,
   sourceFiles: TEMPLATE_SOURCE_FILES,
   buildRemixJsonl,
+  buildChaosPackets,
 };
 
 export * from "./types.js";

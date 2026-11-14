@@ -24,6 +24,11 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
   const counts = getTemplateCounts();
 
+  const featuredFlagships = useMemo(
+    () => listTemplates({}).filter((entry) => entry.manifest.featured === true),
+    [],
+  );
+
   const filteredTemplates = useMemo(
     () =>
       listTemplates({
@@ -138,6 +143,58 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
             </div>
           </div>
         </section>
+
+        {/* Flagship Spotlight Banner */}
+        {featuredFlagships.length > 0 && (
+          <section
+            data-testid="marketplace-featured-flagship"
+            className="rounded-2xl border border-red-900/50 bg-gradient-to-r from-[#090306] via-slate-950 to-zinc-950 p-6 md:p-7 shadow-xl"
+          >
+            {featuredFlagships.map((flagship) => (
+              <div
+                key={`featured-${flagship.manifest.slug}`}
+                className="flex flex-wrap items-center justify-between gap-6"
+              >
+                <div className="max-w-2xl space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                    <span className="rounded border border-red-500/40 bg-red-500/15 px-2.5 py-0.5 font-bold uppercase tracking-wider text-red-300">
+                      Flagship Website #1 · Featured Release
+                    </span>
+                    <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300">
+                      Dual-Mode + 60 FPS WebGL + 3D Audio
+                    </span>
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white">
+                    {flagship.manifest.title}
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {flagship.manifest.description}
+                  </p>
+                  <div className="font-mono text-xs text-cyan-300">
+                    <code>npx genui-studio add {flagship.manifest.slug}</code>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => onOpenPreview(flagship.manifest.slug)}
+                    className="rounded-lg bg-red-600 px-4 py-2.5 font-mono text-xs font-bold text-white hover:bg-red-500 transition cursor-pointer"
+                  >
+                    Enter 2:17 AM Preview →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportTemplate(flagship)}
+                    className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 font-mono text-xs font-semibold text-slate-200 hover:border-cyan-400/60 hover:text-white transition cursor-pointer"
+                  >
+                    Export .ZIP / SKILL.md
+                  </button>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
 
         {/* Search, Mode, Tier & Marketplace Tag Filters */}
         <section className="space-y-4">

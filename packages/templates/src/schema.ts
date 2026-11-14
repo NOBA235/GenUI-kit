@@ -59,6 +59,7 @@ export const TemplateManifestSchema = z.object({
   category: z.string().min(1),
   tags: z.array(z.string().min(1)),
   verified: z.boolean(),
+  featured: z.boolean().optional(),
   immersiveExperience: z.boolean().optional(),
   theme: TemplateThemeSchema,
   pages: z.array(TemplatePageSchema).min(1),
