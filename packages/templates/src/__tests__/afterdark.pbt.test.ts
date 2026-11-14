@@ -287,7 +287,7 @@ describe("AFTERDARK 2.0 — fast-check Property-Based Verification Suite", () =>
           expect(clampedRadius).toBeLessThanOrEqual(25);
           // Corrupted coordinate node was either pruned or rejected in diagnostics
           expect(
-            finalized.telemetry.rejectedProps + finalized.issues.length,
+            finalized.telemetry.rejectedPropsCount + finalized.issues.length,
           ).toBeGreaterThan(0);
         },
       ),
