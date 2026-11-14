@@ -54,7 +54,7 @@ async function main(): Promise<void> {
   const paths = getDefaultOtlpStoragePaths();
 
   console.log(
-    `[SpatialOps OTLP] Listening on http://localhost:${collector.port}/v1/traces (${collector.demoMode ? "DEMO SEEDED" : "LIVE WAITING"})`
+    `[SpatialOps OTLP] Listening on http://localhost:${collector.port}/v1/{traces,logs,metrics} (${collector.demoMode ? "DEMO SEEDED" : "LIVE WAITING"})`
   );
   console.log(
     `[SpatialOps OTLP] Snapshot SSE: http://localhost:${collector.port}/api/events | Storage: ${args.dataFile === false ? "in-memory" : (args.dataFile ?? paths.dataFile)}`

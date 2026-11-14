@@ -13,8 +13,8 @@ The Model Context Protocol (MCP) server for **GenUI Studio**. It exposes product
 | `validate_ui_spec` | `app?: "spatial"`, `spec: object \| string`, `autoFix?: boolean` | Validates a proposed Spec DAG, RFC 6902 JSONL patch stream, or SSE stream against the target catalog, detecting cycles, dangling pointers, prototype pollution, unsafe URIs, and out-of-bounds props. |
 | `fuzz_test_catalog` | `app?: "spatial"`, `componentName?: string`, `numRuns?: number` | Runs randomized `fast-check` property checks against a component schema or the catalog invariant suite. |
 
-### SpatialOps Telemetry Tools (Pluggable Providers)
-These tools expose telemetry inspection and remediation hooks (`setMcpTelemetryProvider` defaults to an in-memory sandbox provider until wired to a live OTLP collector):
+### SpatialOps Telemetry Tools (Live OTLP Snapshot & Pluggable Providers)
+These tools expose telemetry inspection and remediation hooks (`OtlpSnapshotMcpTelemetryProvider` reads live OTLP snapshots from `~/.genui-studio/otlp-latest-snapshot.json` by default; pass `--demo` to force synthetic sandbox simulation or call `setMcpTelemetryProvider`):
 - `query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`
 
 ---

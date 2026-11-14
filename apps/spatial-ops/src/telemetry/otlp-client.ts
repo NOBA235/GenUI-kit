@@ -18,6 +18,15 @@ export interface OtlpClientCallbacks {
   onStatusChange?: (status: OtlpConnectionStatus, detail?: string) => void;
 }
 
+function hasIngestedTelemetry(snapshot: DynamicTopologySnapshot): boolean {
+  return (
+    snapshot.mode === "LIVE" ||
+    snapshot.totalIngestedTraces > 0 ||
+    (snapshot.totalIngestedLogs ?? 0) > 0 ||
+    (snapshot.totalIngestedMetrics ?? 0) > 0
+  );
+}
+
 /**
  * Applies a derived live OTLP topology snapshot onto the SpatialOps TimeTravelStateStore.
  * Preserves existing SRE audit logs and current service selection when still present.
@@ -26,7 +35,7 @@ export function applyOtlpSnapshotToStore(
   store: TimeTravelStateStore,
   snapshot: DynamicTopologySnapshot
 ): void {
-  if (snapshot.mode === "WAITING" && snapshot.totalIngestedTraces === 0) {
+  if (snapshot.mode === "WAITING" && !hasIngestedTelemetry(snapshot)) {
     const emptyState = createEmptyOtlpClusterState();
     const existingAudit = store.get("/cluster/auditLog");
     store.update({
@@ -89,7 +98,7 @@ export class LiveOtlpCollectorClient {
       const snapshot = (await resp.json()) as DynamicTopologySnapshot;
       this.callbacks.onSnapshot(snapshot);
       this.callbacks.onStatusChange?.(
-        snapshot.totalIngestedTraces > 0 ? "STREAMING" : "LISTENING"
+        hasIngestedTelemetry(snapshot) ? "STREAMING" : "LISTENING"
       );
       this.openEventStream();
     } catch (err) {
@@ -117,7 +126,7 @@ export class LiveOtlpCollectorClient {
         const snapshot = JSON.parse((evt as MessageEvent<string>).data) as DynamicTopologySnapshot;
         this.callbacks.onSnapshot(snapshot);
         this.callbacks.onStatusChange?.(
-          snapshot.totalIngestedTraces > 0 ? "STREAMING" : "LISTENING"
+          hasIngestedTelemetry(snapshot) ? "STREAMING" : "LISTENING"
         );
       } catch {
         // Ignore malformed frame
@@ -159,7 +168,7 @@ export class LiveOtlpCollectorClient {
       const snapshot = (await snapResp.json()) as DynamicTopologySnapshot;
       this.callbacks.onSnapshot(snapshot);
       this.callbacks.onStatusChange?.(
-        snapshot.totalIngestedTraces > 0 ? "STREAMING" : "LISTENING"
+        hasIngestedTelemetry(snapshot) ? "STREAMING" : "LISTENING"
       );
     }
   }

@@ -53,9 +53,9 @@ However, having LLMs emit raw JSX or HTML introduces three catastrophic failure 
 **GenUI Studio** solves these reliability bottlenecks as a focused hardening layer **on top of [`@json-render`](https://github.com/vercel-labs/json-render)** (`v0.22.0`). Rather than reinventing `@json-render`'s catalog/renderer model, `@genui-studio/core` adds strict DAG/value sanitization, bounded multi-protocol stream compilation (`JSONL`, `SSE data:`, whole-Spec fallback), semantic enum/prop healing, Rules-of-Hooks-safe React fault boundaries, deep-frozen time-travel state management, a CI CLI linter (`genui-studio validate`), and an MCP server (`@genui-studio/mcp`).
 
 > [!NOTE]
-> **Production Primitives vs. Reference Demo Layer:**  
-> - **Production-Hardened Runtime & Developer Tooling:** `@genui-studio/core`, `genui-studio validate` CLI, `@genui-studio/mcp` core verification tools (`list_catalog_components`, `validate_ui_spec`, `fuzz_test_catalog`), and the `fast-check` / React DOM test suites.  
-> - **Reference App & Registry Scaffolding:** `apps/spatial-ops` currently defaults to a zero-API-key in-memory service mesh simulator (`LiveServiceMeshSimulator`); `@genui-studio/mcp`'s telemetry tools (`query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`) use pluggable `McpTelemetryProvider` hooks defaulting to in-memory simulation; `validateLicenseToken` defaults to offline `"local-format-demo"` checks unless wired to a server-side `LicenseVerifier`; `@genui-studio/templates` and `apps/studio-hub` are under active development.
+> **Production Primitives vs. Reference App & Registry Scaffolding:**  
+> - **Production-Hardened Runtime & Developer Tooling:** `@genui-studio/core`, `genui-studio validate` CLI, `@genui-studio/mcp` verification tools (`list_catalog_components`, `validate_ui_spec`, `fuzz_test_catalog`), and the `fast-check` / React DOM test suites.  
+> - **Live Local OTLP Observability & Optional Registry Scaffolding:** `apps/spatial-ops` defaults to a real local OpenTelemetry **OTLP/HTTP JSON collector on `:4318`** (`/v1/traces`, `/v1/logs`, `/v1/metrics`) that dynamically synthesizes topologies from incoming OpenTelemetry spans, logs, and utilization metrics (`--demo` or `"Load Sample Demo"` activates `LiveServiceMeshSimulator`); `@genui-studio/mcp`'s telemetry tools (`query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`) read live OTLP snapshots (`OtlpSnapshotMcpTelemetryProvider`) by default (`--demo` switches to synthetic fallback data); `validateLicenseToken` defaults to offline `"local-format-demo"` checks unless wired to a server-side `LicenseVerifier`; `@genui-studio/templates` and `apps/studio-hub` are under active development.
 
 ---
 
@@ -178,12 +178,14 @@ GenUI-kit/
 │           ├── node/ingest-standalone.ts    # Project ingestion & manifest generator (unverified by default)
 │           └── registry-entries.generated.ts # Generated template pack entries
 └── apps/
-    ├── spatial-ops/                         # SpatialOps: Aegis 3D/2D SRE & Telemetry Workbench
+    ├── spatial-ops/                         # SpatialOps: Live OTLP (:4318) 3D/2D Telemetry Workbench
+    │   ├── server/                          # Local OTLP/HTTP JSON collector (:4318 /v1/{traces,logs,metrics})
+    │   ├── examples/                        # Zero-dependency OTel trace/log/metric emitter script
     │   ├── src/catalog/                     # 15 Hybrid 3D (R3F) + 2D (HUD) Zod Components
     │   ├── src/three/                       # WebGL canvas, OrbitControls, emissive nodes, packet edges
-    │   ├── src/telemetry/                   # OpenTelemetry span types, mesh simulator & bridge
-    │   ├── src/components/                  # Spatial X-Ray drawer, live cluster telemetry
-    │   ├── src/data/                        # 16-microservice topology & SRE mutation engine
+    │   ├── src/telemetry/                   # Dynamic OTLP topology builder, SSE client & --demo simulator
+    │   ├── src/components/                  # Spatial X-Ray drawer, export modal
+    │   ├── src/data/                        # Cluster data types, seed dataset & SRE mutation engine
     │   └── src/streams/                     # SRE incident stream scenarios & failover playbooks
     └── studio-hub/                          # Studio Hub & Template Workspace App (WIP)
 ```
@@ -255,11 +257,26 @@ Wraps every rendered node cleanly:
 
 ## 📱 Reference Application: SpatialOps (`apps/spatial-ops`)
 
-### Aegis 3D Spatial Incident War-Room (3D + 2D)
-An SRE incident and distributed-trace workbench combining a **3D WebGL microservice mesh** with a **2D tactical HUD** over a shared `TimeTravelStateStore`:
+### Aegis 3D Spatial OTLP & Incident Workbench (3D + 2D)
+A real-time distributed telemetry and incident workbench combining a **local OpenTelemetry OTLP/HTTP JSON receiver (`:4318`)**, **3D WebGL microservice topology**, **critical-path/tier/health filter toolbar**, and a **2D tactical HUD** over a shared `TimeTravelStateStore`:
 
 ```text
-http://localhost:5174
+Web UI:         http://localhost:5174
+OTLP Collector: http://localhost:4318/v1/{traces,logs,metrics}
+```
+
+#### Send Real OpenTelemetry Data in 10 Seconds
+Point any Node.js, Next.js, Go, or Python service using OpenTelemetry OTLP/HTTP JSON at SpatialOps:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/json"
+
+# Or emit a sample faulty multi-service trace + log + host utilization metric:
+pnpm --filter @genui-studio/spatial-ops demo:emit-otlp -- --faulty
+
+# Start with opt-in in-memory mesh simulator instead of empty OTLP standby:
+pnpm --filter @genui-studio/spatial-ops dev:demo
 ```
 
 - **15 Spatial & Telemetry Components:**
@@ -353,9 +370,10 @@ Triggers an automated `fast-check` property test run against a component schema 
 }
 ```
 
-### Pluggable Telemetry Provider Tools
-In addition to the 3 verification tools above, `@genui-studio/mcp` exposes 3 OpenTelemetry/remediation tools backed by pluggable providers (`setMcpTelemetryProvider`) that default to an in-memory simulation provider:
+### Live OTLP & Pluggable Telemetry Provider Tools
+In addition to the 3 verification tools above, `@genui-studio/mcp` exposes 3 OpenTelemetry/remediation tools backed by pluggable providers (`setMcpTelemetryProvider`):
 - `query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`
+- By default, `OtlpSnapshotMcpTelemetryProvider` reads real ingested OTLP topology snapshots written by the SpatialOps collector (`~/.genui-studio/otlp-latest-snapshot.json`), falling back cleanly to `DefaultMcpTelemetryProvider` only when running with `--demo` or before live traces arrive.
 
 ### Kiro IDE / Claude Desktop MCP Configuration
 

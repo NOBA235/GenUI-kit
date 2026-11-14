@@ -5,7 +5,7 @@
 **License:** Open Source (MIT)  
 **Repository:** [github.com/NOBA235/GenUI-kit](https://github.com/NOBA235/GenUI-kit)  
 **Local Showcase Ports:**
-- **SpatialOps (Aegis 3D Spatial Workbench):** `http://localhost:5174` (in-memory simulation default)
+- **SpatialOps (Aegis 3D Spatial Workbench):** `http://localhost:5174` (live local OTLP `:4318` `/v1/{traces,logs,metrics}` default; opt-in `--demo` simulator)
 - **Studio Hub (WIP Storefront):** `http://localhost:5175`
 
 ---
@@ -88,7 +88,7 @@ We packaged the verification engine into a **Model Context Protocol (MCP)** serv
 - **`list_catalog_components`**: Allows Kiro, Claude, or Cursor to introspect the 15 SpatialOps components, their Zod prop contracts, constraints, and fallback props.
 - **`validate_ui_spec`**: Validates a proposed Spec tree, RFC 6902 JSONL stream, or SSE stream against the target catalog before rendering, returning exact structural diagnostics (cycles, dangling pointers, prototype pollution attempts) and auto-fix suggestions.
 - **`fuzz_test_catalog`**: Enables agents to trigger live `fast-check` property tests directly through MCP tool invocation.
-- **Pluggable Telemetry Tools (`query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`):** Backed by an in-memory simulated mesh provider by default (`setMcpTelemetryProvider` supports wiring live OTLP / cluster telemetry adapters).
+- **Live OTLP & Pluggable Telemetry Tools (`query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`):** Backed by `OtlpSnapshotMcpTelemetryProvider` reading live snapshots from the SpatialOps OTLP collector by default (`--demo` activates in-memory simulation fallback; `setMcpTelemetryProvider` supports custom adapters).
 
 ### 6. Property-Based Testing (PBT) & Shrinking with `fast-check`
 Rather than relying solely on example-based unit tests, we formulated **4 core property-based invariants** checked across randomized inputs with `fast-check` ([`packages/genui-core/src/testing/index.ts`](./packages/genui-core/src/testing/index.ts)).
@@ -107,8 +107,8 @@ During Phase 2, `fast-check`'s shrinking engine uncovered **5 critical edge-case
 
 ## 🚀 Reference Application & Registry Tooling
 
-### SpatialOps: Aegis 3D Spatial Incident War-Room (3D WebGL + 2D HUD)
-An SRE incident command center combining a **3D WebGL distributed microservice mesh** with a **2D tactical HUD** over a shared `TimeTravelStateStore`:
+### SpatialOps: Live OTLP 3D Spatial Workbench (`:4318` + `TimeTravelStateStore`)
+An SRE observability and incident workbench pairing a **local OTLP/HTTP JSON collector (`POST /v1/traces`, `/v1/logs`, `/v1/metrics` on `:4318`)** with a **3D WebGL distributed microservice mesh** and **2D tactical HUD** over a shared `TimeTravelStateStore`:
 - **15 Spatial Components:** `AegisWarRoomShell`, `ClusterTopologyCanvas` (Three.js WebGL canvas), `ServiceMeshNode3D`, `TrafficFlowEdge3D`, `BlastRadiusSphere3D`, `RegionZoneBoundary3D`, `IncidentHeroBanner`, `ServiceDiagnosticPanel`, `LatencyHistogramCard`, `ErrorLogTailer`, `BlastRadiusDependencyTree`, `RunbookActionDesk`, `ClusterMetricsGrid`, `SreAuditTrailBanner`, `TraceWaterfallViewer`.
 - **Dual-Surface State Coherence:** Adjusting an SRE runbook slider in the 2D HUD updates the 3D WebGL scene's emissive node colors, traffic packet velocities, and volumetric blast radius spheres without re-mounting the WebGL canvas.
 - **Incident Remediation:** Trip circuit breakers, trigger regional failovers, scale container pod replicas, and inspect trace waterfalls with full time-travel audit logging.
@@ -123,7 +123,7 @@ GenUI Studio includes local CLI tooling and registry primitives ready to connect
 
 ## 🛠️ Verification Checklist
 
-- [x] **Monorepo Build & Typecheck:** `pnpm build` and `pnpm typecheck` complete cleanly across workspace packages and apps (`@genui-studio/core`, `@genui-studio/mcp`, `genui-studio` CLI, `@genui-studio/templates`, `spatial-ops`, `studio-hub`).
+- [x] **Filtered Package Build & Typecheck:** Build and typecheck pass across the released core, CLI, MCP, and SpatialOps packages (`@genui-studio/core`, `genui-studio`, `@genui-studio/mcp`, `@genui-studio/spatial-ops`; `@genui-studio/templates` and `studio-hub` are under active local development).
 - [x] **CLI Spec Linter & Registry Scaffolding:** Spec/stream linter (`npx genui-studio validate <file|->`), CLI installer/exporter (`npx genui-studio add|list|export`), and pluggable `LicenseVerifier` hook (defaulting to offline `local-format-demo` mode).
 - [x] **Model Context Protocol (MCP) Server:** Tested over stdio JSON-RPC protocol (`node packages/genui-mcp/dist/cli.js`), configured in `.kiro/settings/mcp.json`.
 - [x] **Frictionless Developer DX:** Single root commands (`pnpm dev`, `pnpm mcp`, `pnpm test`, `pnpm genui-studio`), zero setup, zero API keys required.

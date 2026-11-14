@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/v1/traces": collectorTarget,
+      "/v1": collectorTarget,
       "/api": collectorTarget,
       "/health": collectorTarget,
     },

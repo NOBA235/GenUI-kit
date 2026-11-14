@@ -126,14 +126,22 @@ function hydrateFromNdjson(
     for (const line of lines.slice(-MAX_NDJSON_LINES)) {
       try {
         const parsed = JSON.parse(line) as {
+          kind?: "traces" | "logs" | "metrics";
           receivedAtMs?: number;
           payload?: unknown;
         };
         if (parsed && parsed.payload) {
-          store.ingestOtlpPayload(
-            parsed.payload,
-            typeof parsed.receivedAtMs === "number" ? parsed.receivedAtMs : Date.now()
-          );
+          const ts =
+            typeof parsed.receivedAtMs === "number"
+              ? parsed.receivedAtMs
+              : Date.now();
+          if (parsed.kind === "logs") {
+            store.ingestOtlpLogsPayload(parsed.payload, ts);
+          } else if (parsed.kind === "metrics") {
+            store.ingestOtlpMetricsPayload(parsed.payload, ts);
+          } else {
+            store.ingestOtlpPayload(parsed.payload, ts);
+          }
         }
       } catch {
         // Skip malformed historical line safely
@@ -141,6 +149,48 @@ function hydrateFromNdjson(
     }
   } catch {
     // Best-effort local persistence hydration
+  }
+}
+
+async function parseOtlpHttpJsonBody(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  endpointPath: string,
+  maxBodyBytes: number
+): Promise<unknown | null> {
+  const contentType = String(req.headers["content-type"] ?? "").toLowerCase();
+  if (contentType.includes("application/x-protobuf")) {
+    sendJson(res, 415, {
+      error:
+        "Unsupported Media Type: application/x-protobuf. Configure OTEL_EXPORTER_OTLP_PROTOCOL=http/json to send OTLP JSON payloads to this local receiver.",
+    });
+    return null;
+  }
+
+  let rawBuf = await readRequestBuffer(req, maxBodyBytes);
+  const encoding = String(req.headers["content-encoding"] ?? "").toLowerCase();
+  if (encoding.includes("gzip")) {
+    try {
+      rawBuf = gunzipSync(rawBuf);
+    } catch {
+      sendJson(res, 400, { error: "Invalid gzip-compressed OTLP request body" });
+      return null;
+    }
+  }
+
+  const text = rawBuf.toString("utf8").trim();
+  if (!text) {
+    sendJson(res, 400, { error: `Empty OTLP ${endpointPath} request body` });
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    sendJson(res, 400, {
+      error: `Invalid JSON in OTLP ${endpointPath} request body`,
+    });
+    return null;
   }
 }
 
@@ -271,6 +321,11 @@ export async function startOtlpCollectorServer(
         port: boundPort,
         demoMode,
         endpoint: `http://localhost:${boundPort}/v1/traces`,
+        endpoints: {
+          traces: `http://localhost:${boundPort}/v1/traces`,
+          logs: `http://localhost:${boundPort}/v1/logs`,
+          metrics: `http://localhost:${boundPort}/v1/metrics`,
+        },
         ...store.getStats(),
       });
       return;
@@ -321,49 +376,70 @@ export async function startOtlpCollectorServer(
       return;
     }
 
-    if (method === "POST" && pathname === "/v1/traces") {
-      const contentType = String(req.headers["content-type"] ?? "").toLowerCase();
-      if (contentType.includes("application/x-protobuf")) {
-        sendJson(res, 415, {
-          error:
-            "Unsupported Media Type: application/x-protobuf. Configure OTEL_EXPORTER_OTLP_PROTOCOL=http/json to send OTLP JSON spans to this local receiver.",
-        });
-        return;
-      }
-
+    if (
+      method === "POST" &&
+      (pathname === "/v1/traces" ||
+        pathname === "/v1/logs" ||
+        pathname === "/v1/metrics")
+    ) {
       try {
-        let rawBuf = await readRequestBuffer(req, maxBodyBytes);
-        const encoding = String(req.headers["content-encoding"] ?? "").toLowerCase();
-        if (encoding.includes("gzip")) {
-          try {
-            rawBuf = gunzipSync(rawBuf);
-          } catch {
-            sendJson(res, 400, { error: "Invalid gzip-compressed OTLP request body" });
-            return;
-          }
-        }
-
-        const text = rawBuf.toString("utf8").trim();
-        if (!text) {
-          sendJson(res, 400, { error: "Empty OTLP /v1/traces request body" });
-          return;
-        }
-
-        let payload: unknown;
-        try {
-          payload = JSON.parse(text);
-        } catch {
-          sendJson(res, 400, { error: "Invalid JSON in OTLP /v1/traces request body" });
+        const payload = await parseOtlpHttpJsonBody(
+          req,
+          res,
+          pathname,
+          maxBodyBytes
+        );
+        if (payload === null) {
           return;
         }
 
         const nowMs = Date.now();
-        const stats = store.ingestOtlpPayload(payload, nowMs);
-
-        if (dataFile && stats.acceptedSpans > 0) {
-          persistNdjsonLine(dataFile, { receivedAtMs: nowMs, payload });
+        if (pathname === "/v1/logs") {
+          const stats = store.ingestOtlpLogsPayload(payload, nowMs);
+          if (dataFile && stats.acceptedLogs > 0) {
+            persistNdjsonLine(dataFile, {
+              kind: "logs",
+              receivedAtMs: nowMs,
+              payload,
+            });
+          }
+          broadcastSnapshot();
+          sendJson(res, 200, {
+            partialSuccess:
+              stats.rejectedLogs > 0
+                ? { rejectedLogRecords: stats.rejectedLogs }
+                : {},
+          });
+          return;
         }
 
+        if (pathname === "/v1/metrics") {
+          const stats = store.ingestOtlpMetricsPayload(payload, nowMs);
+          if (dataFile && stats.acceptedMetrics > 0) {
+            persistNdjsonLine(dataFile, {
+              kind: "metrics",
+              receivedAtMs: nowMs,
+              payload,
+            });
+          }
+          broadcastSnapshot();
+          sendJson(res, 200, {
+            partialSuccess:
+              stats.rejectedMetrics > 0
+                ? { rejectedDataPoints: stats.rejectedMetrics }
+                : {},
+          });
+          return;
+        }
+
+        const stats = store.ingestOtlpPayload(payload, nowMs);
+        if (dataFile && stats.acceptedSpans > 0) {
+          persistNdjsonLine(dataFile, {
+            kind: "traces",
+            receivedAtMs: nowMs,
+            payload,
+          });
+        }
         broadcastSnapshot();
 
         // Standard OTLP/HTTP ExportTraceServiceResponse JSON

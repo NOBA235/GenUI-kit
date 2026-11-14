@@ -164,6 +164,8 @@ const EMPTY_OTLP_SNAPSHOT: DynamicTopologySnapshot = {
   mode: "WAITING",
   totalIngestedSpans: 0,
   totalIngestedTraces: 0,
+  totalIngestedLogs: 0,
+  totalIngestedMetrics: 0,
   lastIngestedAt: null,
   services: {},
   edges: [],
@@ -171,6 +173,8 @@ const EMPTY_OTLP_SNAPSHOT: DynamicTopologySnapshot = {
   recentTraces: [],
   logs: [],
   bottleneckServiceId: null,
+  bottleneckTraceId: null,
+  criticalPathServiceIds: [],
 };
 
 export const App: React.FC<AppProps> = ({
@@ -229,6 +233,24 @@ export const App: React.FC<AppProps> = ({
   const patchCounterRef = useRef(0);
   const otlpClientRef = useRef<LiveOtlpCollectorClient | null>(null);
   const otlpSnippetId = useId();
+  const filterSearchId = useId();
+  const filterTierId = useId();
+  const filterStatusId = useId();
+
+  const [otlpFilters, setOtlpFilters] = useState<{
+    tierFilter: string;
+    statusFilter: string;
+    searchQuery: string;
+    criticalPathOnly: boolean;
+  }>({
+    tierFilter: "ALL",
+    statusFilter: "ALL",
+    searchQuery: "",
+    criticalPathOnly: false,
+  });
+  const otlpFiltersRef = useRef(otlpFilters);
+  otlpFiltersRef.current = otlpFilters;
+  const otlpSnapshotRef = useRef(EMPTY_OTLP_SNAPSHOT);
 
   const [currentSpec, setCurrentSpec] = useState<Spec | null>(null);
   const [healedDiagnostics, setHealedDiagnostics] =
@@ -422,6 +444,7 @@ export const App: React.FC<AppProps> = ({
     telemetryBridge.detach();
 
     // Render empty waiting topology immediately while collector connects
+    otlpSnapshotRef.current = EMPTY_OTLP_SNAPSHOT;
     const initialSpec = buildDynamicOtlpSpec(EMPTY_OTLP_SNAPSHOT);
     applyOtlpSnapshotToStore(timeTravelStore, EMPTY_OTLP_SNAPSHOT);
     runGuardrailedJsonlStream(specToJsonlStream(initialSpec), true);
@@ -429,6 +452,7 @@ export const App: React.FC<AppProps> = ({
     const client = new LiveOtlpCollectorClient(
       {
         onSnapshot: (snapshot) => {
+          otlpSnapshotRef.current = snapshot;
           setOtlpSnapshot(snapshot);
           applyOtlpSnapshotToStore(timeTravelStore, snapshot);
           setSelectedTraceId((prevTraceId) => {
@@ -436,7 +460,11 @@ export const App: React.FC<AppProps> = ({
               prevTraceId &&
               snapshot.recentTraces.some((t) => t.traceId === prevTraceId);
             const activeTrace = stillExists ? prevTraceId : undefined;
-            const dynamicSpec = buildDynamicOtlpSpec(snapshot, activeTrace);
+            const dynamicSpec = buildDynamicOtlpSpec(
+              snapshot,
+              activeTrace,
+              otlpFiltersRef.current
+            );
             runGuardrailedJsonlStream(specToJsonlStream(dynamicSpec), true);
             return activeTrace;
           });
@@ -467,9 +495,42 @@ export const App: React.FC<AppProps> = ({
     timeTravelStore,
   ]);
 
+  const applyOtlpFilters = useCallback(
+    (
+      next: {
+        tierFilter: string;
+        statusFilter: string;
+        searchQuery: string;
+        criticalPathOnly: boolean;
+      },
+      traceIdOverride?: string
+    ) => {
+      setOtlpFilters(next);
+      otlpFiltersRef.current = next;
+      timeTravelStore.update({
+        "/cluster/filters": {
+          tierFilter: next.tierFilter,
+          regionFilter: "ALL",
+          searchQuery: next.searchQuery,
+        },
+      });
+      const dynamicSpec = buildDynamicOtlpSpec(
+        otlpSnapshotRef.current,
+        traceIdOverride ?? selectedTraceId,
+        next
+      );
+      runGuardrailedJsonlStream(specToJsonlStream(dynamicSpec), true);
+    },
+    [runGuardrailedJsonlStream, selectedTraceId, timeTravelStore]
+  );
+
   const handleSelectTrace = (traceId: string) => {
     setSelectedTraceId(traceId);
-    const dynamicSpec = buildDynamicOtlpSpec(otlpSnapshot, traceId);
+    const dynamicSpec = buildDynamicOtlpSpec(
+      otlpSnapshot,
+      traceId,
+      otlpFiltersRef.current
+    );
     runGuardrailedJsonlStream(specToJsonlStream(dynamicSpec), true);
   };
 
@@ -566,7 +627,11 @@ export const App: React.FC<AppProps> = ({
     }
 
     if (dataSourceMode === "otlp") {
-      const liveSpec = buildDynamicOtlpSpec(otlpSnapshot, selectedTraceId);
+      const liveSpec = buildDynamicOtlpSpec(
+        otlpSnapshot,
+        selectedTraceId,
+        otlpFiltersRef.current
+      );
       const rootKey = liveSpec.root;
       const rootEl = liveSpec.elements[rootKey];
       if (rootEl) {
@@ -912,7 +977,9 @@ export const App: React.FC<AppProps> = ({
                     <strong>{Object.keys(otlpSnapshot.services).length}</strong> · Edges:{" "}
                     <strong>{otlpSnapshot.edges.length}</strong> · Traces:{" "}
                     <strong>{otlpSnapshot.totalIngestedTraces}</strong> · Spans:{" "}
-                    <strong>{otlpSnapshot.totalIngestedSpans}</strong>
+                    <strong>{otlpSnapshot.totalIngestedSpans}</strong> · Logs:{" "}
+                    <strong>{otlpSnapshot.totalIngestedLogs ?? 0}</strong> · Metrics:{" "}
+                    <strong>{otlpSnapshot.totalIngestedMetrics ?? 0}</strong>
                   </span>
                   {otlpStatus === "OFFLINE" && otlpStatusDetail && (
                     <span className="text-rose-300/90 text-[11px]">
@@ -944,7 +1011,7 @@ export const App: React.FC<AppProps> = ({
                 </div>
               </div>
 
-              {/* Copyable OTLP SDK Env Config */}
+              {/* Copyable OTLP SDK Env Config (/v1/traces, /v1/logs, /v1/metrics) */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800/90 bg-slate-900/70 px-3 py-2">
                 <pre className="overflow-x-auto text-[11px] text-cyan-200">
                   <code id={otlpSnippetId}>
@@ -952,6 +1019,9 @@ export const App: React.FC<AppProps> = ({
                     {" "}OTEL_EXPORTER_OTLP_PROTOCOL=http/json
                   </code>
                 </pre>
+                <span className="text-[10px] font-mono text-slate-400">
+                  POST /v1/traces · /v1/logs · /v1/metrics
+                </span>
                 <span className="copy-wrap">
                   <button
                     type="button"
@@ -988,6 +1058,173 @@ export const App: React.FC<AppProps> = ({
                   <span className="copy-tip" role="status" />
                 </span>
               </div>
+
+              {/* Semantic Search & Topology Filter Toolbar */}
+              {Object.keys(otlpSnapshot.services).length > 0 && (
+                <search aria-label="Filter discovered OTLP topology services">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      applyOtlpFilters({ ...otlpFilters });
+                    }}
+                    className="flex flex-wrap items-end gap-2.5 rounded border border-slate-800/90 bg-slate-900/60 px-3 py-2 font-mono text-xs"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <label
+                        htmlFor={filterSearchId}
+                        className="text-[10px] uppercase tracking-wider text-slate-400"
+                      >
+                        Service Filter
+                      </label>
+                      <input
+                        id={filterSearchId}
+                        name="serviceQuery"
+                        type="search"
+                        value={otlpFilters.searchQuery}
+                        onChange={(e) =>
+                          applyOtlpFilters({
+                            ...otlpFilters,
+                            searchQuery: e.target.value,
+                          })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (
+                              e.nativeEvent.isComposing ||
+                              e.keyCode === 229
+                            ) {
+                              return;
+                            }
+                            applyOtlpFilters({ ...otlpFilters });
+                          }
+                        }}
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        enterKeyHint="search"
+                        placeholder="gateway, postgres, us-east..."
+                        className="otlp-filter-control w-52 rounded border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label
+                        htmlFor={filterTierId}
+                        className="text-[10px] uppercase tracking-wider text-slate-400"
+                      >
+                        Tier
+                      </label>
+                      <select
+                        id={filterTierId}
+                        name="tierFilter"
+                        value={otlpFilters.tierFilter}
+                        onChange={(e) =>
+                          applyOtlpFilters({
+                            ...otlpFilters,
+                            tierFilter: e.target.value,
+                          })
+                        }
+                        className="otlp-filter-control rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                      >
+                        <option value="ALL">All Tiers</option>
+                        <option value="INGRESS">Ingress</option>
+                        <option value="GATEWAY">Gateway</option>
+                        <option value="SERVICE">Service</option>
+                        <option value="DATABASE">Database</option>
+                        <option value="CACHE">Cache</option>
+                        <option value="BROKER">Broker</option>
+                        <option value="WORKER">Worker</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label
+                        htmlFor={filterStatusId}
+                        className="text-[10px] uppercase tracking-wider text-slate-400"
+                      >
+                        Health
+                      </label>
+                      <select
+                        id={filterStatusId}
+                        name="statusFilter"
+                        value={otlpFilters.statusFilter}
+                        onChange={(e) =>
+                          applyOtlpFilters({
+                            ...otlpFilters,
+                            statusFilter: e.target.value,
+                          })
+                        }
+                        className="otlp-filter-control rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                      >
+                        <option value="ALL">All Health</option>
+                        <option value="UNHEALTHY">Unhealthy Only</option>
+                        <option value="CRITICAL_OUTAGE">Critical Outage</option>
+                        <option value="DEGRADED">Degraded</option>
+                        <option value="NOMINAL">Nominal</option>
+                      </select>
+                    </div>
+
+                    {otlpSnapshot.criticalPathServiceIds &&
+                      otlpSnapshot.criticalPathServiceIds.length > 0 && (
+                        <button
+                          type="button"
+                          aria-pressed={otlpFilters.criticalPathOnly}
+                          onClick={() =>
+                            applyOtlpFilters({
+                              ...otlpFilters,
+                              criticalPathOnly: !otlpFilters.criticalPathOnly,
+                            })
+                          }
+                          data-testid="toggle-critical-path-btn"
+                          className={`otlp-filter-control rounded border px-2.5 py-1 text-xs transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400 ${
+                            otlpFilters.criticalPathOnly
+                              ? "border-rose-500/70 bg-rose-500/20 text-rose-100"
+                              : "border-slate-700 bg-slate-950 text-slate-300 hover:border-rose-500/50"
+                          }`}
+                        >
+                          Critical Path ({otlpSnapshot.criticalPathServiceIds.length})
+                        </button>
+                      )}
+
+                    {(otlpFilters.tierFilter !== "ALL" ||
+                      otlpFilters.statusFilter !== "ALL" ||
+                      otlpFilters.searchQuery.trim() !== "" ||
+                      otlpFilters.criticalPathOnly) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          applyOtlpFilters({
+                            tierFilter: "ALL",
+                            statusFilter: "ALL",
+                            searchQuery: "",
+                            criticalPathOnly: false,
+                          })
+                        }
+                        className="otlp-filter-control rounded border border-slate-700 bg-slate-950 px-2 py-1 text-slate-300 hover:text-white cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+
+                    <span
+                      role="status"
+                      aria-live="polite"
+                      className="ml-auto text-[11px] text-slate-400"
+                    >
+                      Visible nodes:{" "}
+                      <strong className="text-slate-200">
+                        {currentSpec
+                          ? Object.values(currentSpec.elements).filter(
+                              (el) => el.type === "ServiceMeshNode3D"
+                            ).length
+                          : Object.keys(otlpSnapshot.services).length}
+                      </strong>
+                      /{Object.keys(otlpSnapshot.services).length}
+                    </span>
+                  </form>
+                </search>
+              )}
 
               {/* Recent Real OTLP Trace Selector */}
               {otlpSnapshot.recentTraces.length > 0 && (

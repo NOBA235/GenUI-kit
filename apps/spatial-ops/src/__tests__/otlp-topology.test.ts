@@ -16,6 +16,8 @@ import {
   createSampleOtlpRequest,
   nanoDiffMs,
   OtlpTopologyRingStore,
+  parseOtlpLogsPayload,
+  parseOtlpMetricsPayload,
   parseOtlpTracePayload,
 } from "../telemetry/otlp-topology.js";
 import {
@@ -367,5 +369,139 @@ describe("Local OTLP Receiver & Dynamic Topology Builder", () => {
     );
     expect(demoHtml).toContain("Demo Scenarios (Simulated):");
     expect(demoHtml).toContain("Switch to Live OTLP :4318");
+  });
+
+  it("9. Ingests OTLP /v1/logs and /v1/metrics payloads, overrides CPU/memory heuristics, and filters dynamic 3D Spec by tier/critical path", async () => {
+    const collector = await startOtlpCollectorServer({
+      port: 0,
+      dataFile: false,
+      snapshotFile: false,
+    });
+    activeServers.push(collector);
+
+    // First ingest faulty sample trace (/v1/traces)
+    const tracePayload = createSampleOtlpRequest({ faulty: true, traceId: "tr-logs-metrics-1" });
+    const traceRes = await requestJson(
+      `${collector.url}/v1/traces`,
+      "POST",
+      JSON.stringify(tracePayload),
+      { "Content-Type": "application/json" }
+    );
+    expect(traceRes.status).toBe(200);
+
+    // Post real OTLP Logs (/v1/logs)
+    const logsPayload = {
+      resourceLogs: [
+        {
+          resource: {
+            attributes: [
+              { key: "service.name", value: { stringValue: "checkout-service" } },
+              { key: "service.version", value: { stringValue: "4.0.2" } },
+              { key: "cloud.region", value: { stringValue: "us-east-1" } },
+            ],
+          },
+          scopeLogs: [
+            {
+              logRecords: [
+                {
+                  timeUnixNano: (BigInt(Date.now()) * 1_000_000n).toString(),
+                  severityNumber: 21,
+                  severityText: "FATAL",
+                  traceId: "tr-logs-metrics-1",
+                  spanId: "sp-log-1",
+                  body: { stringValue: "pg-pool exhausted waiting for checkout lock" },
+                  attributes: [{ key: "http.response.status_code", value: { intValue: 503 } }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const parsedLogs = parseOtlpLogsPayload(logsPayload);
+    expect(parsedLogs).toHaveLength(1);
+    expect(parsedLogs[0]?.level).toBe("FATAL");
+
+    const logPost = await requestJson(
+      `${collector.url}/v1/logs`,
+      "POST",
+      JSON.stringify(logsPayload),
+      { "Content-Type": "application/json" }
+    );
+    expect(logPost.status).toBe(200);
+    expect(logPost.body).toEqual({ partialSuccess: {} });
+
+    // Post real OTLP Metrics (/v1/metrics) overriding CPU & Memory utilization for checkout-service
+    const metricsPayload = {
+      resourceMetrics: [
+        {
+          resource: {
+            attributes: [
+              { key: "service.name", value: { stringValue: "checkout-service" } },
+              { key: "cloud.region", value: { stringValue: "us-east-1" } },
+            ],
+          },
+          scopeMetrics: [
+            {
+              metrics: [
+                {
+                  name: "system.cpu.utilization",
+                  unit: "1",
+                  gauge: { dataPoints: [{ asDouble: 0.91 }] },
+                },
+                {
+                  name: "system.memory.utilization",
+                  unit: "1",
+                  gauge: { dataPoints: [{ asDouble: 0.77 }] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const parsedMetrics = parseOtlpMetricsPayload(metricsPayload);
+    expect(parsedMetrics).toHaveLength(2);
+
+    const metricPost = await requestJson(
+      `${collector.url}/v1/metrics`,
+      "POST",
+      JSON.stringify(metricsPayload),
+      { "Content-Type": "application/json" }
+    );
+    expect(metricPost.status).toBe(200);
+
+    const healthRes = await requestJson(`${collector.url}/health`, "GET");
+    expect(healthRes.body.totalIngestedLogs).toBe(1);
+    expect(healthRes.body.totalIngestedMetrics).toBe(2);
+    expect(healthRes.body.endpoints.logs).toContain("/v1/logs");
+    expect(healthRes.body.endpoints.metrics).toContain("/v1/metrics");
+
+    const snapRes = await requestJson(`${collector.url}/api/snapshot`, "GET");
+    expect(snapRes.status).toBe(200);
+    expect(snapRes.body.totalIngestedLogs).toBe(1);
+    expect(snapRes.body.totalIngestedMetrics).toBe(2);
+    expect(snapRes.body.services["checkout-service"]?.cpuSaturationPercent).toBe(91);
+    expect(snapRes.body.services["checkout-service"]?.memorySaturationPercent).toBe(77);
+    expect(snapRes.body.logs[0]?.message).toContain("pg-pool exhausted");
+    expect(snapRes.body.criticalPathServiceIds).toContain("checkout-service");
+
+    // Filtered dynamic spec respects tierFilter & criticalPathOnly
+    const dbOnlySpec = buildDynamicOtlpSpec(snapRes.body, undefined, {
+      tierFilter: "DATABASE",
+    });
+    const dbNodes = Object.values(dbOnlySpec.elements).filter(
+      (el) => el.type === "ServiceMeshNode3D"
+    );
+    expect(dbNodes.length).toBeGreaterThanOrEqual(1);
+    expect(dbNodes.every((el) => el.props.tier === "DATABASE")).toBe(true);
+
+    const critOnlySpec = buildDynamicOtlpSpec(snapRes.body, undefined, {
+      criticalPathOnly: true,
+    });
+    const critIds = Object.values(critOnlySpec.elements)
+      .filter((el) => el.type === "ServiceMeshNode3D")
+      .map((el) => el.props.serviceId);
+    expect(critIds).toContain("checkout-service");
   });
 });

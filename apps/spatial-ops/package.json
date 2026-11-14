@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:demo": "node scripts/dev.mjs --demo",
+    "demo:emit-otlp": "node examples/emit-otlp-sample.mjs",
     "collector": "tsc -p tsconfig.server.json && node dist-server/server/cli.js",
     "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build",
     "build:server": "tsc -p tsconfig.server.json",

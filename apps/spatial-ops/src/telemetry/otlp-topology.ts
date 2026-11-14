@@ -64,6 +64,108 @@ export interface OtlpExportTraceServiceRequest {
 }
 
 // ============================================================================
+// Standard OpenTelemetry OTLP/HTTP JSON (Logs & Metrics) Types
+// ============================================================================
+
+export interface OtlpLogRecordRaw {
+  timeUnixNano?: string | number;
+  observedTimeUnixNano?: string | number;
+  severityNumber?: number;
+  severityText?: string;
+  body?: OtlpAnyValue;
+  attributes?: OtlpKeyValue[];
+  traceId?: string;
+  spanId?: string;
+}
+
+export interface OtlpScopeLogs {
+  scope?: { name?: string; version?: string };
+  logRecords?: OtlpLogRecordRaw[];
+}
+
+export interface OtlpResourceLogs {
+  resource?: { attributes?: OtlpKeyValue[] };
+  scopeLogs?: OtlpScopeLogs[];
+  instrumentationLibraryLogs?: OtlpScopeLogs[];
+}
+
+export interface OtlpExportLogsServiceRequest {
+  resourceLogs?: OtlpResourceLogs[];
+}
+
+export interface OtlpNumberDataPoint {
+  timeUnixNano?: string | number;
+  startTimeUnixNano?: string | number;
+  asDouble?: number;
+  asInt?: number | string;
+  attributes?: OtlpKeyValue[];
+}
+
+export interface OtlpHistogramDataPoint {
+  timeUnixNano?: string | number;
+  startTimeUnixNano?: string | number;
+  count?: string | number;
+  sum?: number;
+  attributes?: OtlpKeyValue[];
+}
+
+export interface OtlpMetricRaw {
+  name?: string;
+  description?: string;
+  unit?: string;
+  gauge?: { dataPoints?: OtlpNumberDataPoint[] };
+  sum?: { dataPoints?: OtlpNumberDataPoint[] };
+  histogram?: { dataPoints?: OtlpHistogramDataPoint[] };
+}
+
+export interface OtlpScopeMetrics {
+  scope?: { name?: string; version?: string };
+  metrics?: OtlpMetricRaw[];
+}
+
+export interface OtlpResourceMetrics {
+  resource?: { attributes?: OtlpKeyValue[] };
+  scopeMetrics?: OtlpScopeMetrics[];
+  instrumentationLibraryMetrics?: OtlpScopeMetrics[];
+}
+
+export interface OtlpExportMetricsServiceRequest {
+  resourceMetrics?: OtlpResourceMetrics[];
+}
+
+export interface OtlpNormalizedLog extends StructuredErrorLog {
+  serviceName: string;
+  serviceVersion: string;
+  region: RegionDatacenter;
+  inferredTier: ServiceTier;
+}
+
+export interface OtlpServiceMetricSample {
+  serviceId: string;
+  serviceName: string;
+  serviceVersion: string;
+  region: RegionDatacenter;
+  inferredTier: ServiceTier;
+  metricName: string;
+  value: number;
+  unit: string;
+  timestampMs: number;
+}
+
+export interface OtlpLogsIngestionStats {
+  acceptedLogs: number;
+  rejectedLogs: number;
+  traceIds: string[];
+  servicesDiscovered: string[];
+}
+
+export interface OtlpMetricsIngestionStats {
+  acceptedMetrics: number;
+  rejectedMetrics: number;
+  servicesDiscovered: string[];
+}
+
+// ============================================================================
 // Normalized Internal Span & Dynamic Topology Types
 // ============================================================================
 
@@ -112,6 +214,8 @@ export interface DynamicTopologySnapshot {
   mode: "WAITING" | "LIVE";
   totalIngestedSpans: number;
   totalIngestedTraces: number;
+  totalIngestedLogs?: number;
+  totalIngestedMetrics?: number;
   lastIngestedAt: string | null;
   services: Record<string, ServiceNodeData>;
   edges: TrafficEdgeData[];
@@ -119,14 +223,19 @@ export interface DynamicTopologySnapshot {
   recentTraces: TelemetryTrace[];
   logs: StructuredErrorLog[];
   bottleneckServiceId: string | null;
+  bottleneckTraceId?: string | null;
+  criticalPathServiceIds?: string[];
 }
 
 export interface SerializableOtlpStoreState {
   version: 1;
   totalIngestedSpans: number;
   totalIngestedTraces: number;
+  totalIngestedLogs?: number;
+  totalIngestedMetrics?: number;
   lastIngestedAt: string | null;
   traces: OtlpTraceRecord[];
+  logs?: OtlpNormalizedLog[];
 }
 
 // ============================================================================
@@ -136,6 +245,7 @@ export interface SerializableOtlpStoreState {
 const MAX_RESOURCE_SPANS_PER_REQUEST = 64;
 const MAX_SCOPES_PER_RESOURCE = 32;
 const MAX_SPANS_PER_SCOPE = 256;
+const MAX_LOGS_IN_RING = 200;
 const MAX_ATTRIBUTES_PER_ENTITY = 48;
 const MAX_STRING_LENGTH = 512;
 const MAX_SPANS_PER_TRACE = 200;
@@ -637,6 +747,277 @@ export function parseOtlpTracePayload(rawPayload: unknown): OtlpNormalizedSpan[]
   return normalized;
 }
 
+function nanoToIsoString(raw: string | number | undefined, fallbackMs: number): string {
+  const ns = parseNanoBigInt(raw);
+  if (ns !== null && ns > 0n) {
+    const ms = Number(ns / 1_000_000n);
+    // Sanity bound: between 2015 and 2100
+    if (Number.isFinite(ms) && ms > 1_420_070_400_000 && ms < 4_102_444_800_000) {
+      return new Date(ms).toISOString();
+    }
+  }
+  return new Date(fallbackMs).toISOString();
+}
+
+function normalizeOtlpLogSeverity(
+  severityNumber?: number,
+  severityText?: string
+): StructuredErrorLog["level"] {
+  const text = (severityText ?? "").trim().toUpperCase();
+  if (typeof severityNumber === "number" && Number.isFinite(severityNumber)) {
+    if (severityNumber >= 21) return "FATAL";
+    if (severityNumber >= 17) return "ERROR";
+    if (severityNumber >= 13) return "WARN";
+    if (severityNumber >= 1) return "INFO";
+  }
+  if (/FATAL|CRITICAL|PANIC|EMERG/.test(text)) return "FATAL";
+  if (/ERR/.test(text)) return "ERROR";
+  if (/WARN/.test(text)) return "WARN";
+  return "INFO";
+}
+
+function extractBodyText(body?: OtlpAnyValue, fallback = "OTLP log record"): string {
+  const parsed = parseAnyValue(body);
+  if (parsed !== undefined) {
+    return truncateText(String(parsed), 240);
+  }
+  if (body?.kvlistValue && Array.isArray(body.kvlistValue.values)) {
+    const pairs = extractAttributeMap(body.kvlistValue.values);
+    const json = JSON.stringify(pairs);
+    if (json && json !== "{}") {
+      return truncateText(json, 240);
+    }
+  }
+  return fallback;
+}
+
+function extractResourceMeta(attrs?: OtlpKeyValue[]): {
+  serviceId: string;
+  serviceName: string;
+  serviceVersion: string;
+  region: RegionDatacenter;
+} {
+  const resourceAttrs = extractAttributeMap(attrs);
+  const rawServiceName =
+    typeof resourceAttrs["service.name"] === "string" &&
+    resourceAttrs["service.name"].trim().length > 0
+      ? resourceAttrs["service.name"].trim()
+      : "unknown-service";
+  const serviceId = toSafeServiceId(rawServiceName);
+  const serviceName = toSafeServiceName(rawServiceName);
+  const serviceVersion =
+    typeof resourceAttrs["service.version"] === "string" &&
+    resourceAttrs["service.version"].trim().length > 0
+      ? truncateText(resourceAttrs["service.version"].trim(), 32)
+      : "unversioned";
+  const region = normalizeRegionZone(
+    resourceAttrs["cloud.region"] ??
+      resourceAttrs["cloud.availability_zone"] ??
+      resourceAttrs["deployment.environment.name"] ??
+      resourceAttrs["deployment.environment"]
+  );
+  return { serviceId, serviceName, serviceVersion, region };
+}
+
+export function parseOtlpLogsPayload(
+  rawPayload: unknown,
+  nowMs = Date.now()
+): OtlpNormalizedLog[] {
+  if (!rawPayload || typeof rawPayload !== "object") {
+    return [];
+  }
+  const payload = rawPayload as OtlpExportLogsServiceRequest;
+  if (!Array.isArray(payload.resourceLogs)) {
+    return [];
+  }
+
+  const normalized: OtlpNormalizedLog[] = [];
+  const resLimit = Math.min(payload.resourceLogs.length, MAX_RESOURCE_SPANS_PER_REQUEST);
+
+  for (let rIdx = 0; rIdx < resLimit; rIdx += 1) {
+    const resLog = payload.resourceLogs[rIdx];
+    if (!resLog || typeof resLog !== "object") continue;
+
+    const meta = extractResourceMeta(resLog.resource?.attributes);
+    const scopes = Array.isArray(resLog.scopeLogs)
+      ? resLog.scopeLogs
+      : Array.isArray(resLog.instrumentationLibraryLogs)
+        ? resLog.instrumentationLibraryLogs
+        : [];
+    const scopeLimit = Math.min(scopes.length, MAX_SCOPES_PER_RESOURCE);
+
+    for (let sIdx = 0; sIdx < scopeLimit; sIdx += 1) {
+      const scopeEntry = scopes[sIdx];
+      if (!scopeEntry || !Array.isArray(scopeEntry.logRecords)) continue;
+
+      const recLimit = Math.min(scopeEntry.logRecords.length, MAX_SPANS_PER_SCOPE);
+      for (let i = 0; i < recLimit; i += 1) {
+        const rawRec = scopeEntry.logRecords[i];
+        if (!rawRec || typeof rawRec !== "object") continue;
+
+        const logAttrs = extractAttributeMap(rawRec.attributes);
+        const level = normalizeOtlpLogSeverity(rawRec.severityNumber, rawRec.severityText);
+        const timestamp = nanoToIsoString(
+          rawRec.timeUnixNano ?? rawRec.observedTimeUnixNano,
+          nowMs
+        );
+        const traceId =
+          typeof rawRec.traceId === "string" && rawRec.traceId.trim().length > 0
+            ? truncateText(rawRec.traceId.trim(), 64)
+            : "uncorrelated";
+        const spanSuffix =
+          typeof rawRec.spanId === "string" && rawRec.spanId.trim().length > 0
+            ? ` [span:${truncateText(rawRec.spanId.trim(), 16)}]`
+            : "";
+        const message = truncateText(
+          `${extractBodyText(rawRec.body, rawRec.severityText ?? "OTLP log")}${spanSuffix}`,
+          240
+        );
+        const httpCodeRaw =
+          logAttrs["http.response.status_code"] ?? logAttrs["http.status_code"];
+        const statusCode =
+          typeof httpCodeRaw === "number" && Number.isFinite(httpCodeRaw)
+            ? httpCodeRaw
+            : level === "FATAL"
+              ? 503
+              : level === "ERROR"
+                ? 500
+                : level === "WARN"
+                  ? 429
+                  : 200;
+        const inferredTier = inferServiceTier(meta.serviceName, logAttrs, "SERVER");
+        const id = `otlp-logrec-${fnv1aHex(
+          `${meta.serviceId}|${traceId}|${timestamp}|${level}|${message}`
+        )}`;
+
+        normalized.push({
+          id,
+          timestamp,
+          serviceId: meta.serviceId,
+          level,
+          statusCode,
+          message,
+          traceId,
+          serviceName: meta.serviceName,
+          serviceVersion: meta.serviceVersion,
+          region: meta.region,
+          inferredTier,
+        });
+      }
+    }
+  }
+
+  return normalized;
+}
+
+export function parseOtlpMetricsPayload(
+  rawPayload: unknown,
+  nowMs = Date.now()
+): OtlpServiceMetricSample[] {
+  if (!rawPayload || typeof rawPayload !== "object") {
+    return [];
+  }
+  const payload = rawPayload as OtlpExportMetricsServiceRequest;
+  if (!Array.isArray(payload.resourceMetrics)) {
+    return [];
+  }
+
+  const samples: OtlpServiceMetricSample[] = [];
+  const resLimit = Math.min(
+    payload.resourceMetrics.length,
+    MAX_RESOURCE_SPANS_PER_REQUEST
+  );
+
+  for (let rIdx = 0; rIdx < resLimit; rIdx += 1) {
+    const resMetric = payload.resourceMetrics[rIdx];
+    if (!resMetric || typeof resMetric !== "object") continue;
+
+    const meta = extractResourceMeta(resMetric.resource?.attributes);
+    const scopes = Array.isArray(resMetric.scopeMetrics)
+      ? resMetric.scopeMetrics
+      : Array.isArray(resMetric.instrumentationLibraryMetrics)
+        ? resMetric.instrumentationLibraryMetrics
+        : [];
+    const scopeLimit = Math.min(scopes.length, MAX_SCOPES_PER_RESOURCE);
+
+    for (let sIdx = 0; sIdx < scopeLimit; sIdx += 1) {
+      const scopeEntry = scopes[sIdx];
+      if (!scopeEntry || !Array.isArray(scopeEntry.metrics)) continue;
+
+      const metricLimit = Math.min(scopeEntry.metrics.length, MAX_SPANS_PER_SCOPE);
+      for (let mIdx = 0; mIdx < metricLimit; mIdx += 1) {
+        const rawMetric = scopeEntry.metrics[mIdx];
+        if (!rawMetric || typeof rawMetric !== "object" || typeof rawMetric.name !== "string") {
+          continue;
+        }
+        const metricName = truncateText(rawMetric.name.trim(), 128);
+        if (!metricName) continue;
+        const unit = truncateText(String(rawMetric.unit ?? ""), 24);
+
+        const dataPoints =
+          rawMetric.gauge?.dataPoints ?? rawMetric.sum?.dataPoints ?? [];
+        if (Array.isArray(dataPoints) && dataPoints.length > 0) {
+          const dpLimit = Math.min(dataPoints.length, 64);
+          for (let dIdx = 0; dIdx < dpLimit; dIdx += 1) {
+            const dp = dataPoints[dIdx];
+            if (!dp || typeof dp !== "object") continue;
+            const numVal =
+              typeof dp.asDouble === "number"
+                ? dp.asDouble
+                : dp.asInt !== undefined
+                  ? Number(dp.asInt)
+                  : NaN;
+            if (!Number.isFinite(numVal)) continue;
+
+            const dpAttrs = extractAttributeMap(dp.attributes);
+            const inferredTier = inferServiceTier(meta.serviceName, dpAttrs, "SERVER");
+            const ns = parseNanoBigInt(dp.timeUnixNano);
+            const tsMs =
+              ns !== null && ns > 0n
+                ? Number(ns / 1_000_000n)
+                : nowMs;
+
+            samples.push({
+              serviceId: meta.serviceId,
+              serviceName: meta.serviceName,
+              serviceVersion: meta.serviceVersion,
+              region: meta.region,
+              inferredTier,
+              metricName,
+              value: numVal,
+              unit,
+              timestampMs: Number.isFinite(tsMs) && tsMs > 0 ? tsMs : nowMs,
+            });
+          }
+          continue;
+        }
+
+        const histPoints = rawMetric.histogram?.dataPoints;
+        if (Array.isArray(histPoints) && histPoints.length > 0) {
+          const dp = histPoints[histPoints.length - 1];
+          const count = dp?.count !== undefined ? Number(dp.count) : 0;
+          const sum = typeof dp?.sum === "number" ? dp.sum : NaN;
+          if (Number.isFinite(sum) && Number.isFinite(count) && count > 0) {
+            samples.push({
+              serviceId: meta.serviceId,
+              serviceName: meta.serviceName,
+              serviceVersion: meta.serviceVersion,
+              region: meta.region,
+              inferredTier: inferServiceTier(meta.serviceName, {}, "SERVER"),
+              metricName,
+              value: sum / count,
+              unit,
+              timestampMs: nowMs,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return samples;
+}
+
 // ============================================================================
 // Bounded Ring-Buffer Store & Dynamic Topology Derivation
 // ============================================================================
@@ -725,8 +1106,24 @@ export class OtlpTopologyRingStore {
   private readonly maxTraces: number;
   private readonly traces = new Map<string, OtlpTraceRecord>();
   private traceOrder: string[] = [];
+  private ingestedLogs: OtlpNormalizedLog[] = [];
+  private readonly ingestedLogIds = new Set<string>();
+  private readonly serviceMetrics = new Map<
+    string,
+    {
+      serviceName: string;
+      serviceVersion: string;
+      region: RegionDatacenter;
+      inferredTier: ServiceTier;
+      cpuPercent?: number;
+      memoryPercent?: number;
+      updatedAtMs: number;
+    }
+  >();
   private totalIngestedSpans = 0;
   private totalIngestedTraces = 0;
+  private totalIngestedLogs = 0;
+  private totalIngestedMetrics = 0;
   private lastIngestedAt: string | null = null;
 
   constructor(options?: { maxTraces?: number }) {
@@ -736,17 +1133,158 @@ export class OtlpTopologyRingStore {
   public clear(): void {
     this.traces.clear();
     this.traceOrder = [];
+    this.ingestedLogs = [];
+    this.ingestedLogIds.clear();
+    this.serviceMetrics.clear();
     this.totalIngestedSpans = 0;
     this.totalIngestedTraces = 0;
+    this.totalIngestedLogs = 0;
+    this.totalIngestedMetrics = 0;
     this.lastIngestedAt = null;
   }
 
-  public getStats(): { totalIngestedSpans: number; totalIngestedTraces: number; activeTraceCount: number; lastIngestedAt: string | null } {
+  public getStats(): {
+    totalIngestedSpans: number;
+    totalIngestedTraces: number;
+    totalIngestedLogs: number;
+    totalIngestedMetrics: number;
+    activeTraceCount: number;
+    lastIngestedAt: string | null;
+  } {
     return {
       totalIngestedSpans: this.totalIngestedSpans,
       totalIngestedTraces: this.totalIngestedTraces,
+      totalIngestedLogs: this.totalIngestedLogs,
+      totalIngestedMetrics: this.totalIngestedMetrics,
       activeTraceCount: this.traces.size,
       lastIngestedAt: this.lastIngestedAt,
+    };
+  }
+
+  public ingestOtlpLogsPayload(
+    rawPayload: unknown,
+    nowMs = Date.now()
+  ): OtlpLogsIngestionStats {
+    const incoming = parseOtlpLogsPayload(rawPayload, nowMs);
+    if (incoming.length === 0) {
+      return {
+        acceptedLogs: 0,
+        rejectedLogs: 0,
+        traceIds: [],
+        servicesDiscovered: [],
+      };
+    }
+
+    let accepted = 0;
+    let rejected = 0;
+    const touchedTraces = new Set<string>();
+    const discoveredServices = new Set<string>();
+
+    for (const log of incoming) {
+      if (this.ingestedLogIds.has(log.id)) {
+        rejected += 1;
+        continue;
+      }
+      this.ingestedLogs.unshift(log);
+      this.ingestedLogIds.add(log.id);
+      if (this.ingestedLogs.length > MAX_LOGS_IN_RING) {
+        const evicted = this.ingestedLogs.pop();
+        if (evicted) {
+          this.ingestedLogIds.delete(evicted.id);
+        }
+      }
+      accepted += 1;
+      this.totalIngestedLogs += 1;
+      discoveredServices.add(log.serviceId);
+      if (log.traceId !== "uncorrelated") {
+        touchedTraces.add(log.traceId);
+      }
+    }
+
+    if (accepted > 0) {
+      this.lastIngestedAt = new Date(nowMs).toISOString();
+    }
+
+    return {
+      acceptedLogs: accepted,
+      rejectedLogs: rejected,
+      traceIds: Array.from(touchedTraces),
+      servicesDiscovered: Array.from(discoveredServices),
+    };
+  }
+
+  public ingestOtlpMetricsPayload(
+    rawPayload: unknown,
+    nowMs = Date.now()
+  ): OtlpMetricsIngestionStats {
+    const samples = parseOtlpMetricsPayload(rawPayload, nowMs);
+    if (samples.length === 0) {
+      return {
+        acceptedMetrics: 0,
+        rejectedMetrics: 0,
+        servicesDiscovered: [],
+      };
+    }
+
+    let accepted = 0;
+    const discoveredServices = new Set<string>();
+
+    for (const sample of samples) {
+      let existing = this.serviceMetrics.get(sample.serviceId);
+      if (!existing) {
+        existing = {
+          serviceName: sample.serviceName,
+          serviceVersion: sample.serviceVersion,
+          region: sample.region,
+          inferredTier: sample.inferredTier,
+          updatedAtMs: sample.timestampMs,
+        };
+        this.serviceMetrics.set(sample.serviceId, existing);
+      } else {
+        if (sample.serviceVersion !== "unversioned") {
+          existing.serviceVersion = sample.serviceVersion;
+        }
+        existing.updatedAtMs = Math.max(existing.updatedAtMs, sample.timestampMs);
+      }
+
+      const lowerName = sample.metricName.toLowerCase();
+      const normalizePercent = (val: number): number => {
+        if (
+          sample.unit === "1" ||
+          (lowerName.includes("utilization") && val >= 0 && val <= 1)
+        ) {
+          return round1(clamp(val * 100, 0, 100));
+        }
+        return round1(clamp(val, 0, 100));
+      };
+
+      if (
+        lowerName.includes("cpu.utilization") ||
+        lowerName.includes("cpu.usage") ||
+        lowerName.includes("cpu_percent")
+      ) {
+        existing.cpuPercent = normalizePercent(sample.value);
+      } else if (
+        lowerName.includes("memory.utilization") ||
+        lowerName.includes("memory.usage") ||
+        lowerName.includes("memory_percent")
+      ) {
+        existing.memoryPercent = normalizePercent(sample.value);
+      }
+
+      accepted += 1;
+      this.totalIngestedMetrics += 1;
+      discoveredServices.add(sample.serviceId);
+    }
+
+    if (accepted > 0) {
+      this.lastIngestedAt = new Date(nowMs).toISOString();
+    }
+
+    return {
+      acceptedMetrics: accepted,
+      rejectedMetrics: 0,
+      servicesDiscovered: Array.from(discoveredServices),
     };
   }
 
@@ -902,11 +1440,17 @@ export class OtlpTopologyRingStore {
   }
 
   public buildSnapshot(maxRecentTraces = 25): DynamicTopologySnapshot {
-    if (this.traces.size === 0) {
+    if (
+      this.traces.size === 0 &&
+      this.ingestedLogs.length === 0 &&
+      this.serviceMetrics.size === 0
+    ) {
       return {
         mode: "WAITING",
         totalIngestedSpans: this.totalIngestedSpans,
         totalIngestedTraces: this.totalIngestedTraces,
+        totalIngestedLogs: this.totalIngestedLogs,
+        totalIngestedMetrics: this.totalIngestedMetrics,
         lastIngestedAt: this.lastIngestedAt,
         services: {},
         edges: [],
@@ -914,7 +1458,7 @@ export class OtlpTopologyRingStore {
           activeIncidents: 0,
           severity: "NOMINAL",
           incidentTitle:
-            "OTLP Collector Listening on :4318 — Awaiting Real OpenTelemetry Spans",
+            "OTLP Collector Listening on :4318 — Awaiting Real OpenTelemetry Spans, Logs & Metrics",
           elapsedMinutes: 0,
           globalErrorRatePercent: 0,
           globalRps: 0,
@@ -926,6 +1470,8 @@ export class OtlpTopologyRingStore {
         recentTraces: [],
         logs: [],
         bottleneckServiceId: null,
+        bottleneckTraceId: null,
+        criticalPathServiceIds: [],
       };
     }
 
@@ -1115,6 +1661,39 @@ export class OtlpTopologyRingStore {
       }
     }
 
+    // Ensure services seen via OTLP Metrics or OTLP Logs are also represented in topology
+    for (const [serviceId, m] of this.serviceMetrics.entries()) {
+      const acc = ensureService(
+        serviceId,
+        m.serviceName,
+        m.inferredTier,
+        m.region,
+        m.serviceVersion
+      );
+      acc.minUnixMs = Math.min(acc.minUnixMs, m.updatedAtMs);
+      acc.maxUnixMs = Math.max(acc.maxUnixMs, m.updatedAtMs);
+    }
+
+    const logErrorsByService = new Map<string, { errors: number; fatals: number }>();
+    for (const log of this.ingestedLogs) {
+      ensureService(
+        log.serviceId,
+        log.serviceName,
+        log.inferredTier,
+        log.region,
+        log.serviceVersion
+      );
+      if (log.level === "FATAL" || log.level === "ERROR") {
+        const counts = logErrorsByService.get(log.serviceId) ?? {
+          errors: 0,
+          fatals: 0,
+        };
+        if (log.level === "FATAL") counts.fatals += 1;
+        else counts.errors += 1;
+        logErrorsByService.set(log.serviceId, counts);
+      }
+    }
+
     const rawNodeList = Array.from(serviceAccs.values()).map((s) => ({
       id: s.id,
       tier: s.tier,
@@ -1134,6 +1713,7 @@ export class OtlpTopologyRingStore {
       const p50 = computePercentile(sorted, 50);
       const p95 = computePercentile(sorted, 95);
       const p99 = computePercentile(sorted, 99);
+      const logCounts = logErrorsByService.get(acc.id);
       const errorRatePercent =
         acc.spanCount > 0 ? round1((acc.errorCount / acc.spanCount) * 100) : 0;
 
@@ -1141,32 +1721,53 @@ export class OtlpTopologyRingStore {
         1,
         (acc.maxUnixMs - acc.minUnixMs) / 1000
       );
-      const rps = Math.max(1, Math.round(acc.spanCount / windowSec));
+      const rps = acc.spanCount > 0 ? Math.max(1, Math.round(acc.spanCount / windowSec)) : 0;
       globalRps += rps;
 
+      const realMetric = this.serviceMetrics.get(acc.id);
+      const cpuSaturationPercent =
+        typeof realMetric?.cpuPercent === "number"
+          ? Math.round(clamp(realMetric.cpuPercent, 1, 99))
+          : acc.spanCount > 0
+            ? Math.round(clamp(18 + errorRatePercent * 0.65 + p95 / 40, 5, 99))
+            : 12;
+      const memorySaturationPercent =
+        typeof realMetric?.memoryPercent === "number"
+          ? Math.round(clamp(realMetric.memoryPercent, 1, 99))
+          : acc.spanCount > 0
+            ? Math.round(clamp(28 + errorRatePercent * 0.35 + p99 / 75, 10, 98))
+            : 22;
+
       let status: ServiceHealthStatus = "NOMINAL";
-      if (errorRatePercent >= 15 || p95 >= 1500) {
+      if (
+        errorRatePercent >= 15 ||
+        p95 >= 1500 ||
+        (logCounts?.fatals ?? 0) > 0 ||
+        cpuSaturationPercent >= 95
+      ) {
         status = "CRITICAL_OUTAGE";
         criticalNodes += 1;
-      } else if (errorRatePercent >= 2 || p95 >= 400) {
+      } else if (
+        errorRatePercent >= 2 ||
+        p95 >= 400 ||
+        (logCounts?.errors ?? 0) > 0 ||
+        cpuSaturationPercent >= 85
+      ) {
         status = "DEGRADED";
         degradedNodes += 1;
       } else {
         healthyNodes += 1;
       }
 
-      const healthScore = errorRatePercent * 10 + p95 / 20;
+      const healthScore =
+        errorRatePercent * 10 +
+        p95 / 20 +
+        (logCounts ? logCounts.fatals * 20 + logCounts.errors * 5 : 0) +
+        (cpuSaturationPercent >= 85 ? cpuSaturationPercent * 0.2 : 0);
       if (healthScore > worstScore) {
         worstScore = healthScore;
         worstServiceId = acc.id;
       }
-
-      const cpuSaturationPercent = Math.round(
-        clamp(18 + errorRatePercent * 0.65 + p95 / 40, 5, 99)
-      );
-      const memorySaturationPercent = Math.round(
-        clamp(28 + errorRatePercent * 0.35 + p99 / 75, 10, 98)
-      );
 
       services[acc.id] = {
         id: acc.id,
@@ -1189,6 +1790,25 @@ export class OtlpTopologyRingStore {
         dependencies: Array.from(acc.dependencies).sort(),
         callers: Array.from(acc.callers).sort(),
       };
+    }
+
+    // Merge real OTLP Logs (/v1/logs) ahead of synthetic span error extractions
+    const mergedLogs: StructuredErrorLog[] = [];
+    for (const extLog of this.ingestedLogs) {
+      if (mergedLogs.length >= 80) break;
+      mergedLogs.push({
+        id: extLog.id,
+        timestamp: extLog.timestamp,
+        serviceId: extLog.serviceId,
+        level: extLog.level,
+        statusCode: extLog.statusCode,
+        message: extLog.message,
+        traceId: extLog.traceId,
+      });
+    }
+    for (const spanLog of logs) {
+      if (mergedLogs.length >= 80) break;
+      mergedLogs.push(spanLog);
     }
 
     const edges: TrafficEdgeData[] = [];
@@ -1254,10 +1874,77 @@ export class OtlpTopologyRingStore {
         ? `Live OTLP Mesh Nominal — ${totalNodes} services · ${this.totalIngestedTraces} traces`
         : `${severity}: ${bottleneckService?.name ?? "Service Mesh"} Anomaly (${bottleneckService?.errorRatePercent ?? globalErrorRatePercent}% errors, p95 ${bottleneckService?.p95LatencyMs ?? 0}ms)`;
 
+    const recentTraces = this.getRecentTraces(maxRecentTraces);
+    const focusTrace =
+      recentTraces.find((t) => t.hasError) ?? recentTraces[0] ?? null;
+    const criticalPathServices: string[] = [];
+    if (focusTrace && focusTrace.spans.length > 0) {
+      const seenPath = new Set<string>();
+      const rawTraceSpans = this.traces.get(focusTrace.traceId)?.spans ?? [];
+      const rawById = new Map(rawTraceSpans.map((s) => [s.spanId, s]));
+      const childrenByParent = new Map<string, OtelSpan[]>();
+      for (const s of focusTrace.spans) {
+        if (s.parentSpanId) {
+          const list = childrenByParent.get(s.parentSpanId) ?? [];
+          list.push(s);
+          childrenByParent.set(s.parentSpanId, list);
+        }
+      }
+
+      const chain: string[] = [];
+      const visitedSpans = new Set<string>();
+      let cursor: OtelSpan | undefined = focusTrace.rootSpan;
+      let guard = 0;
+
+      while (cursor && guard < 32 && !visitedSpans.has(cursor.spanId)) {
+        visitedSpans.add(cursor.spanId);
+        guard += 1;
+        chain.push(cursor.serviceId);
+
+        const recSpan = rawById.get(cursor.spanId);
+        const children: OtelSpan[] = childrenByParent.get(cursor.spanId) ?? [];
+        if (children.length === 0) {
+          if (recSpan?.virtualTarget) {
+            chain.push(recSpan.virtualTarget.targetServiceId);
+          }
+          break;
+        }
+
+        // Follow the failing or slowest child down the critical bottleneck branch
+        const sortedChildren: OtelSpan[] = [...children].sort((a, b) => {
+          const aErr = a.statusCode === "ERROR" ? 1 : 0;
+          const bErr = b.statusCode === "ERROR" ? 1 : 0;
+          if (aErr !== bErr) return bErr - aErr;
+          return b.durationMs - a.durationMs;
+        });
+        cursor = sortedChildren[0];
+      }
+
+      // Include any erroring services not reached in disconnected trace fragments
+      for (const s of focusTrace.spans) {
+        if (s.statusCode === "ERROR") {
+          chain.push(s.serviceId);
+          const recSpan = rawById.get(s.spanId);
+          if (recSpan?.virtualTarget) {
+            chain.push(recSpan.virtualTarget.targetServiceId);
+          }
+        }
+      }
+
+      for (const sid of chain) {
+        if (!seenPath.has(sid)) {
+          seenPath.add(sid);
+          criticalPathServices.push(sid);
+        }
+      }
+    }
+
     return {
       mode: "LIVE",
       totalIngestedSpans: this.totalIngestedSpans,
       totalIngestedTraces: this.totalIngestedTraces,
+      totalIngestedLogs: this.totalIngestedLogs,
+      totalIngestedMetrics: this.totalIngestedMetrics,
       lastIngestedAt: this.lastIngestedAt,
       services,
       edges,
@@ -1273,9 +1960,11 @@ export class OtlpTopologyRingStore {
         clusterMttdMinutes: 0.2,
         errorBudgetRemainingPercent,
       },
-      recentTraces: this.getRecentTraces(maxRecentTraces),
-      logs,
+      recentTraces,
+      logs: mergedLogs,
       bottleneckServiceId: severity === "NOMINAL" ? null : worstServiceId,
+      bottleneckTraceId: focusTrace?.traceId ?? null,
+      criticalPathServiceIds: criticalPathServices,
     };
   }
 
@@ -1284,10 +1973,13 @@ export class OtlpTopologyRingStore {
       version: 1,
       totalIngestedSpans: this.totalIngestedSpans,
       totalIngestedTraces: this.totalIngestedTraces,
+      totalIngestedLogs: this.totalIngestedLogs,
+      totalIngestedMetrics: this.totalIngestedMetrics,
       lastIngestedAt: this.lastIngestedAt,
       traces: this.traceOrder
         .map((id) => this.traces.get(id))
         .filter((rec): rec is OtlpTraceRecord => Boolean(rec)),
+      logs: [...this.ingestedLogs],
     };
   }
 
@@ -1303,6 +1995,14 @@ export class OtlpTopologyRingStore {
         this.traceOrder.push(rec.traceId);
       }
     }
+    if (Array.isArray(serialized.logs)) {
+      for (const log of serialized.logs.slice(0, MAX_LOGS_IN_RING)) {
+        if (log && typeof log.id === "string" && !this.ingestedLogIds.has(log.id)) {
+          this.ingestedLogs.push(log);
+          this.ingestedLogIds.add(log.id);
+        }
+      }
+    }
     this.totalIngestedSpans =
       typeof serialized.totalIngestedSpans === "number"
         ? serialized.totalIngestedSpans
@@ -1311,6 +2011,14 @@ export class OtlpTopologyRingStore {
       typeof serialized.totalIngestedTraces === "number"
         ? serialized.totalIngestedTraces
         : capped.length;
+    this.totalIngestedLogs =
+      typeof serialized.totalIngestedLogs === "number"
+        ? serialized.totalIngestedLogs
+        : this.ingestedLogs.length;
+    this.totalIngestedMetrics =
+      typeof serialized.totalIngestedMetrics === "number"
+        ? serialized.totalIngestedMetrics
+        : 0;
     this.lastIngestedAt = serialized.lastIngestedAt ?? null;
   }
 }
@@ -1349,11 +2057,45 @@ export function createEmptyOtlpClusterState(): SpatialClusterState {
   };
 }
 
+export interface OtlpSpecFilterOptions {
+  tierFilter?: string;
+  statusFilter?: string;
+  searchQuery?: string;
+  criticalPathOnly?: boolean;
+}
+
 export function buildDynamicOtlpSpec(
   snapshot: DynamicTopologySnapshot,
-  selectedTraceId?: string
+  selectedTraceId?: string,
+  filters?: OtlpSpecFilterOptions
 ): Spec {
-  const servicesList = Object.values(snapshot.services).slice(0, MAX_NODE_RENDER_LIMIT);
+  const tierFilter = (filters?.tierFilter ?? "ALL").toUpperCase();
+  const statusFilter = (filters?.statusFilter ?? "ALL").toUpperCase();
+  const query = (filters?.searchQuery ?? "").trim().toLowerCase();
+  const criticalPathSet = new Set(snapshot.criticalPathServiceIds ?? []);
+  const criticalOnly =
+    Boolean(filters?.criticalPathOnly) && criticalPathSet.size > 0;
+
+  const servicesList = Object.values(snapshot.services)
+    .filter((srv) => {
+      if (tierFilter !== "ALL" && srv.tier !== tierFilter) {
+        return false;
+      }
+      if (statusFilter === "UNHEALTHY") {
+        if (srv.status === "NOMINAL") return false;
+      } else if (statusFilter !== "ALL" && srv.status !== statusFilter) {
+        return false;
+      }
+      if (criticalOnly && !criticalPathSet.has(srv.id)) {
+        return false;
+      }
+      if (query.length > 0) {
+        const haystack = `${srv.id} ${srv.name} ${srv.tier} ${srv.region}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    })
+    .slice(0, MAX_NODE_RENDER_LIMIT);
   const serviceIdSet = new Set(servicesList.map((s) => s.id));
   const edgesList = snapshot.edges
     .filter((e) => serviceIdSet.has(e.from) && serviceIdSet.has(e.to))
