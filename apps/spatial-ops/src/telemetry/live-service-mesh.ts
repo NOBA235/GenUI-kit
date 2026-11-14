@@ -92,8 +92,10 @@ export class LiveServiceMeshSimulator {
   private maxHistorySize = 60;
   private circuitBreakers = new Set<string>();
 
-  constructor() {
-    this.startEmitting(3500);
+  constructor(options?: { autoStart?: boolean }) {
+    if (options?.autoStart) {
+      this.startEmitting(3500);
+    }
   }
 
   public startEmitting(intervalMs = 3500): void {

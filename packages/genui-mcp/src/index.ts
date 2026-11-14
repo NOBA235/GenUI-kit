@@ -37,6 +37,11 @@ export {
 } from "./tools/telemetry-tools.js";
 
 export {
+  OtlpSnapshotMcpTelemetryProvider,
+  getDefaultOtlpSnapshotPath,
+} from "./tools/otlp-snapshot-provider.js";
+
+export {
   BUILTIN_CATALOGS,
   BUILTIN_CATALOG_DEFINITIONS,
   spatialCatalogDefinitions,

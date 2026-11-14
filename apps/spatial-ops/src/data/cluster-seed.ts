@@ -725,7 +725,18 @@ export function executeSreMutation(
 
   if (actionType === "tripCircuitBreaker") {
     const serviceId = String(payload.serviceId ?? "srv-order-proc");
-    const target = services[serviceId] ?? services["srv-order-proc"]!;
+    const target = services[serviceId] ?? Object.values(services)[0];
+    if (!target) {
+      return {
+        id: `sre-aud-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actionType: "TRIP_CIRCUIT_BREAKER",
+        targetServiceId: serviceId || "none",
+        summary: "No active service discovered yet to trip circuit breaker",
+        errorBudgetSavedPercent: 0,
+        operator: "sre-lead@aegis-warroom.io",
+      };
+    }
 
     target.circuitBreakerTripped = true;
     target.status = "CIRCUIT_OPEN";
@@ -797,7 +808,18 @@ export function executeSreMutation(
     };
   } else if (actionType === "scaleServiceReplicas") {
     const serviceId = String(payload.serviceId ?? "srv-api-gateway");
-    const target = services[serviceId] ?? services["srv-api-gateway"]!;
+    const target = services[serviceId] ?? Object.values(services)[0];
+    if (!target) {
+      return {
+        id: `sre-aud-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actionType: "SCALE_SERVICE_REPLICAS",
+        targetServiceId: serviceId || "none",
+        summary: "No active service discovered yet to scale replicas",
+        errorBudgetSavedPercent: 0,
+        operator: "sre-lead@aegis-warroom.io",
+      };
+    }
     const deltaReplicas = Number(payload.deltaReplicas ?? 6);
 
     const prevReplicas = target.replicas;
@@ -821,7 +843,18 @@ export function executeSreMutation(
   } else {
     // rollbackDeployment
     const serviceId = String(payload.serviceId ?? "srv-api-gateway");
-    const target = services[serviceId] ?? services["srv-api-gateway"]!;
+    const target = services[serviceId] ?? Object.values(services)[0];
+    if (!target) {
+      return {
+        id: `sre-aud-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actionType: "ROLLBACK_DEPLOYMENT",
+        targetServiceId: serviceId || "none",
+        summary: "No active service discovered yet to rollback deployment",
+        errorBudgetSavedPercent: 0,
+        operator: "sre-lead@aegis-warroom.io",
+      };
+    }
     const targetVersion = String(payload.targetVersion ?? "v3.8.3-stable");
 
     const prevVersion = target.version;

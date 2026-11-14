@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -31,8 +32,14 @@ import {
   SreAuditEntry,
 } from "./data/cluster-seed.js";
 import {
-  telemetryBridge,
+  applyOtlpSnapshotToStore,
+  buildDynamicOtlpSpec,
+  createEmptyOtlpClusterState,
+  LiveOtlpCollectorClient,
   liveMeshSimulator,
+  telemetryBridge,
+  type DynamicTopologySnapshot,
+  type OtlpConnectionStatus,
 } from "./telemetry/index.js";
 import {
   buildSpatialChaosPackets,
@@ -49,16 +56,146 @@ import {
 
 export interface AppProps {
   instantStreamForTest?: boolean;
+  initialSourceMode?: "otlp" | "demo";
+  otlpCollectorUrl?: string;
 }
 
-export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
-  // 1. Initialize Time-Travel State Store with deterministic 16-node cluster state
+const copyTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+let lastCopyAnnouncement = "";
+
+function legacyExecCommandCopy(text: string): boolean {
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.cssText = "position:fixed;inset-block-start:0;opacity:0";
+  document.body.append(field);
+  field.select();
+  try {
+    return document.execCommand("copy");
+  } finally {
+    field.remove();
+  }
+}
+
+function reportCopyOutcome(button: HTMLElement, ok: boolean): void {
+  const tip = button.nextElementSibling;
+  const existing = copyTimers.get(button);
+  if (existing) clearTimeout(existing);
+
+  button.removeAttribute("data-copied");
+  button.removeAttribute("data-failed");
+
+  let message = ok ? "Copied" : "Copy failed";
+  if (message === lastCopyAnnouncement) {
+    message += "\u00A0";
+  }
+  lastCopyAnnouncement = message;
+
+  if (tip) tip.textContent = "";
+  void button.offsetWidth;
+  button.setAttribute(ok ? "data-copied" : "data-failed", "");
+
+  if (tip) {
+    requestAnimationFrame(() => {
+      tip.textContent = message;
+    });
+  }
+
+  copyTimers.set(
+    button,
+    setTimeout(() => {
+      button.removeAttribute("data-copied");
+      button.removeAttribute("data-failed");
+      if (tip) tip.textContent = "";
+    }, 2000)
+  );
+}
+
+async function copyFromTargetElement(
+  button: HTMLElement,
+  target: HTMLElement
+): Promise<void> {
+  const text =
+    target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+      ? target.value.trim()
+      : (target.innerText || target.textContent || "").trim();
+  if (!text) return;
+
+  try {
+    if (!navigator.clipboard?.writeText) {
+      throw new Error("Clipboard API unavailable");
+    }
+    await navigator.clipboard.writeText(text);
+    reportCopyOutcome(button, true);
+  } catch {
+    if (legacyExecCommandCopy(text)) {
+      reportCopyOutcome(button, true);
+    } else {
+      reportCopyOutcome(button, false);
+    }
+  }
+}
+
+function resolveDefaultCollectorUrl(explicitUrl?: string): string {
+  if (explicitUrl) return explicitUrl;
+  if (typeof window !== "undefined") {
+    // In Vite dev (:5174), route through same-origin Vite proxy -> 127.0.0.1:4318
+    if (window.location.port === "5174") {
+      return window.location.origin;
+    }
+  }
+  return "http://127.0.0.1:4318";
+}
+
+function resolveInitialSourceMode(
+  explicit?: "otlp" | "demo"
+): "otlp" | "demo" {
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") {
+    const param = new URLSearchParams(window.location.search).get("demo");
+    if (param === "1" || param === "true") {
+      return "demo";
+    }
+  }
+  return "otlp";
+}
+
+const EMPTY_OTLP_SNAPSHOT: DynamicTopologySnapshot = {
+  mode: "WAITING",
+  totalIngestedSpans: 0,
+  totalIngestedTraces: 0,
+  lastIngestedAt: null,
+  services: {},
+  edges: [],
+  summary: createEmptyOtlpClusterState().cluster.summary,
+  recentTraces: [],
+  logs: [],
+  bottleneckServiceId: null,
+};
+
+export const App: React.FC<AppProps> = ({
+  instantStreamForTest = false,
+  initialSourceMode,
+  otlpCollectorUrl,
+}) => {
+  const [dataSourceMode, setDataSourceMode] = useState<"otlp" | "demo">(() =>
+    resolveInitialSourceMode(initialSourceMode)
+  );
+
+  const effectiveCollectorUrl = useMemo(
+    () => resolveDefaultCollectorUrl(otlpCollectorUrl),
+    [otlpCollectorUrl]
+  );
+
+  // 1. Initialize Time-Travel State Store cleanly (empty OTLP standby by default; seeded only in explicit demo mode)
   const timeTravelStore = useMemo(
     () =>
       createTimeTravelStateStore(
-        createInitialClusterState() as unknown as Record<string, unknown>
+        (resolveInitialSourceMode(initialSourceMode) === "demo"
+          ? createInitialClusterState()
+          : createEmptyOtlpClusterState()) as unknown as Record<string, unknown>
       ),
-    []
+    [initialSourceMode]
   );
 
   // 2. Initialize Telemetry Tracker + Wrapped Registry
@@ -68,13 +205,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
     [telemetryTracker]
   );
 
-  // 3. Connect live OpenTelemetry bridge to TimeTravelStateStore
-  useEffect(() => {
-    telemetryBridge.attachToStore(timeTravelStore);
-    return () => telemetryBridge.detach();
-  }, [timeTravelStore]);
-
-  // 4. Subscribe to store changes for Top HUD and Undo/Redo
+  // 3. Subscribe to store changes for Top HUD and Undo/Redo
   const [storeVersion, setStoreVersion] = useState(0);
   useEffect(() => {
     return timeTravelStore.subscribe(() => {
@@ -96,6 +227,8 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
   const compilerRef = useRef<GuardrailedStreamCompiler | null>(null);
   const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const patchCounterRef = useRef(0);
+  const otlpClientRef = useRef<LiveOtlpCollectorClient | null>(null);
+  const otlpSnippetId = useId();
 
   const [currentSpec, setCurrentSpec] = useState<Spec | null>(null);
   const [healedDiagnostics, setHealedDiagnostics] =
@@ -104,14 +237,21 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
   const [activeScenarioId, setActiveScenarioId] = useState<string>(
     SPATIAL_SCENARIO_PRESETS[0]!.id
   );
-  const [promptInput, setPromptInput] = useState<string>(
-    SPATIAL_SCENARIO_PRESETS[0]!.prompt
-  );
+  const [promptInput, setPromptInput] = useState<string>("");
   const [patchLog, setPatchLog] = useState<SpatialPatchLogItem[]>([]);
   const [isXRayOpen, setIsXRayOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // 6. Dual-Mode Stream Configuration
+  // Live OTLP Receiver State
+  const [otlpStatus, setOtlpStatus] = useState<OtlpConnectionStatus>("CONNECTING");
+  const [otlpStatusDetail, setOtlpStatusDetail] = useState<string | undefined>(undefined);
+  const [otlpSnapshot, setOtlpSnapshot] = useState<DynamicTopologySnapshot>(
+    EMPTY_OTLP_SNAPSHOT
+  );
+  const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>(undefined);
+  const [otlpActionBusy, setOtlpActionBusy] = useState(false);
+
+  // Dual-Mode LLM Stream Configuration
   const [streamMode, setStreamMode] = useState<"RECORDED_JUDGE" | "LIVE_API">(
     "RECORDED_JUDGE"
   );
@@ -139,7 +279,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
   );
 
   const runGuardrailedJsonlStream = useCallback(
-    (jsonlText: string) => {
+    (jsonlText: string, instantOverride = false) => {
       stopActiveTimer();
       setStreamError(null);
 
@@ -150,7 +290,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
       compilerRef.current = compiler;
       setPatchLog([]);
 
-      if (instantStreamForTest) {
+      if (instantStreamForTest || instantOverride) {
         const lines = jsonlText
           .split("\n")
           .map((l) => l.trim())
@@ -204,12 +344,167 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
     [applyCompilerStep, instantStreamForTest, telemetryTracker]
   );
 
+  // Accessible Copy Button Invoker Commands + fallback handler
   useEffect(() => {
-    const initialPreset = SPATIAL_SCENARIO_PRESETS[0]!;
-    const jsonl = specToJsonlStream(initialPreset.buildSpec());
-    runGuardrailedJsonlStream(jsonl);
-    return () => stopActiveTimer();
-  }, [runGuardrailedJsonlStream]);
+    const onCommand = (evt: Event) => {
+      const cmdEvt = evt as Event & {
+        command?: string;
+        source?: HTMLElement | null;
+      };
+      if (
+        typeof cmdEvt.command === "string" &&
+        cmdEvt.command.startsWith("--copy") &&
+        cmdEvt.source instanceof HTMLElement &&
+        cmdEvt.target instanceof HTMLElement
+      ) {
+        void copyFromTargetElement(cmdEvt.source, cmdEvt.target);
+      }
+    };
+
+    document.addEventListener("command", onCommand, true);
+
+    let onFallbackClick: ((evt: MouseEvent) => void) | null = null;
+    if (typeof window !== "undefined" && !("CommandEvent" in window)) {
+      onFallbackClick = (evt: MouseEvent) => {
+        const el = evt.target;
+        if (!(el instanceof Element)) return;
+        const btn = el.closest('button[command^="--copy"]');
+        if (!(btn instanceof HTMLElement)) return;
+        const targetId = btn.getAttribute("commandfor");
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (target) {
+          void copyFromTargetElement(btn, target);
+        }
+      };
+      document.addEventListener("click", onFallbackClick);
+    }
+
+    return () => {
+      document.removeEventListener("command", onCommand, true);
+      if (onFallbackClick) {
+        document.removeEventListener("click", onFallbackClick);
+      }
+    };
+  }, []);
+
+  // Lifecycle effect coordinating Live OTLP Collector Mode vs Explicit Demo Simulation Mode
+  useEffect(() => {
+    if (dataSourceMode === "demo") {
+      otlpClientRef.current?.disconnect();
+      otlpClientRef.current = null;
+
+      const seeded = createInitialClusterState();
+      timeTravelStore.update({
+        "/cluster": seeded.cluster,
+      });
+
+      telemetryBridge.attachToStore(timeTravelStore);
+      if (!instantStreamForTest) {
+        liveMeshSimulator.startEmitting(3500);
+      }
+
+      const initialPreset = SPATIAL_SCENARIO_PRESETS[0]!;
+      setActiveScenarioId(initialPreset.id);
+      setPromptInput(initialPreset.prompt);
+      const jsonl = specToJsonlStream(initialPreset.buildSpec());
+      runGuardrailedJsonlStream(jsonl);
+
+      return () => {
+        liveMeshSimulator.stopEmitting();
+        telemetryBridge.detach();
+        stopActiveTimer();
+      };
+    }
+
+    // Live OTLP Mode (default)
+    liveMeshSimulator.stopEmitting();
+    telemetryBridge.detach();
+
+    // Render empty waiting topology immediately while collector connects
+    const initialSpec = buildDynamicOtlpSpec(EMPTY_OTLP_SNAPSHOT);
+    applyOtlpSnapshotToStore(timeTravelStore, EMPTY_OTLP_SNAPSHOT);
+    runGuardrailedJsonlStream(specToJsonlStream(initialSpec), true);
+
+    const client = new LiveOtlpCollectorClient(
+      {
+        onSnapshot: (snapshot) => {
+          setOtlpSnapshot(snapshot);
+          applyOtlpSnapshotToStore(timeTravelStore, snapshot);
+          setSelectedTraceId((prevTraceId) => {
+            const stillExists =
+              prevTraceId &&
+              snapshot.recentTraces.some((t) => t.traceId === prevTraceId);
+            const activeTrace = stillExists ? prevTraceId : undefined;
+            const dynamicSpec = buildDynamicOtlpSpec(snapshot, activeTrace);
+            runGuardrailedJsonlStream(specToJsonlStream(dynamicSpec), true);
+            return activeTrace;
+          });
+        },
+        onStatusChange: (status, detail) => {
+          setOtlpStatus(status);
+          setOtlpStatusDetail(detail);
+        },
+      },
+      effectiveCollectorUrl
+    );
+
+    otlpClientRef.current = client;
+    void client.connect();
+
+    return () => {
+      client.disconnect();
+      if (otlpClientRef.current === client) {
+        otlpClientRef.current = null;
+      }
+      stopActiveTimer();
+    };
+  }, [
+    dataSourceMode,
+    effectiveCollectorUrl,
+    instantStreamForTest,
+    runGuardrailedJsonlStream,
+    timeTravelStore,
+  ]);
+
+  const handleSelectTrace = (traceId: string) => {
+    setSelectedTraceId(traceId);
+    const dynamicSpec = buildDynamicOtlpSpec(otlpSnapshot, traceId);
+    runGuardrailedJsonlStream(specToJsonlStream(dynamicSpec), true);
+  };
+
+  const handleSendSampleOtlp = async (faulty: boolean) => {
+    if (!otlpClientRef.current) return;
+    setOtlpActionBusy(true);
+    setStreamError(null);
+    try {
+      await otlpClientRef.current.sendSampleOtlpTrace(faulty);
+    } catch (err) {
+      setStreamError(
+        err instanceof Error
+          ? err.message
+          : "Failed to POST /v1/traces to local collector (:4318)"
+      );
+    } finally {
+      setOtlpActionBusy(false);
+    }
+  };
+
+  const handleResetOtlp = async () => {
+    if (!otlpClientRef.current) return;
+    setOtlpActionBusy(true);
+    setStreamError(null);
+    try {
+      setSelectedTraceId(undefined);
+      await otlpClientRef.current.resetTraces();
+    } catch (err) {
+      setStreamError(
+        err instanceof Error ? err.message : "Failed to reset OTLP collector"
+      );
+    } finally {
+      setOtlpActionBusy(false);
+    }
+  };
 
   const handleSelectScenario = (scenarioId: string) => {
     const preset = SPATIAL_SCENARIO_PRESETS.find((s) => s.id === scenarioId);
@@ -270,6 +565,23 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
       return;
     }
 
+    if (dataSourceMode === "otlp") {
+      const liveSpec = buildDynamicOtlpSpec(otlpSnapshot, selectedTraceId);
+      const rootKey = liveSpec.root;
+      const rootEl = liveSpec.elements[rootKey];
+      if (rootEl) {
+        liveSpec.elements[rootKey] = {
+          ...rootEl,
+          props: {
+            ...rootEl.props,
+            incidentTitle: `OTLP View: "${promptInput.slice(0, 100)}"`,
+          },
+        };
+      }
+      runGuardrailedJsonlStream(specToJsonlStream(liveSpec));
+      return;
+    }
+
     const synthesizedJsonl = synthesizeSpatialJsonlFromPrompt(promptInput);
     runGuardrailedJsonlStream(synthesizedJsonl);
   };
@@ -287,7 +599,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
       compilerRef.current = compiler;
     }
 
-    const rootKey = currentSpec?.root || "warroom-shell-root";
+    const rootKey = currentSpec?.root || "warroom-shell-otlp";
     const chaosLines = buildSpatialChaosPackets(rootKey);
     const chaosPayload = chaosLines.join("\n") + "\n";
 
@@ -304,45 +616,68 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
     ]);
   }, [applyCompilerStep, currentSpec?.root, telemetryTracker]);
 
-  const handleMutationExecuted = useCallback((entry: SreAuditEntry) => {
-    const actionMap: Record<
-      string,
-      "tripCircuitBreaker" | "triggerRegionalFailover" | "scaleServiceReplicas" | "rollbackDeployment"
-    > = {
-      TRIP_CIRCUIT_BREAKER: "tripCircuitBreaker",
-      TRIGGER_REGIONAL_FAILOVER: "triggerRegionalFailover",
-      SCALE_SERVICE_REPLICAS: "scaleServiceReplicas",
-      ROLLBACK_DEPLOYMENT: "rollbackDeployment",
-    };
-    const mappedAction = actionMap[entry.actionType];
-    if (mappedAction) {
-      telemetryBridge.executeRemediation({
-        action: mappedAction,
-        targetServiceId: entry.targetServiceId,
-        operator: entry.operator,
-      });
-    }
-  }, []);
+  const handleMutationExecuted = useCallback(
+    (entry: SreAuditEntry) => {
+      if (dataSourceMode !== "demo") {
+        // In Live OTLP mode, mutations stay cleanly isolated to the local TimeTravelStateStore
+        return;
+      }
+      const actionMap: Record<
+        string,
+        | "tripCircuitBreaker"
+        | "triggerRegionalFailover"
+        | "scaleServiceReplicas"
+        | "rollbackDeployment"
+      > = {
+        TRIP_CIRCUIT_BREAKER: "tripCircuitBreaker",
+        TRIGGER_REGIONAL_FAILOVER: "triggerRegionalFailover",
+        SCALE_SERVICE_REPLICAS: "scaleServiceReplicas",
+        ROLLBACK_DEPLOYMENT: "rollbackDeployment",
+      };
+      const mappedAction = actionMap[entry.actionType];
+      if (mappedAction) {
+        telemetryBridge.executeRemediation({
+          action: mappedAction,
+          targetServiceId: entry.targetServiceId,
+          operator: entry.operator,
+        });
+      }
+    },
+    [dataSourceMode]
+  );
 
   const handleInjectLiveChaos = useCallback(() => {
+    if (dataSourceMode === "otlp") {
+      void handleSendSampleOtlp(true);
+      return;
+    }
     telemetryBridge.injectDbPoolChaos();
-    // Automatically stream the cascading outage investigation spec with Trace Waterfall
     const preset = SPATIAL_SCENARIO_PRESETS[0]!;
     setActiveScenarioId(preset.id);
-    setPromptInput("Diagnose Postgres connection pool saturation and propose mitigation playbook");
+    setPromptInput(
+      "Diagnose Postgres connection pool saturation and propose mitigation playbook"
+    );
     const jsonl = specToJsonlStream(preset.buildSpec());
     runGuardrailedJsonlStream(jsonl);
-  }, [runGuardrailedJsonlStream]);
+  }, [dataSourceMode, runGuardrailedJsonlStream]);
 
   const handleClearLiveChaos = useCallback(() => {
+    if (dataSourceMode === "otlp") {
+      void handleResetOtlp();
+      return;
+    }
     telemetryBridge.clearChaos();
-  }, []);
+  }, [dataSourceMode]);
 
   const handleSimulateChaosSpike = () => {
     const services = {
-      ...((timeTravelStore.get("/cluster/services") as Record<string, ServiceNodeData>) ?? {}),
+      ...((timeTravelStore.get("/cluster/services") as Record<
+        string,
+        ServiceNodeData
+      >) ?? {}),
     };
-    const target = services["srv-api-gateway"];
+    const firstId = Object.keys(services)[0];
+    const target = services["srv-api-gateway"] ?? (firstId ? services[firstId] : undefined);
     if (target) {
       target.rps += 12000;
       target.errorRatePercent = Math.min(100, target.errorRatePercent + 15);
@@ -361,6 +696,13 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
   const canUndo = timeTravelStore.canUndo();
   const canRedo = timeTravelStore.canRedo();
 
+  const severityToneClass =
+    summary?.severity === "SEV-1" || summary?.severity === "SEV-0"
+      ? "text-rose-400"
+      : summary?.severity === "SEV-2"
+        ? "text-amber-400"
+        : "text-emerald-400";
+
   return (
     <div
       className="min-h-screen bg-[#04060E] text-slate-100 flex flex-col font-sans"
@@ -377,31 +719,48 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-bold tracking-tight text-slate-100">
-                  Aegis 3D · Spatial Infrastructure War-Room
+                  SpatialOps · Live OTLP 3D Topology Workbench
                 </h1>
                 <span className="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-cyan-300">
-                  @json-render/react-three-fiber
+                  OTLP :4318
                 </span>
               </div>
               <p className="font-mono text-[11px] text-slate-400">
-                15 Spatial Components · Live OTLP Telemetry · Dual-Viewport WebGL
+                {dataSourceMode === "otlp"
+                  ? `Local OpenTelemetry Receiver (${otlpSnapshot.totalIngestedTraces} traces · ${otlpSnapshot.totalIngestedSpans} spans)`
+                  : "Sample Simulation Mode · Synthetic Service Mesh"}
               </p>
             </div>
           </div>
 
-          {/* Workspace Status & Template Export */}
+          {/* Workspace Mode Switcher & Template Export */}
           <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-cyan-500/20 px-2.5 py-1 font-mono text-xs font-semibold text-cyan-200 border border-cyan-500/40">
-              SpatialOps · 3D/2D Trace Workbench
-            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setDataSourceMode((m) => (m === "otlp" ? "demo" : "otlp"))
+              }
+              data-testid="toggle-source-mode-btn"
+              className={`rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition cursor-pointer ${
+                dataSourceMode === "otlp"
+                  ? "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                  : "border-amber-500/50 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25"
+              }`}
+            >
+              {dataSourceMode === "otlp"
+                ? "Load Sample Demo"
+                : "← Switch to Live OTLP :4318"}
+            </button>
             <button
               type="button"
               onClick={() => setIsExportModalOpen(true)}
-              title="Export Agent-Ready 3D Template Pack (.zip, npx CLI, MCP)"
               className="flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1 font-mono text-xs font-semibold text-purple-300 hover:bg-purple-500/20 transition cursor-pointer shadow-sm shadow-purple-950/50"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
-              Export 3D Pack 📦
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-purple-400"
+                aria-hidden="true"
+              />
+              Export 3D Pack
             </button>
           </div>
 
@@ -410,31 +769,33 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
             <div>
               <span className="text-[10px] text-slate-400 block">SEVERITY</span>
               <span
-                className={`font-semibold ${
-                  summary?.severity === "SEV-1" || summary?.severity === "SEV-0"
-                    ? "text-rose-400"
-                    : "text-amber-400"
-                }`}
+                className={`font-semibold ${severityToneClass}`}
                 data-testid="header-cluster-severity"
               >
-                {summary?.severity ?? "SEV-1"}
+                {summary?.severity ?? "NOMINAL"}
               </span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
-              <span className="text-[10px] text-slate-400 block">GLOBAL ERROR RATE</span>
+              <span className="text-[10px] text-slate-400 block">
+                GLOBAL ERROR RATE
+              </span>
               <span
-                className="font-semibold text-rose-300 tabular-nums"
+                className={`font-semibold tabular-nums ${
+                  (summary?.globalErrorRatePercent ?? 0) > 5
+                    ? "text-rose-300"
+                    : "text-emerald-300"
+                }`}
                 data-testid="header-global-error-rate"
               >
-                {summary?.globalErrorRatePercent ?? 14.8}%
+                {summary?.globalErrorRatePercent ?? 0}%
               </span>
             </div>
             <div className="h-6 w-px bg-slate-800" />
             <div>
               <span className="text-[10px] text-slate-400 block">THROUGHPUT</span>
               <span className="font-semibold text-slate-100 tabular-nums">
-                {(summary?.globalRps ?? 68400).toLocaleString()} RPS
+                {(summary?.globalRps ?? 0).toLocaleString()} RPS
               </span>
             </div>
           </div>
@@ -447,7 +808,6 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                 disabled={!canUndo}
                 onClick={() => timeTravelStore.undo()}
                 data-testid="spatial-time-travel-undo-btn"
-                title="Undo SRE mutation"
                 className="rounded px-2.5 py-1 text-slate-200 hover:bg-slate-800 disabled:opacity-35 transition"
               >
                 ↶ Undo
@@ -463,7 +823,6 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                 disabled={!canRedo}
                 onClick={() => timeTravelStore.redo()}
                 data-testid="spatial-time-travel-redo-btn"
-                title="Redo SRE mutation"
                 className="rounded px-2.5 py-1 text-slate-200 hover:bg-slate-800 disabled:opacity-35 transition"
               >
                 ↷ Redo
@@ -473,85 +832,243 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
             <button
               type="button"
               onClick={handleInjectLiveChaos}
+              disabled={otlpActionBusy}
               data-testid="header-inject-live-chaos-btn"
-              title="Inject Postgres DB connection pool exhaustion (1,820ms timeout)"
-              className="rounded-lg border border-rose-500/60 bg-rose-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-rose-200 hover:bg-rose-500/30 transition shadow-sm shadow-rose-950 flex items-center gap-1.5"
+              className="rounded-lg border border-rose-500/60 bg-rose-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-rose-200 hover:bg-rose-500/30 disabled:opacity-50 transition shadow-sm shadow-rose-950 flex items-center gap-1.5 cursor-pointer"
             >
-              <span className="h-2 w-2 rounded-full bg-rose-400 animate-ping" />
-              💥 Inject Live Chaos
+              <span
+                className="h-2 w-2 rounded-full bg-rose-400"
+                aria-hidden="true"
+              />
+              {dataSourceMode === "otlp"
+                ? "Send Slow DB OTLP Trace"
+                : "Inject Demo Chaos"}
             </button>
 
             <button
               type="button"
               onClick={handleClearLiveChaos}
+              disabled={otlpActionBusy}
               data-testid="header-recover-chaos-btn"
-              title="Clear chaos and recover fleet health"
-              className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25 transition flex items-center gap-1"
+              className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50 transition flex items-center gap-1 cursor-pointer"
             >
-              <span>⚡ Remediate & Recover</span>
+              <span>
+                {dataSourceMode === "otlp"
+                  ? "Reset OTLP Buffer"
+                  : "Remediate & Recover"}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsXRayOpen(true)}
               data-testid="open-spatial-xray-btn"
-              className="rounded-lg border border-cyan-500/50 bg-cyan-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-cyan-200 hover:bg-cyan-500/30 transition"
+              className="rounded-lg border border-cyan-500/50 bg-cyan-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-cyan-200 hover:bg-cyan-500/30 transition cursor-pointer"
             >
-              🔬 Spatial X-Ray ({telemetry.patchCount} patches)
+              Spatial X-Ray ({telemetry.patchCount} patches)
             </button>
           </div>
         </div>
       </header>
 
-      {/* Operational Incident Bar & Scenario Triggers */}
+      {/* Operational Receiver / Scenario Bar */}
       <section className="border-b border-slate-800/80 bg-slate-900/45">
         <div className="mx-auto max-w-[1680px] px-5 py-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
-                Incident Scenarios:
-              </span>
-              {SPATIAL_SCENARIO_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectScenario(preset.id)}
-                  data-testid={`spatial-scenario-${preset.id}`}
-                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
-                    activeScenarioId === preset.id
-                      ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-200"
-                      : "border-slate-800 bg-slate-950/80 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <span>{preset.title}</span>
-                  <span className="ml-1.5 rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
-                    {preset.badge}
+          {dataSourceMode === "otlp" ? (
+            <div
+              className="rounded-lg border border-slate-800 bg-slate-950/90 p-3.5 space-y-3"
+              data-testid="otlp-receiver-panel"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2.5 font-mono text-xs">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 font-semibold ${
+                      otlpStatus === "STREAMING"
+                        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                        : otlpStatus === "LISTENING"
+                          ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-200"
+                          : otlpStatus === "CONNECTING"
+                            ? "border-amber-500/40 bg-amber-500/15 text-amber-200"
+                            : "border-rose-500/40 bg-rose-500/15 text-rose-300"
+                    }`}
+                    data-testid="otlp-connection-status"
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        otlpStatus === "STREAMING"
+                          ? "bg-emerald-400"
+                          : otlpStatus === "LISTENING"
+                            ? "bg-cyan-400"
+                            : otlpStatus === "CONNECTING"
+                              ? "bg-amber-400"
+                              : "bg-rose-400"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    OTLP :4318 {otlpStatus}
                   </span>
+                  <span className="text-slate-300">
+                    Nodes:{" "}
+                    <strong>{Object.keys(otlpSnapshot.services).length}</strong> · Edges:{" "}
+                    <strong>{otlpSnapshot.edges.length}</strong> · Traces:{" "}
+                    <strong>{otlpSnapshot.totalIngestedTraces}</strong> · Spans:{" "}
+                    <strong>{otlpSnapshot.totalIngestedSpans}</strong>
+                  </span>
+                  {otlpStatus === "OFFLINE" && otlpStatusDetail && (
+                    <span className="text-rose-300/90 text-[11px]">
+                      ({otlpStatusDetail} — run <code>pnpm dev</code> or{" "}
+                      <code>pnpm collector</code>)
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+                  <button
+                    type="button"
+                    onClick={() => void handleSendSampleOtlp(false)}
+                    disabled={otlpActionBusy}
+                    data-testid="send-sample-otlp-btn"
+                    className="rounded border border-cyan-500/50 bg-cyan-500/15 px-2.5 py-1 text-cyan-200 hover:bg-cyan-500/25 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    + Send Healthy OTLP Trace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowApiConfig((s) => !s)}
+                    className="rounded border border-slate-700 bg-slate-900 px-2.5 py-1 text-slate-300 hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    {streamMode === "LIVE_API"
+                      ? "Mode: Live LLM SSE"
+                      : "LLM / Collector Settings"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Copyable OTLP SDK Env Config */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800/90 bg-slate-900/70 px-3 py-2">
+                <pre className="overflow-x-auto text-[11px] text-cyan-200">
+                  <code id={otlpSnippetId}>
+                    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+                    {" "}OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+                  </code>
+                </pre>
+                <span className="copy-wrap">
+                  <button
+                    type="button"
+                    className="copy-button inline-flex items-center justify-center rounded border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200 hover:border-cyan-500/50 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 cursor-pointer"
+                    aria-label="Copy OpenTelemetry OTLP environment variables"
+                    {...({
+                      command: "--copy",
+                      commandfor: otlpSnippetId,
+                    } as Record<string, string>)}
+                  >
+                    <svg
+                      className="icon-copy h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden="true"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    <svg
+                      className="icon-check h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      aria-hidden="true"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="ml-1.5">Copy</span>
+                  </button>
+                  <span className="copy-tip" role="status" />
+                </span>
+              </div>
+
+              {/* Recent Real OTLP Trace Selector */}
+              {otlpSnapshot.recentTraces.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+                  <span className="text-slate-400 uppercase tracking-wider text-[10px] mr-1">
+                    Captured Traces:
+                  </span>
+                  {otlpSnapshot.recentTraces.slice(0, 8).map((tr) => {
+                    const isSelected =
+                      selectedTraceId === tr.traceId ||
+                      (!selectedTraceId &&
+                        otlpSnapshot.recentTraces[0]?.traceId === tr.traceId);
+                    return (
+                      <button
+                        key={tr.traceId}
+                        type="button"
+                        onClick={() => handleSelectTrace(tr.traceId)}
+                        className={`rounded border px-2 py-0.5 transition cursor-pointer ${
+                          isSelected
+                            ? "border-cyan-400/70 bg-cyan-500/20 text-cyan-100"
+                            : tr.hasError
+                              ? "border-rose-500/40 bg-rose-950/30 text-rose-200 hover:border-rose-400"
+                              : "border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-600"
+                        }`}
+                      >
+                        {tr.traceId.slice(0, 8)} · {tr.rootSpan.operationName.slice(0, 26)} (
+                        {Math.round(tr.totalDurationMs)}ms)
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-amber-300">
+                  Demo Scenarios (Simulated):
+                </span>
+                {SPATIAL_SCENARIO_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectScenario(preset.id)}
+                    data-testid={`spatial-scenario-${preset.id}`}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                      activeScenarioId === preset.id
+                        ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-200"
+                        : "border-slate-800 bg-slate-950/80 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <span>{preset.title}</span>
+                    <span className="ml-1.5 rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
+                      {preset.badge}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSimulateChaosSpike}
+                  data-testid="simulate-traffic-spike-btn"
+                  className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 font-mono text-xs text-amber-200 hover:bg-amber-500/20 transition"
+                >
+                  + Simulate Ingress Traffic Surge
                 </button>
-              ))}
-            </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSimulateChaosSpike}
-                data-testid="simulate-traffic-spike-btn"
-                className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 font-mono text-xs text-amber-200 hover:bg-amber-500/20 transition"
-              >
-                + Simulate Ingress Traffic Surge
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowApiConfig((s) => !s)}
-                className="rounded border border-slate-700 bg-slate-900 px-2.5 py-1 font-mono text-xs text-slate-300 hover:bg-slate-800 transition"
-              >
-                {streamMode === "LIVE_API"
-                  ? "🟢 Mode: Live LLM SSE"
-                  : "🔵 Mode: Recorded Judge Replay"}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowApiConfig((s) => !s)}
+                  className="rounded border border-slate-700 bg-slate-900 px-2.5 py-1 font-mono text-xs text-slate-300 hover:bg-slate-800 transition"
+                >
+                  {streamMode === "LIVE_API"
+                    ? "Mode: Live LLM SSE"
+                    : "Mode: Recorded Demo Replay"}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {showApiConfig && (
             <div className="rounded-lg border border-slate-700 bg-slate-950 p-3.5 text-xs space-y-3">
@@ -561,8 +1078,9 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                     Streaming Provider Configuration
                   </span>
                   <p className="text-slate-400">
-                    Switch between Recorded Judge Replay and Live OpenAI-Compatible
-                    SSE Streaming via <code>spatialVerifiedCatalog.prompt()</code>.
+                    Switch between local OTLP / Recorded spec compilation and Live
+                    OpenAI-Compatible SSE Streaming via{" "}
+                    <code>spatialVerifiedCatalog.prompt()</code>.
                   </p>
                 </div>
                 <div className="flex gap-1.5 font-mono">
@@ -575,7 +1093,7 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
                         : "bg-slate-800 text-slate-300"
                     }`}
                   >
-                    Recorded Judge Mode
+                    Local Compiler Mode
                   </button>
                   <button
                     type="button"
@@ -630,21 +1148,25 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
               value={promptInput}
               onChange={(e) => setPromptInput(e.target.value)}
               aria-label="SRE incident intent prompt"
-              placeholder="Type an SRE intent (e.g. 'Isolate the failing PostgreSQL node and prepare cross-region failover')..."
+              placeholder={
+                dataSourceMode === "otlp"
+                  ? "Annotate view or stream OpenAI-compatible 3D war-room intent over live OTLP topology..."
+                  : "Type an SRE intent (e.g. 'Isolate the failing PostgreSQL node and prepare cross-region failover')..."
+              }
               className="flex-1 rounded-lg border border-slate-700/90 bg-slate-950 px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none"
             />
             <button
               type="submit"
               data-testid="spatial-prompt-submit-btn"
-              className="rounded-lg bg-cyan-500 px-4 py-2 font-mono text-xs font-semibold text-slate-950 hover:bg-cyan-400 transition shrink-0"
+              className="rounded-lg bg-cyan-500 px-4 py-2 font-mono text-xs font-semibold text-slate-950 hover:bg-cyan-400 transition shrink-0 cursor-pointer"
             >
-              {isStreaming ? "Streaming Spatial Spec..." : "Stream War-Room ↵"}
+              {isStreaming ? "Streaming Spatial Spec..." : "Apply Spatial Intent ↵"}
             </button>
           </form>
 
           {streamError && (
             <div className="rounded border border-rose-500/40 bg-rose-950/30 px-3 py-2 font-mono text-xs text-rose-200">
-              Stream Error: {streamError}
+              {streamError}
             </div>
           )}
         </div>

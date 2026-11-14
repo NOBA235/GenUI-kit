@@ -826,7 +826,7 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
                       : "text-emerald-300"
                   }`}
                 >
-                  {summary?.globalErrorRatePercent ?? 14.8}%
+                  {summary?.globalErrorRatePercent ?? 0}%
                 </span>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
@@ -834,7 +834,7 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
                   TOTAL THROUGHPUT
                 </span>
                 <span className="font-mono text-xl font-bold text-slate-100">
-                  {(summary?.globalRps ?? 68400).toLocaleString()} RPS
+                  {(summary?.globalRps ?? 0).toLocaleString()} RPS
                 </span>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
@@ -842,7 +842,7 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
                   ERROR BUDGET REMAINING
                 </span>
                 <span className="font-mono text-xl font-bold text-cyan-300">
-                  {summary?.errorBudgetRemainingPercent ?? 62.4}%
+                  {summary?.errorBudgetRemainingPercent ?? 100}%
                 </span>
               </div>
             </div>

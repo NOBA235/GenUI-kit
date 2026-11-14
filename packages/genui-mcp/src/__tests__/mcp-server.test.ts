@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   createGenUIMcpServer,
@@ -7,6 +10,7 @@ import {
   handleQueryTelemetryMetrics,
   handleFetchTraceSpans,
   handleExecuteRemediation,
+  OtlpSnapshotMcpTelemetryProvider,
 } from "../index.js";
 
 describe("GenUI Studio MCP Server & Tool Handlers", () => {
@@ -292,6 +296,84 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       });
 
       expect(server).toBeDefined();
+    });
+  });
+
+  describe("Live OTLP Snapshot Provider", () => {
+    it("reads local OTLP snapshot metrics, waterfall spans, and honest local advisory status", () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "genui-mcp-otlp-"));
+      const snapshotPath = path.join(tmpDir, "otlp-snapshot.json");
+      fs.writeFileSync(
+        snapshotPath,
+        JSON.stringify({
+          mode: "LIVE",
+          summary: {
+            activeIncidents: 1,
+            severity: "SEV-1",
+            globalRps: 45,
+            globalErrorRatePercent: 50,
+            unhealthyNodes: 1,
+          },
+          services: {
+            "checkout-api": {
+              id: "checkout-api",
+              name: "checkout-api",
+              rps: 45,
+              errorRatePercent: 50,
+              p50LatencyMs: 22,
+              p95LatencyMs: 1840,
+              p99LatencyMs: 1890,
+              status: "CRITICAL_OUTAGE",
+              cpuSaturationPercent: 85,
+              memorySaturationPercent: 60,
+            },
+          },
+          recentTraces: [
+            {
+              traceId: "tr-otlp-live-1",
+              rootSpan: { operationName: "POST /checkout", serviceId: "checkout-api" },
+              totalDurationMs: 1840,
+              hasError: true,
+              spans: [
+                {
+                  traceId: "tr-otlp-live-1",
+                  spanId: "sp-1",
+                  parentSpanId: null,
+                  serviceName: "checkout-api",
+                  serviceId: "checkout-api",
+                  operationName: "POST /checkout",
+                  startTimeMs: 0,
+                  durationMs: 1840,
+                  statusCode: "ERROR",
+                  statusMessage: "DB pool timeout",
+                  attributes: { "db.system": "postgresql" },
+                },
+              ],
+            },
+          ],
+          bottleneckServiceId: "checkout-api",
+        }),
+        "utf8"
+      );
+
+      const provider = new OtlpSnapshotMcpTelemetryProvider(snapshotPath);
+      const metrics = provider.getMetrics();
+      expect(metrics.clusterSummary.severity).toBe("SEV-1");
+      expect(metrics.services[0]?.serviceId).toBe("checkout-api");
+
+      const waterfall = provider.getTraceWaterfall();
+      expect(waterfall.traceId).toBe("tr-otlp-live-1");
+      expect(waterfall.hasError).toBe(true);
+      expect(waterfall.rootCauseHypothesis).toContain("DB pool timeout");
+
+      const remediation = provider.executeRemediation({
+        action: "tripCircuitBreaker",
+        targetServiceId: "checkout-api",
+      });
+      expect(remediation.verificationPassed).toBe(true);
+      expect(remediation.message).toContain("No external control-plane mutation");
+
+      fs.rmSync(tmpDir, { recursive: true, force: true });
     });
   });
 });
