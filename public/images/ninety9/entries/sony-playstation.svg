@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="SONY PLAYSTATION (SCPH-1000)">
+  <defs>
+    <pattern id="ortho-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#D9D9D9" stroke-width="0.75" />
+    </pattern>
+    <pattern id="halftone-light" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#FFFFFF" />
+      <circle cx="3" cy="3" r="1" fill="#D9D9D9" />
+    </pattern>
+    <pattern id="halftone-medium" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#FFFFFF" />
+      <circle cx="2" cy="2" r="1.15" fill="#808080" />
+      <circle cx="5" cy="5" r="0.85" fill="#D9D9D9" />
+    </pattern>
+    <pattern id="halftone-dark" width="5" height="5" patternUnits="userSpaceOnUse">
+      <rect width="5" height="5" fill="#D9D9D9" />
+      <circle cx="2.5" cy="2.5" r="1.45" fill="#292929" />
+    </pattern>
+    <pattern id="diag-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#292929" stroke-width="1.2" />
+    </pattern>
+    <pattern id="scan-lines" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="2" fill="#FFFFFF" />
+      <rect y="2" width="4" height="2" fill="#D9D9D9" />
+    </pattern>
+  </defs>
+  <rect width="800" height="500" fill="#FFFFFF" />
+  <rect x="12" y="12" width="776" height="476" fill="#FFFFFF" stroke="#000000" stroke-width="2.5" />
+  <rect x="20" y="20" width="760" height="460" fill="url(#ortho-grid)" stroke="#292929" stroke-width="1" />
+
+  <!-- Top Telemetry Bar -->
+  <rect x="20" y="20" width="760" height="36" fill="#000000" />
+  <text x="34" y="42" font-family="monospace" font-size="13" font-weight="700" fill="#FFFFFF">NINETY9 // ARC-05-014 // N99-1994-014</text>
+  <text x="766" y="42" text-anchor="end" font-family="monospace" font-size="12" font-weight="700" fill="#D9D9D9">DEC 1994 // CAT-05</text>
+
+  <!-- Corner Registration Marks -->
+  <path d="M 32 72 h 12 m -6 -6 v 12 M 768 72 h -12 m 6 -6 v 12 M 32 414 h 12 m -6 -6 v 12 M 768 414 h -12 m 6 -6 v 12" fill="none" stroke="#000000" stroke-width="1.5" />
+
+  <!-- Central Motif Schematic -->
+  <g>
+    <rect x="122" y="106" width="556" height="264" fill="url(#halftone-light)" stroke="#000000" stroke-width="2.5" />
+    <path d="M 122 148 H 284 V 190 M 122 184 H 244 V 230 H 284 M 514 210 H 592 V 155 H 678 M 514 252 H 620 V 305 H 678" fill="none" stroke="#000000" stroke-width="2" />
+    <path d="M 122 308 H 248 V 264 H 284 M 514 276 H 568 V 338 H 678" fill="none" stroke="#292929" stroke-width="1.5" />
+    <rect x="284" y="182" width="230" height="104" fill="#000000" stroke="#000000" stroke-width="2" />
+    <rect x="294" y="170" width="8" height="14" fill="#000000" />
+    <rect x="294" y="284" width="8" height="14" fill="#000000" />
+    <rect x="312" y="170" width="8" height="14" fill="#000000" />
+    <rect x="312" y="284" width="8" height="14" fill="#000000" />
+    <rect x="330" y="170" width="8" height="14" fill="#000000" />
+    <rect x="330" y="284" width="8" height="14" fill="#000000" />
+    <rect x="348" y="170" width="8" height="14" fill="#000000" />
+    <rect x="348" y="284" width="8" height="14" fill="#000000" />
+    <rect x="366" y="170" width="8" height="14" fill="#000000" />
+    <rect x="366" y="284" width="8" height="14" fill="#000000" />
+    <rect x="384" y="170" width="8" height="14" fill="#000000" />
+    <rect x="384" y="284" width="8" height="14" fill="#000000" />
+    <rect x="402" y="170" width="8" height="14" fill="#000000" />
+    <rect x="402" y="284" width="8" height="14" fill="#000000" />
+    <rect x="420" y="170" width="8" height="14" fill="#000000" />
+    <rect x="420" y="284" width="8" height="14" fill="#000000" />
+    <rect x="438" y="170" width="8" height="14" fill="#000000" />
+    <rect x="438" y="284" width="8" height="14" fill="#000000" />
+    <rect x="456" y="170" width="8" height="14" fill="#000000" />
+    <rect x="456" y="284" width="8" height="14" fill="#000000" />
+    <rect x="474" y="170" width="8" height="14" fill="#000000" />
+    <rect x="474" y="284" width="8" height="14" fill="#000000" />
+    <rect x="492" y="170" width="8" height="14" fill="#000000" />
+    <rect x="492" y="284" width="8" height="14" fill="#000000" />
+    <rect x="298" y="196" width="202" height="76" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1" />
+    <text x="312" y="226" font-family="monospace" font-size="14" font-weight="700" fill="#000000">32/64-BIT RISC</text>
+    <text x="312" y="250" font-family="monospace" font-size="11" fill="#292929">GEOMETRY + TEXTURE BUS</text>
+    <g transform="translate(180 236)">
+      <rect x="-12" y="-34" width="24" height="68" fill="#000000" />
+      <rect x="-34" y="-12" width="68" height="24" fill="#000000" />
+      <circle cx="0" cy="0" r="8" fill="#FFFFFF" />
+    </g>
+    <g transform="translate(612 224)">
+      <circle cx="-18" cy="0" r="14" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+      <circle cx="18" cy="0" r="14" fill="#000000" />
+      <circle cx="0" cy="-22" r="14" fill="url(#halftone-dark)" stroke="#000000" stroke-width="2" />
+      <circle cx="0" cy="22" r="14" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+    </g>
+  </g>
+
+  <!-- Plate Identification Strip -->
+  <rect x="34" y="388" width="732" height="38" fill="#FFFFFF" stroke="#000000" stroke-width="2" />
+  <rect x="34" y="388" width="112" height="38" fill="#000000" />
+  <text x="90" y="411" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#FFFFFF">ENTRY</text>
+  <text x="160" y="405" font-family="monospace" font-size="13" font-weight="700" fill="#000000">SONY PLAYSTATION (SCPH-1000)</text>
+  <text x="160" y="420" font-family="monospace" font-size="10" fill="#292929">KEN KUTARAGI / SONY COMPUTER ENTERTAINMENT — TOKYO, JAPAN</text>
+
+  <!-- Bottom 4-Cell Brutalist Telemetry Grid + Barcode -->
+  <rect x="34" y="434" width="152" height="40" fill="#FFFFFF" stroke="#000000" stroke-width="1.5" />
+  <text x="42" y="458" font-family="monospace" font-size="10" font-weight="700" fill="#000000">CONSOLE</text>
+
+  <rect x="190" y="434" width="152" height="40" fill="#FFFFFF" stroke="#000000" stroke-width="1.5" />
+  <text x="198" y="458" font-family="monospace" font-size="10" font-weight="700" fill="#000000">YEAR: 1994</text>
+
+  <rect x="346" y="434" width="152" height="40" fill="#FFFFFF" stroke="#000000" stroke-width="1.5" />
+  <text x="354" y="458" font-family="monospace" font-size="10" font-weight="700" fill="#000000">SECTOR: GAMING</text>
+
+  <rect x="502" y="434" width="152" height="40" fill="#FFFFFF" stroke="#000000" stroke-width="1.5" />
+  <text x="510" y="458" font-family="monospace" font-size="10" font-weight="700" fill="#000000">SCPH-1000 • MIP...</text>
+
+  <rect x="658" y="434" width="108" height="40" fill="#FFFFFF" stroke="#000000" stroke-width="1.5" />
+  <rect x="668" y="446" width="3" height="24" fill="#000000" /><rect x="673" y="446" width="1.5" height="24" fill="#000000" /><rect x="678" y="446" width="3" height="24" fill="#000000" /><rect x="683" y="446" width="1.5" height="24" fill="#000000" /><rect x="688" y="446" width="1.5" height="24" fill="#000000" /><rect x="693" y="446" width="1.5" height="24" fill="#000000" /><rect x="698" y="446" width="3" height="24" fill="#000000" /><rect x="703" y="446" width="3" height="24" fill="#000000" /><rect x="708" y="446" width="3" height="24" fill="#000000" /><rect x="713" y="446" width="1.5" height="24" fill="#000000" /><rect x="718" y="446" width="3" height="24" fill="#000000" /><rect x="723" y="446" width="1.5" height="24" fill="#000000" /><rect x="728" y="446" width="3" height="24" fill="#000000" /><rect x="733" y="446" width="3" height="24" fill="#000000" /><rect x="738" y="446" width="3" height="24" fill="#000000" /><rect x="743" y="446" width="1.5" height="24" fill="#000000" />
+</svg>

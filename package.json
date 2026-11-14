@@ -20,6 +20,7 @@
     "new:template": "node scripts/new-template.ts",
     "ingest:standalone": "node scripts/ingest-standalone.ts",
     "sync:templates": "node scripts/sync-templates.ts",
+    "generate:ninety9-assets": "node scripts/generate-ninety9-assets.ts",
     "mcp": "node packages/genui-mcp/dist/cli.js",
     "genui-studio": "node packages/genui-cli/dist/cli.js",
     "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
