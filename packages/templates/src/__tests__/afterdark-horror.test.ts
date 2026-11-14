@@ -18,7 +18,11 @@ import {
 import { templateComponents as afterdarkRegistry } from "../afterdark-horror/components/index.js";
 import {
   GATE_DOOR_COLLIDER,
+  getWalkableFloorHeight,
+  isInsideChapelFloorboards,
+  isInUndergroundCrypt,
   isOnStonePaving,
+  PLAYER_EYE_HEIGHT,
   PLAYER_RADIUS,
   resolvePlayerMovement,
   resolveZoneAtPosition,
@@ -27,6 +31,14 @@ import {
   ZONE_TELEPORT_TARGETS,
   STATIC_AABB_COLLIDERS,
 } from "../afterdark-horror/engine/collision.js";
+import {
+  CLUE_RECORDS,
+  computeLookDotProduct,
+  createVisualEncounterSpec,
+  ENCOUNTER_DEFINITIONS,
+  evaluateEncounterProximity,
+  evaluateInteractableFocus,
+} from "../afterdark-horror/engine/world-data.js";
 import {
   createAfterdarkSharedGeometries,
   disposeAfterdarkSharedGeometries,
@@ -165,20 +177,61 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
       ).toBeGreaterThan(PLAYER_RADIUS + 0.65);
     });
 
-    it("keeps every zone teleport waypoint collision-free and accurately classifies surfaces", () => {
+    it("keeps every zone teleport waypoint (Zones A-E) collision-free and accurately classifies surfaces & floors", () => {
+      expect(ZONE_TELEPORT_TARGETS.map((w) => w.code)).toEqual([
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+      ]);
+
       for (const wp of ZONE_TELEPORT_TARGETS) {
+        const feetY = wp.position[1] - PLAYER_EYE_HEIGHT;
         const res = resolvePlayerMovement(
           wp.position[0],
           wp.position[2],
           wp.position[0],
           wp.position[2],
-          { gateLocked: true },
+          { gateLocked: true, playerFeetY: feetY },
         );
         expect(res.collided).toBe(false);
-        expect(resolveZoneAtPosition(wp.position[0], wp.position[2])).toBe(
-          wp.zoneId,
-        );
+        expect(
+          resolveZoneAtPosition(wp.position[0], wp.position[2], wp.position[1]),
+        ).toBe(wp.zoneId);
       }
+
+      // Zone C Dead Garden Fountain collision circle blocks clipping at (-16, -9)
+      const hitFountain = resolvePlayerMovement(-13.0, -9.0, -16.0, -9.0, {
+        gateLocked: true,
+      });
+      expect(hitFountain.collided).toBe(true);
+      expect(Math.hypot(hitFountain.x + 16.0, hitFountain.z + 9.0)).toBeGreaterThan(
+        PLAYER_RADIUS + 1.85,
+      );
+
+      // Zone D Enterable Gothic Chapel doorway allows walking inside onto creaking wood floor (y = 0.3)
+      const chapelEntry = resolvePlayerMovement(0, -32.2, 0, -38.5, {
+        gateLocked: true,
+        playerFeetY: 0,
+      });
+      expect(chapelEntry.collided).toBe(false);
+      expect(getWalkableFloorHeight(0, -38.5, 0.3)).toBeCloseTo(0.3, 2);
+      expect(isInsideChapelFloorboards(0, -38.5, 0.3)).toBe(true);
+      expect(isOnStonePaving(0, -38.5, 0.3)).toBe(false);
+
+      // East Stairwell smoothly descends from Chapel Nave (0.3m) down to Zone E Crypt (-4.5m)
+      expect(getWalkableFloorHeight(4.0, -40.8, 0.3)).toBeCloseTo(0.3, 2);
+      expect(getWalkableFloorHeight(4.0, -45.9, -2.0)).toBeCloseTo(-2.1, 1);
+      expect(getWalkableFloorHeight(4.0, -51.0, -4.5)).toBeCloseTo(-4.5, 2);
+      expect(isInUndergroundCrypt(-53.2, -4.5)).toBe(true);
+
+      // Subterranean Zone E sarcophagus blocks movement at feetY = -4.5 without colliding above ground
+      const cryptHit = resolvePlayerMovement(-2.4, -55.4, -4.2, -55.4, {
+        gateLocked: true,
+        playerFeetY: -4.5,
+      });
+      expect(cryptHit.collided).toBe(true);
 
       expect(isOnStonePaving(0, 8.0)).toBe(true);
       expect(isOnStonePaving(-16.0, 3.0)).toBe(false);
@@ -190,6 +243,9 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
       const geoms = createAfterdarkSharedGeometries();
       expect(geoms.lancetTombstone.getAttribute("position").count).toBeGreaterThan(24);
       expect(geoms.obeliskTombstone.getAttribute("position").count).toBeGreaterThan(24);
+      expect(geoms.celticCross.getAttribute("position").count).toBeGreaterThan(24);
+      expect(geoms.fountainBasin.getAttribute("position").count).toBeGreaterThan(24);
+      expect(geoms.apparitionSilhouette.getAttribute("position").count).toBeGreaterThan(24);
       expect(geoms.gnarledTree.getAttribute("position").count).toBeGreaterThan(60);
       expect(geoms.fencePicket.getAttribute("position").count).toBeGreaterThan(24);
       disposeAfterdarkSharedGeometries(geoms);
@@ -207,14 +263,135 @@ describe("AFTERDARK Flagship Website #1 — Milestone 1 Verification Suite", () 
         audio.playRearWhisperCue();
         audio.playGateCreak();
         audio.playGateSlam();
+        audio.playFootstep("wood", false);
         audio.playFootstep("gravel", true);
         audio.playLightningThunder();
+        audio.playClueChime();
+        audio.playMovingShadowRustle();
+        audio.playWeepingAudio(-0.3);
+        audio.playPresenceWhisperSteps();
+        audio.playCryptWarningSpike();
+        audio.setIntimidationLevel(0.8);
         audio.dispose();
       }).not.toThrow();
     });
   });
 
-  describe("4. Zustand Phase State Machine & Next.js .ZIP Export", () => {
+  describe("4. Zustand Phase State Machine, [E] 3-Clue Chain, 5 Encounters & .ZIP Export", () => {
+    it("discovers all 3 mystery clues via raycast focus & persists state cleanly", () => {
+      const clue01 = CLUE_RECORDS.find((c) => c.id === "clue-01")!;
+      expect(clue01.inscription).toBe("THE LIGHT WAS NEVER LOST. IT WAS HIDDEN.");
+
+      // Looking straight toward Clue 01 from 2.2m south (-Z forward is yaw = 0)
+      const camPos: readonly [number, number, number] = [
+        clue01.position[0],
+        PLAYER_EYE_HEIGHT,
+        clue01.position[2] + 2.2,
+      ];
+      expect(
+        computeLookDotProduct(camPos, 0, -0.1, clue01.position),
+      ).toBeGreaterThan(0.85);
+      expect(evaluateInteractableFocus(camPos, 0, -0.1)?.id).toBe("clue-01");
+      // Looking opposite direction (yaw = Math.PI) clears focus
+      expect(evaluateInteractableFocus(camPos, Math.PI, 0)).toBeNull();
+
+      useAfterdarkStore.getState().examineClue("clue-01");
+      const afterC1 = useAfterdarkStore.getState();
+      expect(afterC1.activeReaderClueId).toBe("clue-01");
+      expect(afterC1.discoveredClues).toContain("clue-01");
+      expect(afterC1.chapelBeaconPulseUntil).toBeGreaterThan(Date.now() - 100);
+
+      useAfterdarkStore.getState().examineClue("clue-02");
+      useAfterdarkStore.getState().examineClue("clue-03");
+      expect(useAfterdarkStore.getState().discoveredClues).toEqual([
+        "clue-01",
+        "clue-02",
+        "clue-03",
+      ]);
+
+      useAfterdarkStore.getState().closeClueReader();
+      expect(useAfterdarkStore.getState().activeReaderClueId).toBeNull();
+
+      useAfterdarkStore.getState().resetClues();
+      expect(useAfterdarkStore.getState().discoveredClues).toEqual([]);
+    });
+
+    it("triggers all 5 cooldown-governed supernatural encounters with gaze & proximity checks", () => {
+      expect(ENCOUNTER_DEFINITIONS.map((e) => e.id)).toEqual([
+        "enc-01",
+        "enc-02",
+        "enc-03",
+        "enc-04",
+        "enc-05",
+      ]);
+
+      // 1. Trigger Watcher near Zone B (far away -> spawns visual entity)
+      const t0 = 100_000;
+      const eval1 = evaluateEncounterProximity({
+        playerPosition: [1.5, PLAYER_EYE_HEIGHT, 9.2],
+        playerYaw: 0,
+        playerPitch: 0,
+        nowMs: t0,
+        cooldownUntilById: {},
+        activeVisual: null,
+      });
+      expect(eval1.triggerId).toBe("enc-01");
+
+      useAfterdarkStore.getState().triggerEncounter("enc-01", t0);
+      const vis1 = useAfterdarkStore.getState().activeVisualEncounter!;
+      expect(vis1.id).toBe("enc-01");
+
+      // Looking directly at Watcher causes gaze vanish
+      const watcherYaw = Math.atan2(
+        -(vis1.position[0] - 1.5),
+        -(vis1.position[2] - 9.2),
+      );
+      const evalVanish = evaluateEncounterProximity({
+        playerPosition: [1.5, PLAYER_EYE_HEIGHT, 9.2],
+        playerYaw: watcherYaw,
+        playerPitch: 0,
+        nowMs: t0 + 800,
+        cooldownUntilById: useAfterdarkStore.getState().encounterCooldownUntil,
+        activeVisual: vis1,
+      });
+      expect(evalVanish.vanishActive).toBe(true);
+
+      // Re-triggering enc-01 inside cooldown without force is ignored
+      useAfterdarkStore.getState().clearVisualEncounter();
+      const blocked = evaluateEncounterProximity({
+        playerPosition: [8.4, PLAYER_EYE_HEIGHT, 9.2],
+        playerYaw: 0,
+        playerPitch: 0,
+        nowMs: t0 + 2000,
+        cooldownUntilById: useAfterdarkStore.getState().encounterCooldownUntil,
+        activeVisual: null,
+      });
+      expect(blocked.triggerId).toBeNull();
+
+      // 2-5. Encounters 02, 03 (Weeping guide), 04 (Rear Presence), 05 (Crypt Warning)
+      useAfterdarkStore.getState().triggerEncounter("enc-02", t0 + 5000, true);
+      expect(useAfterdarkStore.getState().activeVisualEncounter?.moveTarget).toBeDefined();
+
+      useAfterdarkStore.getState().triggerEncounter("enc-03", t0 + 8000, true);
+      expect(useAfterdarkStore.getState().weepingGuideActive).toBe(true);
+
+      useAfterdarkStore.getState().triggerEncounter("enc-04", t0 + 11000, true);
+      expect(useAfterdarkStore.getState().encounterSubtitle).toBe(
+        "You're looking in the wrong direction.",
+      );
+      const vis4 = createVisualEncounterSpec("enc-04", [0, PLAYER_EYE_HEIGHT, -24], 0, t0);
+      expect(vis4.position[2]).toBeGreaterThan(-24);
+
+      useAfterdarkStore.getState().triggerEncounter("enc-05", t0 + 14000, true);
+      expect(useAfterdarkStore.getState().cryptIntimidationActive).toBe(true);
+      expect(useAfterdarkStore.getState().triggeredEncounters).toEqual([
+        "enc-01",
+        "enc-02",
+        "enc-03",
+        "enc-04",
+        "enc-05",
+      ]);
+    });
     it("progresses cleanly from shutdown -> typography -> gate_transition -> exploration -> restored_light", () => {
       const store = useAfterdarkStore.getState();
       expect(store.phase).toBe("shutdown");

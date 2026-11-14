@@ -1,16 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getAfterdarkSoundscape } from "../audio/soundscape.js";
 import { ZONE_TELEPORT_TARGETS } from "../engine/collision.js";
+import {
+  CLUE_RECORDS,
+  ENCOUNTER_DEFINITIONS,
+  getClueById,
+} from "../engine/world-data.js";
 import { useAfterdarkStore } from "../store.js";
 import type { QualityPreset } from "../types.js";
 
 const ZONE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
-  gatehouse: "WROUGHT-IRON GATEHOUSE",
-  central_path: "ASHEN CENTRAL AVENUE",
-  weeping_grove: "THE WEEPING GROVE",
+  gatehouse: "ZONE A · WROUGHT-IRON GATEHOUSE",
+  forgotten_graves: "ZONE B · FORGOTTEN GRAVES",
+  dead_garden: "ZONE C · THE DEAD GARDEN",
+  central_path: "ZONE B · ASHEN CENTRAL AVENUE",
+  weeping_grove: "ZONE C · THE WEEPING GROVE",
   mausoleum: "EAST MAUSOLEUM PORTICO",
-  chapel_steps: "GOTHIC CHAPEL STEPS",
-  crypt_entrance: "SUNKEN CRYPT THRESHOLD",
+  chapel_steps: "ZONE D · ABANDONED GOTHIC CHAPEL",
+  crypt_entrance: "ZONE E · THE UNDERGROUND CRYPT",
 };
 
 export interface SceneOverlaysProps {
@@ -38,6 +45,12 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
   const audioMuted = useAfterdarkStore((s) => s.audioMuted);
   const touchControlsForced = useAfterdarkStore((s) => s.touchControlsForced);
   const virtualSprint = useAfterdarkStore((s) => s.virtualSprint);
+  const activeInteractableId = useAfterdarkStore((s) => s.activeInteractableId);
+  const activeReaderClueId = useAfterdarkStore((s) => s.activeReaderClueId);
+  const discoveredClues = useAfterdarkStore((s) => s.discoveredClues);
+  const triggeredEncounters = useAfterdarkStore((s) => s.triggeredEncounters);
+  const encounterSubtitle = useAfterdarkStore((s) => s.encounterSubtitle);
+  const weepingGuideActive = useAfterdarkStore((s) => s.weepingGuideActive);
 
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [zoneBanner, setZoneBanner] = useState<string | null>(null);
@@ -225,11 +238,11 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
         </div>
       )}
 
-      {/* Exploration HUD */}
+      {/* Exploration HUD (No tacky quest checklists — quiet atmospheric cues only) */}
       {phase === "exploration" && (
         <>
-          {/* Center Crosshair Dot (only when pointer locked) */}
-          {pointerLocked && (
+          {/* Center Crosshair Dot (only when pointer locked & modal closed) */}
+          {pointerLocked && !activeReaderClueId && (
             <div
               aria-hidden="true"
               className="pointer-events-none fixed top-1/2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-200/55"
@@ -251,7 +264,7 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
             </div>
 
             <div className="pointer-events-auto flex items-center gap-2 font-mono text-[10px]">
-              {!pointerLocked && (
+              {!pointerLocked && !activeReaderClueId && (
                 <button
                   type="button"
                   onClick={onRequestPointerLock}
@@ -283,6 +296,26 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Raycasted [E] Interaction Prompt (Appears ONLY when aimed near an inscription) */}
+          {activeInteractableId && !activeReaderClueId && (() => {
+            const focusedClue = getClueById(activeInteractableId);
+            if (!focusedClue) return null;
+            return (
+              <div className="pointer-events-auto fixed inset-x-0 bottom-24 z-20 flex justify-center px-4">
+                <button
+                  type="button"
+                  data-testid="afterdark-examine-prompt"
+                  onClick={() =>
+                    useAfterdarkStore.getState().examineClue(focusedClue.id)
+                  }
+                  className="afterdark-reveal-text rounded border border-amber-500/60 bg-black/85 px-4 py-2 font-mono text-xs tracking-[0.18em] text-amber-200 shadow-lg hover:border-amber-300 transition cursor-pointer"
+                >
+                  {focusedClue.promptLabel}
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Mobile Virtual Thumbstick + Look Pad Fallback */}
           {showTouchControls && (
@@ -393,12 +426,83 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
         </>
       )}
 
-      {/* ?debug=true Telemetry, Collision Wireframes & Teleport Overlay */}
+      {/* Atmospheric Encounter Whisper Caption */}
+      {encounterSubtitle && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="afterdark-encounter-subtitle"
+          className="pointer-events-none fixed inset-x-0 bottom-10 z-30 flex justify-center px-4"
+        >
+          <p className="afterdark-reveal-text max-w-xl rounded border border-red-900/50 bg-black/85 px-4 py-2 text-center font-serif italic text-sm tracking-wide text-zinc-200 shadow-xl">
+            “{encounterSubtitle}”
+          </p>
+        </div>
+      )}
+
+      {/* Clue Inscription & Caretaker Parchment Reader Modal */}
+      {activeReaderClueId && (() => {
+        const clue = getClueById(activeReaderClueId);
+        if (!clue) return null;
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={clue.title}
+            data-testid="afterdark-clue-reader"
+            className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm"
+          >
+            <div className="max-w-lg w-full rounded-lg border border-amber-800/60 bg-zinc-950/95 p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3 font-mono text-[10px] tracking-[0.22em] text-amber-400">
+                <span>
+                  {clue.numberLabel} · {clue.yearStamped}
+                </span>
+                <span className="text-zinc-400">
+                  {discoveredClues.length} / 3 INSCRIPTIONS DECIPHERED
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-400">
+                  {clue.zoneLabel}
+                </div>
+                <h2 className="font-serif text-2xl font-bold tracking-tight text-zinc-100">
+                  {clue.title}
+                </h2>
+              </div>
+
+              <blockquote className="rounded border-l-2 border-amber-500/80 bg-black/70 px-4 py-3 font-serif text-lg leading-relaxed text-amber-100">
+                “{clue.inscription}”
+              </blockquote>
+
+              <p className="text-sm leading-relaxed text-zinc-400">
+                {clue.keeperNote}
+              </p>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="font-mono text-[10px] text-zinc-500">
+                  Saved to local investigation record
+                </span>
+                <button
+                  type="button"
+                  data-testid="afterdark-close-clue-btn"
+                  onClick={() => useAfterdarkStore.getState().closeClueReader()}
+                  className="min-h-[36px] rounded border border-amber-500/70 bg-amber-950/50 px-4 py-1.5 font-mono text-xs tracking-wider text-amber-200 hover:bg-amber-900/60 transition cursor-pointer"
+                >
+                  Close [E / ESC]
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ?debug=true Telemetry, Collision Wireframes, Zones A-E, Clues 1-3 & Encounters 1-5 */}
       {debugEnabled && (
         <aside
           data-testid="afterdark-debug-overlay"
           aria-label="AFTERDARK Debug Telemetry Overlay"
-          className="pointer-events-auto afterdark-debug-panel fixed left-3 top-14 z-30 w-72 rounded-lg p-3 font-mono text-[11px] text-zinc-200 shadow-2xl space-y-2.5"
+          className="pointer-events-auto afterdark-debug-panel fixed left-3 top-14 z-30 max-h-[84vh] w-80 overflow-y-auto rounded-lg p-3 font-mono text-[11px] text-zinc-200 shadow-2xl space-y-2.5"
         >
           <div className="flex items-center justify-between border-b border-red-900/40 pb-1.5">
             <span className="font-bold text-red-400">
@@ -429,6 +533,9 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
             </div>
             <div className="col-span-2 rounded bg-black/60 px-2 py-1">
               ZONE: <strong className="text-zinc-100">{currentZone}</strong>
+              {weepingGuideActive && (
+                <span className="ml-2 text-cyan-300">· EMBER TRAIL ON</span>
+              )}
             </div>
           </div>
 
@@ -491,10 +598,10 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
             </button>
           </div>
 
-          {/* Zone Teleport Buttons */}
+          {/* Zone Teleport Buttons (Zones A-E) */}
           <div className="space-y-1">
-            <div className="text-[10px] text-zinc-400">TELEPORT TO ZONE:</div>
-            <div className="grid grid-cols-2 gap-1">
+            <div className="text-[10px] text-zinc-400">TELEPORT TO ZONE: (A-E)</div>
+            <div className="grid grid-cols-1 gap-1">
               {ZONE_TELEPORT_TARGETS.map((target) => (
                 <button
                   key={target.zoneId}
@@ -507,6 +614,69 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
                   ⌖ {target.label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Clue Reveal Controls (Clues 01-03) */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px] text-zinc-400">
+              <span>CLUE MYSTERY ({discoveredClues.length}/3):</span>
+              <button
+                type="button"
+                onClick={() => useAfterdarkStore.getState().resetClues()}
+                className="text-zinc-500 hover:text-red-300 cursor-pointer"
+              >
+                Reset Progress
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-1">
+              {CLUE_RECORDS.map((clue) => {
+                const found = discoveredClues.includes(clue.id);
+                return (
+                  <button
+                    key={clue.id}
+                    type="button"
+                    onClick={() => useAfterdarkStore.getState().revealClue(clue.id)}
+                    className={`rounded border px-2 py-1 text-left text-[10px] cursor-pointer transition truncate ${
+                      found
+                        ? "border-amber-500/70 bg-amber-950/40 text-amber-200"
+                        : "border-zinc-800 bg-black/60 text-zinc-300 hover:border-amber-500/60"
+                    }`}
+                  >
+                    {found ? "✓" : "Reveal"} {clue.numberLabel}: {clue.title}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Encounter Force-Triggers (Encounters 1-5) */}
+          <div className="space-y-1">
+            <div className="text-[10px] text-zinc-400">
+              TRIGGER ENCOUNTERS ({triggeredEncounters.length}/5):
+            </div>
+            <div className="grid grid-cols-1 gap-1">
+              {ENCOUNTER_DEFINITIONS.map((enc) => {
+                const seen = triggeredEncounters.includes(enc.id);
+                return (
+                  <button
+                    key={enc.id}
+                    type="button"
+                    onClick={() =>
+                      useAfterdarkStore
+                        .getState()
+                        .triggerEncounter(enc.id, Date.now(), true)
+                    }
+                    className={`rounded border px-2 py-1 text-left text-[10px] cursor-pointer transition truncate ${
+                      seen
+                        ? "border-red-700/70 bg-red-950/40 text-red-200"
+                        : "border-zinc-800 bg-black/60 text-zinc-300 hover:border-red-500"
+                    }`}
+                  >
+                    👁 {enc.code}: {enc.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </aside>

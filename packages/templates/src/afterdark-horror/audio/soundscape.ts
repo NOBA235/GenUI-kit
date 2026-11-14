@@ -4,7 +4,7 @@
  * Gracefully degrades to a silent no-op implementation when AudioContext is unavailable.
  */
 
-export type FootstepSurface = "gravel" | "stone";
+export type FootstepSurface = "gravel" | "stone" | "wood";
 
 export interface AfterdarkAudioEngine {
   readonly isSupported: boolean;
@@ -12,6 +12,7 @@ export interface AfterdarkAudioEngine {
   initAndStart(): boolean;
   setMuted(muted: boolean): void;
   setWindIntensity(level: number): void;
+  setIntimidationLevel(level: number): void;
   playRearWhisperCue(): void;
   playGateCreak(): void;
   playGateSlam(): void;
@@ -19,6 +20,11 @@ export interface AfterdarkAudioEngine {
   playLightningThunder(): void;
   playBranchCreak(): void;
   playDistantOwl(): void;
+  playClueChime(): void;
+  playMovingShadowRustle(): void;
+  playWeepingAudio(panAmount?: number): void;
+  playPresenceWhisperSteps(): void;
+  playCryptWarningSpike(): void;
   dispose(): void;
 }
 
@@ -347,15 +353,14 @@ class ProceduralWebAudioSoundscape implements AfterdarkAudioEngine {
 
     const filter = ctx.createBiquadFilter();
     filter.type = "bandpass";
-    filter.frequency.setValueAtTime(
-      (surface === "stone" ? 560 : 1450) * pitchJitter,
-      now,
-    );
-    filter.Q.setValueAtTime(surface === "stone" ? 2.2 : 1.3, now);
+    const centerHz =
+      surface === "wood" ? 310 : surface === "stone" ? 560 : 1450;
+    filter.frequency.setValueAtTime(centerHz * pitchJitter, now);
+    filter.Q.setValueAtTime(surface === "wood" ? 3.4 : surface === "stone" ? 2.2 : 1.3, now);
 
     const env = ctx.createGain();
     const peak = sprinting ? 0.22 : 0.14;
-    const dur = surface === "stone" ? 0.085 : 0.135;
+    const dur = surface === "wood" ? 0.12 : surface === "stone" ? 0.085 : 0.135;
     env.gain.setValueAtTime(0.001, now);
     env.gain.linearRampToValueAtTime(peak, now + 0.012);
     env.gain.exponentialRampToValueAtTime(0.001, now + dur);
@@ -366,6 +371,200 @@ class ProceduralWebAudioSoundscape implements AfterdarkAudioEngine {
 
     const offset = Math.random() * 2.5;
     src.start(now, offset, dur + 0.02);
+
+    // Subtle loose floorboard groan inside Abandoned Gothic Chapel
+    if (surface === "wood" && Math.random() < 0.65) {
+      const creak = ctx.createOscillator();
+      creak.type = "sawtooth";
+      creak.frequency.setValueAtTime(165 * pitchJitter, now + 0.02);
+      creak.frequency.exponentialRampToValueAtTime(118, now + 0.24);
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.setValueAtTime(420, now);
+      bp.Q.setValueAtTime(6, now);
+      const creakEnv = ctx.createGain();
+      creakEnv.gain.setValueAtTime(0.001, now + 0.02);
+      creakEnv.gain.linearRampToValueAtTime(0.04, now + 0.07);
+      creakEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+      creak.connect(bp);
+      bp.connect(creakEnv);
+      creakEnv.connect(this.masterGain);
+      creak.start(now + 0.02);
+      creak.stop(now + 0.28);
+    }
+  }
+
+  setIntimidationLevel(level: number): void {
+    if (!this.ctx || !this.windGain || !this.rumbleGain) return;
+    const t = Math.max(0, Math.min(1, level));
+    try {
+      const now = this.ctx.currentTime;
+      this.windGain.gain.setTargetAtTime(0.24 + t * 0.28, now, 0.35);
+      this.rumbleGain.gain.setTargetAtTime(0.11 + t * 0.22, now, 0.35);
+    } catch {
+      // Ignore closed context
+    }
+  }
+
+  playClueChime(): void {
+    if (!this.initAndStart() || !this.ctx || !this.masterGain || this.muted) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    for (const [delay, freq] of [
+      [0, 392.0],
+      [0.14, 587.33],
+      [0.32, 739.99],
+    ] as const) {
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, now + delay);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.001, now + delay);
+      env.gain.linearRampToValueAtTime(0.085, now + delay + 0.03);
+      env.gain.exponentialRampToValueAtTime(0.001, now + delay + 1.25);
+      osc.connect(env);
+      env.connect(this.masterGain);
+      osc.start(now + delay);
+      osc.stop(now + delay + 1.3);
+    }
+  }
+
+  playMovingShadowRustle(): void {
+    if (!this.initAndStart() || !this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) {
+      return;
+    }
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(2200, now);
+    filter.frequency.exponentialRampToValueAtTime(750, now + 0.9);
+    filter.Q.setValueAtTime(2.4, now);
+
+    const pan =
+      typeof ctx.createStereoPanner === "function"
+        ? ctx.createStereoPanner()
+        : null;
+    if (pan) {
+      pan.pan.setValueAtTime(0.85, now);
+      pan.pan.linearRampToValueAtTime(-0.85, now + 0.95);
+      pan.connect(this.masterGain);
+    }
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.001, now);
+    env.gain.linearRampToValueAtTime(0.24, now + 0.14);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+
+    src.connect(filter);
+    filter.connect(env);
+    env.connect(pan ?? this.masterGain);
+    src.start(now);
+    src.stop(now + 1.05);
+  }
+
+  playWeepingAudio(panAmount = -0.35): void {
+    if (!this.initAndStart() || !this.ctx || !this.masterGain || this.muted) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const pan =
+      typeof ctx.createStereoPanner === "function"
+        ? ctx.createStereoPanner()
+        : null;
+    if (pan) {
+      pan.pan.setValueAtTime(Math.max(-1, Math.min(1, panAmount)), now);
+      pan.connect(this.masterGain);
+    }
+    const target = pan ?? this.masterGain;
+
+    for (let i = 0; i < 3; i++) {
+      const start = now + i * 0.58;
+      const carrier = ctx.createOscillator();
+      carrier.type = "sine";
+      carrier.frequency.setValueAtTime(510 - i * 28, start);
+      carrier.frequency.linearRampToValueAtTime(405 - i * 32, start + 0.44);
+
+      const lfo = ctx.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.setValueAtTime(7.2, start);
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.setValueAtTime(14, start);
+      lfo.connect(lfoGain);
+      lfoGain.connect(carrier.frequency);
+
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.setValueAtTime(840, start);
+      bp.Q.setValueAtTime(3.2, start);
+
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.001, start);
+      env.gain.linearRampToValueAtTime(0.07, start + 0.12);
+      env.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
+
+      carrier.connect(bp);
+      bp.connect(env);
+      env.connect(target);
+      carrier.start(start);
+      lfo.start(start);
+      carrier.stop(start + 0.54);
+      lfo.stop(start + 0.54);
+    }
+  }
+
+  playPresenceWhisperSteps(): void {
+    if (!this.initAndStart() || !this.ctx || !this.masterGain || this.muted) return;
+    this.playRearWhisperCue();
+    const ctx = this.ctx;
+    if (!this.noiseBuffer) return;
+    const now = ctx.currentTime;
+    // Rapid pacing footsteps approaching behind listener
+    for (const delay of [0.15, 0.48, 0.8]) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.setValueAtTime(980, now + delay);
+      bp.Q.setValueAtTime(1.8, now + delay);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.001, now + delay);
+      env.gain.linearRampToValueAtTime(0.18, now + delay + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.14);
+      src.connect(bp);
+      bp.connect(env);
+      env.connect(this.masterGain);
+      src.start(now + delay, delay, 0.16);
+    }
+  }
+
+  playCryptWarningSpike(): void {
+    if (!this.initAndStart() || !this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) {
+      return;
+    }
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const sub = ctx.createOscillator();
+    sub.type = "sawtooth";
+    sub.frequency.setValueAtTime(64, now);
+    sub.frequency.exponentialRampToValueAtTime(32, now + 1.8);
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(190, now);
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.001, now);
+    env.gain.linearRampToValueAtTime(0.32, now + 0.12);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+    sub.connect(lp);
+    lp.connect(env);
+    env.connect(this.masterGain);
+    sub.start(now);
+    sub.stop(now + 2.05);
   }
 
   playLightningThunder(): void {

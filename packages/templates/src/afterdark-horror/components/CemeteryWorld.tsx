@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { getAfterdarkSoundscape } from "../audio/soundscape.js";
 import {
   buildCircleColliders,
+  DEAD_GARDEN_FOUNTAIN,
   DEAD_TREE_LAYOUT,
   GATE_DOOR_COLLIDER,
   LANTERN_SPECS,
@@ -15,19 +16,25 @@ import {
   disposeAfterdarkSharedGeometries,
 } from "../engine/procedural-geometries.js";
 import { getQualityBudget, useAfterdarkStore } from "../store.js";
+import { EncounterEntities } from "./EncounterEntities.js";
 import { FirstPersonController } from "./FirstPersonController.js";
 
 // Module-level reusable scratch instances (ZERO allocations inside useFrame)
 const _dummyObj = new THREE.Object3D();
 const _darkSkyColor = new THREE.Color("#010205");
+const _cryptSkyColor = new THREE.Color("#010103");
 const _flashSkyColor = new THREE.Color("#2a3752");
 const _lightModeSkyColor = new THREE.Color("#cbd5e1");
 const _tempFogColor = new THREE.Color("#010205");
+const _warmFlameColor = new THREE.Color("#ff9436");
+const _gardenMistColor = new THREE.Color("#7da4d4");
+const _breakerStandbyColor = new THREE.Color("#d97706");
 
 const PERIMETER_PICKET_SEGMENTS = (() => {
   const coords: Array<[number, number]> = [];
-  // North wall pickets
-  for (let x = -35; x <= 35; x += 0.9) coords.push([x, -44.0]);
+  // North wall pickets split around Gothic Chapel (-8.6..+8.6)
+  for (let x = -35; x <= -9.0; x += 0.9) coords.push([x, -44.0]);
+  for (let x = 9.0; x <= 35; x += 0.9) coords.push([x, -44.0]);
   // West & East wall pickets
   for (let z = -43; z <= 28.5; z += 0.95) {
     coords.push([-36.0, z]);
@@ -45,8 +52,11 @@ interface SharedMaterials {
   readonly barkMat: THREE.MeshStandardMaterial;
   readonly pavingMat: THREE.MeshStandardMaterial;
   readonly turfMat: THREE.MeshStandardMaterial;
+  readonly woodMat: THREE.MeshStandardMaterial;
+  readonly marbleAltarMat: THREE.MeshStandardMaterial;
   readonly lanternGlowMat: THREE.MeshStandardMaterial;
   readonly stainedGlassMat: THREE.MeshStandardMaterial;
+  readonly emberWaxMat: THREE.MeshStandardMaterial;
   readonly wireWallMat: THREE.MeshBasicMaterial;
   readonly wireGateLockedMat: THREE.MeshBasicMaterial;
   readonly wireCircleMat: THREE.MeshBasicMaterial;
@@ -79,6 +89,16 @@ function createSharedMaterials(): SharedMaterials {
       roughness: 0.98,
       metalness: 0.02,
     }),
+    woodMat: new THREE.MeshStandardMaterial({
+      color: "#281c15",
+      roughness: 0.91,
+      metalness: 0.05,
+    }),
+    marbleAltarMat: new THREE.MeshStandardMaterial({
+      color: "#525866",
+      roughness: 0.65,
+      metalness: 0.12,
+    }),
     lanternGlowMat: new THREE.MeshStandardMaterial({
       color: "#ffbe76",
       emissive: "#ff7f24",
@@ -90,6 +110,12 @@ function createSharedMaterials(): SharedMaterials {
       emissive: "#9f1239",
       emissiveIntensity: 1.85,
       roughness: 0.25,
+    }),
+    emberWaxMat: new THREE.MeshStandardMaterial({
+      color: "#fde68a",
+      emissive: "#f97316",
+      emissiveIntensity: 2.2,
+      roughness: 0.35,
     }),
     wireWallMat: new THREE.MeshBasicMaterial({
       color: "#22d3ee",
@@ -112,8 +138,11 @@ function disposeSharedMaterials(mats: SharedMaterials): void {
   mats.barkMat.dispose();
   mats.pavingMat.dispose();
   mats.turfMat.dispose();
+  mats.woodMat.dispose();
+  mats.marbleAltarMat.dispose();
   mats.lanternGlowMat.dispose();
   mats.stainedGlassMat.dispose();
+  mats.emberWaxMat.dispose();
   mats.wireWallMat.dispose();
   mats.wireGateLockedMat.dispose();
   mats.wireCircleMat.dispose();
@@ -125,7 +154,7 @@ const AtmosphereLightningRig: React.FC = () => {
   const fogRef = useRef<THREE.FogExp2>(null);
   const lanternLightRefs = useRef<Array<THREE.PointLight | null>>([]);
 
-  // Deterministic lightning state — capped strictly below 3 flashes/sec (minimum 7s cooldown)
+  // Deterministic lightning state — capped strictly below 3 flashes/sec (minimum 7.5s cooldown)
   const cooldownRef = useRef(5.5);
   const flashIntensityRef = useRef(0);
 
@@ -142,16 +171,19 @@ const AtmosphereLightningRig: React.FC = () => {
   useFrame((rootState, rawDelta) => {
     if (typeof document !== "undefined" && document.hidden) return;
     const dt = Math.min(rawDelta, 0.05);
-    const phase = useAfterdarkStore.getState().phase;
+    const store = useAfterdarkStore.getState();
+    const phase = store.phase;
     const elapsed = rootState.clock.elapsedTime;
+    const [px, py, pz] = store.playerPosition;
+    const inCrypt = py < 0.1 || store.currentZone === "crypt_entrance";
 
     // External trigger from Debug Overlay button
     if (externalLightning > flashIntensityRef.current) {
       flashIntensityRef.current = externalLightning;
-      useAfterdarkStore.getState().setLightningIntensity(0);
+      store.setLightningIntensity(0);
     }
 
-    // Periodic atmospheric lightning flash (minimum 7-13s cooldown => WCAG 2.3.1 compliant)
+    // Periodic atmospheric lightning flash (suppressed visually inside deep subterranean crypt)
     if (
       lightningEnabled &&
       !lightModeRestored &&
@@ -160,7 +192,7 @@ const AtmosphereLightningRig: React.FC = () => {
       cooldownRef.current -= dt;
       if (cooldownRef.current <= 0) {
         cooldownRef.current = 7.5 + (Math.sin(elapsed * 1.7) * 0.5 + 0.5) * 6.0;
-        flashIntensityRef.current = 1.0;
+        flashIntensityRef.current = inCrypt ? 0.25 : 1.0;
         getAfterdarkSoundscape().playLightningThunder();
       }
     }
@@ -170,6 +202,8 @@ const AtmosphereLightningRig: React.FC = () => {
 
     const flash = flashIntensityRef.current;
     const isShutdownBlack = phase === "shutdown";
+    const beaconActive = store.chapelBeaconPulseUntil > Date.now();
+    const cryptIntimidation = store.cryptIntimidationActive;
 
     if (moonRef.current) {
       if (lightModeRestored) {
@@ -180,9 +214,12 @@ const AtmosphereLightningRig: React.FC = () => {
         moonRef.current.color.set("#b4c6e7");
       } else if (isShutdownBlack) {
         moonRef.current.intensity = 0;
+      } else if (inCrypt) {
+        // Subterranean depths block moonlight almost completely
+        moonRef.current.intensity = 0.06;
       } else {
-        // Eerie cold moonlight rim + dramatic lightning spike
-        moonRef.current.intensity = 0.34 * (1 - darknessLevel * 0.35) + flash * 3.4;
+        moonRef.current.intensity =
+          0.34 * (1 - darknessLevel * 0.35) + flash * 3.4;
         moonRef.current.color.set("#8da6d6");
       }
     }
@@ -194,6 +231,8 @@ const AtmosphereLightningRig: React.FC = () => {
         ambientRef.current.intensity = 0.72;
       } else if (isShutdownBlack) {
         ambientRef.current.intensity = 0;
+      } else if (inCrypt) {
+        ambientRef.current.intensity = cryptIntimidation ? 0.035 : 0.055;
       } else {
         ambientRef.current.intensity = 0.075 + flash * 0.42;
       }
@@ -206,8 +245,15 @@ const AtmosphereLightningRig: React.FC = () => {
       } else if (lightOverride) {
         fogRef.current.density = 0.015;
         fogRef.current.color.copy(_flashSkyColor);
+      } else if (inCrypt) {
+        fogRef.current.density = fogDensity + (cryptIntimidation ? 0.034 : 0.022);
+        fogRef.current.color.copy(_cryptSkyColor);
       } else {
-        fogRef.current.density = Math.max(0.012, fogDensity - flash * 0.022);
+        const gardenBoost = store.currentZone === "dead_garden" ? 0.018 : 0;
+        fogRef.current.density = Math.max(
+          0.012,
+          fogDensity + gardenBoost - flash * 0.022,
+        );
         _tempFogColor.lerpColors(_darkSkyColor, _flashSkyColor, flash * 0.85);
         fogRef.current.color.copy(_tempFogColor);
       }
@@ -215,26 +261,58 @@ const AtmosphereLightningRig: React.FC = () => {
 
     rootState.scene.background = lightModeRestored
       ? _lightModeSkyColor
-      : _tempFogColor;
+      : inCrypt
+        ? _cryptSkyColor
+        : _tempFogColor;
 
-    // Wind-blown flame flicker on capped dynamic point lights
+    // Pooled dynamic point lights re-anchor seamlessly to the player's active zone
+    // Strictly obeys hardware cap (1 / 2 / 3 active point lights max) with ZERO allocations
     const count = Math.min(budget.maxDynamicPointLights, 3);
     for (let i = 0; i < count; i++) {
       const l = lanternLightRefs.current[i];
       if (!l) continue;
       if (isShutdownBlack) {
         l.intensity = 0;
+        continue;
+      }
+
+      if (inCrypt) {
+        if (i === 0) l.position.set(3.9, -2.1, -52.5);
+        else if (i === 1) l.position.set(-4.2, -2.6, -54.8);
+        else l.position.set(-4.0, -3.1, -50.4);
+        l.color.copy(i === 2 ? _breakerStandbyColor : _warmFlameColor);
+        l.distance = i === 2 ? 11 : 16;
+      } else if (pz < -28.0) {
+        if (i === 0) l.position.set(0.0, 2.35, -39.6);
+        else if (i === 1) l.position.set(3.8, 1.8, -42.5);
+        else l.position.set(-11.0, 2.25, -24.2);
+        l.color.copy(_warmFlameColor);
+        l.distance = 18;
+      } else if (pz < 2.0 && px < -7.5) {
+        if (i === 0) l.position.set(-12.8, 2.35, -3.8);
+        else if (i === 1) l.position.set(-16.0, 2.1, -9.0);
+        else l.position.set(-10.0, 2.35, -24.0);
+        l.color.copy(i === 1 ? _gardenMistColor : _warmFlameColor);
+        l.distance = 16;
       } else {
         const spec = LANTERN_SPECS[i * 2] ?? LANTERN_SPECS[0]!;
-        const wave =
-          Math.sin(elapsed * 7.3 + spec.flickerSeed) * 0.14 +
-          Math.sin(elapsed * 19.1 + spec.flickerSeed * 2) * 0.08;
-        l.intensity = Math.max(0.4, spec.baseIntensity + wave);
+        l.position.set(spec.x, 2.35, spec.z);
+        l.color.copy(_warmFlameColor);
+        l.distance = 17;
       }
+
+      // Safe flicker envelope (< 2.5 Hz primary cycle for crypt intimidation)
+      const intimidationMod = cryptIntimidation
+        ? 0.45 + 0.55 * (Math.sin(elapsed * 11.5 + i * 1.4) * 0.5 + 0.5)
+        : 1.0;
+      const beaconBoost = beaconActive && pz < -18 ? 0.85 : 0;
+      const wave =
+        Math.sin(elapsed * 7.3 + i * 2.1) * 0.14 +
+        Math.sin(elapsed * 14.1 + i * 3.7) * 0.07;
+      l.intensity = Math.max(0.2, (1.85 + wave + beaconBoost) * intimidationMod);
     }
   });
 
-  // Position capped point lights at key path milestones: Gatehouse, Mid-Path, Chapel Steps
   const cappedAnchors = [
     LANTERN_SPECS[0]!,
     LANTERN_SPECS[2]!,
@@ -317,6 +395,13 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
       ),
     [budget.tombstoneCount],
   );
+  const celticTombstones = useMemo(
+    () =>
+      TOMBSTONE_LAYOUT.slice(0, budget.tombstoneCount)
+        .filter((t) => t.variant === "celtic")
+        .slice(0, budget.celticCrossCount),
+    [budget.tombstoneCount, budget.celticCrossCount],
+  );
   const visibleTrees = useMemo(
     () => DEAD_TREE_LAYOUT.slice(0, budget.deadTreeCount),
     [budget.deadTreeCount],
@@ -338,6 +423,7 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
 
   const lancetRef = useRef<THREE.InstancedMesh>(null);
   const obeliskRef = useRef<THREE.InstancedMesh>(null);
+  const celticRef = useRef<THREE.InstancedMesh>(null);
   const treesRef = useRef<THREE.InstancedMesh>(null);
   const picketsRef = useRef<THREE.InstancedMesh>(null);
 
@@ -364,6 +450,17 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
       obeliskRef.current.instanceMatrix.needsUpdate = true;
     }
 
+    if (celticRef.current) {
+      celticTombstones.forEach((t, i) => {
+        _dummyObj.position.set(t.x, 0, t.z);
+        _dummyObj.rotation.set(t.tiltX * 0.45, t.rotY, t.tiltZ * 0.45);
+        _dummyObj.scale.set(1, t.scaleY, 1);
+        _dummyObj.updateMatrix();
+        celticRef.current!.setMatrixAt(i, _dummyObj.matrix);
+      });
+      celticRef.current.instanceMatrix.needsUpdate = true;
+    }
+
     if (treesRef.current) {
       visibleTrees.forEach((tr, i) => {
         _dummyObj.position.set(tr.x, 0, tr.z);
@@ -385,7 +482,13 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
       });
       picketsRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [lancetTombstones, obeliskTombstones, visibleTrees, visiblePickets]);
+  }, [
+    lancetTombstones,
+    obeliskTombstones,
+    celticTombstones,
+    visibleTrees,
+    visiblePickets,
+  ]);
 
   const leftGateRef = useRef<THREE.Group>(null);
   const rightGateRef = useRef<THREE.Group>(null);
@@ -405,6 +508,7 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
     <>
       <AtmosphereLightningRig />
       <FirstPersonController touchLookDeltaRef={touchLookDeltaRef} />
+      <EncounterEntities silhouetteGeometry={sharedGeoms.apparitionSilhouette} />
 
       {/* Ground Terrain & Central Flagstone Path */}
       <mesh
@@ -423,6 +527,36 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
       >
         <planeGeometry args={[4.6, 76]} />
       </mesh>
+      {/* Zone C Dead Garden Flagstone Connector & Concealed North Path */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[-9.5, 0.016, -2.5]}
+        material={mats.pavingMat}
+      >
+        <planeGeometry args={[14.5, 3.2]} />
+      </mesh>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[-16.0, 0.017, -9.0]}
+        material={mats.pavingMat}
+      >
+        <circleGeometry args={[6.4, 24]} />
+      </mesh>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[-13.5, 0.016, -18.5]}
+        rotation-z={-0.28}
+        material={mats.pavingMat}
+      >
+        <planeGeometry args={[2.6, 15.0]} />
+      </mesh>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[-5.5, 0.016, -24.5]}
+        material={mats.pavingMat}
+      >
+        <planeGeometry args={[12.0, 2.4]} />
+      </mesh>
       {/* East Mausoleum Courtyard Stone Apron */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
@@ -432,9 +566,12 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
         <planeGeometry args={[11, 8.5]} />
       </mesh>
 
-      {/* Perimeter Low Stone Masonry Walls */}
-      <mesh position={[0, 0.75, -44.0]} material={mats.stoneMat}>
-        <boxGeometry args={[73.0, 1.5, 1.1]} />
+      {/* Perimeter Low Stone Masonry Walls (North split around Chapel & Crypt Vault) */}
+      <mesh position={[-22.3, 0.75, -44.0]} material={mats.stoneMat}>
+        <boxGeometry args={[28.4, 1.5, 1.1]} />
+      </mesh>
+      <mesh position={[22.3, 0.75, -44.0]} material={mats.stoneMat}>
+        <boxGeometry args={[28.4, 1.5, 1.1]} />
       </mesh>
       <mesh position={[-36.0, 0.75, -7.2]} material={mats.stoneMat}>
         <boxGeometry args={[1.1, 1.5, 74.0]} />
@@ -505,7 +642,7 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
         ))}
       </group>
 
-      {/* Instanced Perimeter Pickets, Tombstones & Dead Trees */}
+      {/* Instanced Perimeter Pickets, Tombstones (Lancet / Obelisk / Celtic Crosses) & Dead Trees */}
       <instancedMesh
         ref={picketsRef}
         args={[sharedGeoms.fencePicket, mats.darkIronMat, visiblePickets.length]}
@@ -521,11 +658,87 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
         args={[sharedGeoms.obeliskTombstone, mats.stoneMat, obeliskTombstones.length]}
         frustumCulled={false}
       />
+      {celticTombstones.length > 0 && (
+        <instancedMesh
+          ref={celticRef}
+          args={[sharedGeoms.celticCross, mats.stoneMat, celticTombstones.length]}
+          frustumCulled={false}
+        />
+      )}
       <instancedMesh
         ref={treesRef}
         args={[sharedGeoms.gnarledTree, mats.barkMat, visibleTrees.length]}
         frustumCulled={false}
       />
+
+      {/* Zone B Clue 01 Monument: Engraved Weathered Tombstone [-7.2, 0, 12.2] */}
+      <group position={[-7.2, 0, 12.2]} rotation={[0.04, 0.28, -0.02]}>
+        <mesh position={[0, 0.25, 0]} material={mats.stoneMat}>
+          <boxGeometry args={[1.15, 0.5, 0.9]} />
+        </mesh>
+        <mesh position={[0, 1.15, 0]} material={mats.marbleAltarMat}>
+          <boxGeometry args={[0.88, 1.45, 0.28]} />
+        </mesh>
+        <mesh position={[0, 1.25, 0.15]} material={mats.emberWaxMat}>
+          <boxGeometry args={[0.46, 0.18, 0.03]} />
+        </mesh>
+      </group>
+
+      {/* Zone C Dead Garden: Crumbling Fountain, Benches, Weeping Statues & Concealed Lectern */}
+      <group position={[DEAD_GARDEN_FOUNTAIN.x, 0, DEAD_GARDEN_FOUNTAIN.z]}>
+        <mesh
+          position={[0, 0.02, 0]}
+          geometry={sharedGeoms.fountainBasin}
+          material={mats.stoneMat}
+        />
+        <mesh position={[0, 1.9, 0]} material={mats.marbleAltarMat}>
+          <cylinderGeometry args={[0.24, 0.34, 1.15, 10]} />
+        </mesh>
+        {/* Two Weeping Statues flanking the fountain */}
+        {([-4.6, 4.6] as const).map((sx) => (
+          <group key={`weeping-${sx}`} position={[sx, 0, -4.4]}>
+            <mesh position={[0, 0.45, 0]} material={mats.stoneMat}>
+              <boxGeometry args={[0.85, 0.9, 0.85]} />
+            </mesh>
+            <mesh
+              position={[0, 0.9, 0]}
+              scale={[0.85, 0.9, 0.85]}
+              geometry={sharedGeoms.apparitionSilhouette}
+              material={mats.marbleAltarMat}
+            />
+          </group>
+        ))}
+      </group>
+      {/* Dead Garden Stone Benches */}
+      <mesh position={[-16.0, 0.38, -13.2]} material={mats.stoneMat}>
+        <boxGeometry args={[2.5, 0.72, 0.88]} />
+      </mesh>
+      <mesh position={[-16.0, 0.38, -4.8]} material={mats.stoneMat}>
+        <boxGeometry args={[2.5, 0.72, 0.88]} />
+      </mesh>
+      <mesh position={[-20.3, 0.38, -9.0]} material={mats.stoneMat}>
+        <boxGeometry args={[0.88, 0.72, 2.5]} />
+      </mesh>
+      {/* Ruined Garden Low Parapets */}
+      <mesh position={[-24.65, 0.75, -9.75]} material={mats.stoneMat}>
+        <boxGeometry args={[1.0, 1.5, 13.5]} />
+      </mesh>
+      <mesh position={[-21.0, 0.75, -16.95]} material={mats.stoneMat}>
+        <boxGeometry args={[7.0, 1.5, 1.0]} />
+      </mesh>
+
+      {/* Clue 03 Caretaker's Lectern in Concealed Passage [-11.2, 0, -24.5] */}
+      <group position={[-11.2, 0, -24.5]} rotation={[0, 0.35, 0]}>
+        <mesh position={[0, 0.52, 0]} material={mats.stoneMat}>
+          <boxGeometry args={[0.92, 1.04, 0.82]} />
+        </mesh>
+        <mesh position={[0, 1.08, 0.08]} rotation={[-0.28, 0, 0]} material={mats.woodMat}>
+          <boxGeometry args={[0.68, 0.08, 0.5]} />
+        </mesh>
+        <mesh position={[0, 1.15, 0.08]} rotation={[-0.28, 0, 0]} material={mats.emberWaxMat}>
+          <boxGeometry args={[0.42, 0.03, 0.3]} />
+        </mesh>
+      </group>
 
       {/* Antique Iron Path Lantern Posts */}
       {LANTERN_SPECS.map((l) => (
@@ -542,7 +755,7 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
         </group>
       ))}
 
-      {/* East Mausoleum Crypt Portico Architecture (Milestone 2/3 landmark) */}
+      {/* East Mausoleum Crypt Portico Architecture */}
       <group position={[17.5, 0, -14.0]}>
         <mesh position={[0, 2.3, -3.2]} material={mats.stoneMat}>
           <boxGeometry args={[8.8, 4.6, 2.0]} />
@@ -564,60 +777,238 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
         </mesh>
       </group>
 
-      {/* Distant Glowing Gothic Chapel Silhouette (Primary Horizon Compass) */}
-      <group position={[0, 0, -39.5]}>
-        <mesh position={[0, 4.8, 0]} material={mats.stoneMat}>
-          <boxGeometry args={[14.8, 9.6, 7.2]} />
+      {/* Zone D — Enterable Abandoned Gothic Chapel (x in [-8.2..8.2], z in [-44.3..-33.7]) */}
+      <group>
+        {/* Approach Steps & Timber Sanctuary Floorboards */}
+        <mesh position={[0, 0.14, -32.8]} material={mats.stoneMat}>
+          <boxGeometry args={[6.4, 0.28, 2.4]} />
         </mesh>
-        {/* Pitched Roof */}
-        <mesh position={[0, 11.2, 0]} rotation={[0, Math.PI / 4, 0]} material={mats.stoneMat}>
-          <coneGeometry args={[10.8, 5.2, 4]} />
+        <mesh position={[0, 0.15, -39.0]} material={mats.woodMat}>
+          <boxGeometry args={[14.4, 0.3, 9.6]} />
         </mesh>
-        {/* Bell Tower Spire */}
-        <mesh position={[0, 14.5, 1.8]} material={mats.stoneMat}>
-          <boxGeometry args={[3.4, 9.0, 3.4]} />
+
+        {/* Split Front Facade with Open Double Doorway (x in [-1.75..1.75], z = -34.2) */}
+        <mesh position={[-4.98, 4.8, -34.2]} material={mats.stoneMat}>
+          <boxGeometry args={[6.45, 9.6, 1.0]} />
         </mesh>
-        <mesh position={[0, 21.6, 1.8]} material={mats.stoneMat}>
+        <mesh position={[4.98, 4.8, -34.2]} material={mats.stoneMat}>
+          <boxGeometry args={[6.45, 9.6, 1.0]} />
+        </mesh>
+        <mesh position={[0, 6.9, -34.2]} material={mats.stoneMat}>
+          <boxGeometry args={[3.6, 5.4, 1.0]} />
+        </mesh>
+        {/* Heavy Ajar Oak Doors */}
+        <mesh position={[-2.05, 1.95, -34.9]} rotation={[0, 1.05, 0]} material={mats.woodMat}>
+          <boxGeometry args={[1.65, 3.6, 0.14]} />
+        </mesh>
+        <mesh position={[2.05, 1.95, -34.9]} rotation={[0, -0.92, 0]} material={mats.woodMat}>
+          <boxGeometry args={[1.65, 3.6, 0.14]} />
+        </mesh>
+
+        {/* West & East Chapel Side Walls + Broken Lancet Stained-Glass Windows */}
+        <mesh position={[-7.65, 4.8, -39.0]} material={mats.stoneMat}>
+          <boxGeometry args={[1.1, 9.6, 10.6]} />
+        </mesh>
+        <mesh position={[7.65, 4.8, -39.0]} material={mats.stoneMat}>
+          <boxGeometry args={[1.1, 9.6, 10.6]} />
+        </mesh>
+        {([-36.8, -41.2] as const).map((wz) => (
+          <React.Fragment key={`win-${wz}`}>
+            <mesh position={[-7.08, 3.5, wz]} material={mats.stainedGlassMat}>
+              <boxGeometry args={[0.1, 2.7, 1.1]} />
+            </mesh>
+            <mesh position={[7.08, 3.5, wz]} material={mats.stainedGlassMat}>
+              <boxGeometry args={[0.1, 2.7, 1.1]} />
+            </mesh>
+          </React.Fragment>
+        ))}
+
+        {/* Split Back Sanctuary Wall Leaving Open East Stairwell Aperture (x in [2.45..5.55]) */}
+        <mesh position={[-2.85, 4.8, -43.75]} material={mats.stoneMat}>
+          <boxGeometry args={[10.7, 9.6, 1.1]} />
+        </mesh>
+        <mesh position={[6.9, 4.8, -43.75]} material={mats.stoneMat}>
+          <boxGeometry args={[2.6, 9.6, 1.1]} />
+        </mesh>
+        <mesh position={[4.0, 6.9, -43.75]} material={mats.stoneMat}>
+          <boxGeometry args={[3.2, 5.4, 1.1]} />
+        </mesh>
+
+        {/* Roof Canopy & Bell Tower Spire (Guides explorer from Spawn across horizon) */}
+        <mesh position={[0, 9.9, -39.0]} material={mats.stoneMat}>
+          <boxGeometry args={[16.8, 0.7, 10.8]} />
+        </mesh>
+        <mesh position={[0, 12.2, -39.0]} rotation={[0, Math.PI / 4, 0]} material={mats.stoneMat}>
+          <coneGeometry args={[11.6, 5.0, 4]} />
+        </mesh>
+        <mesh position={[0, 14.5, -36.5]} material={mats.stoneMat}>
+          <boxGeometry args={[3.4, 8.8, 3.4]} />
+        </mesh>
+        <mesh position={[0, 21.4, -36.5]} material={mats.stoneMat}>
           <coneGeometry args={[2.5, 6.2, 4]} />
         </mesh>
-        {/* Glowing Stained Glass Windows (guides explorer through pitch darkness) */}
-        <mesh position={[0, 5.6, 3.65]} material={mats.stainedGlassMat}>
-          <boxGeometry args={[2.2, 4.4, 0.14]} />
+
+        {/* Glowing Front Stained Glass Rose & Lancet Trio (Visible from Zone A) */}
+        <mesh position={[0, 6.2, -33.65]} material={mats.stainedGlassMat}>
+          <boxGeometry args={[2.1, 3.9, 0.14]} />
         </mesh>
-        <mesh position={[-4.2, 4.6, 3.65]} material={mats.stainedGlassMat}>
-          <boxGeometry args={[1.1, 2.9, 0.14]} />
+        <mesh position={[-4.8, 4.8, -33.65]} material={mats.stainedGlassMat}>
+          <boxGeometry args={[1.0, 2.8, 0.14]} />
         </mesh>
-        <mesh position={[4.2, 4.6, 3.65]} material={mats.stainedGlassMat}>
-          <boxGeometry args={[1.1, 2.9, 0.14]} />
+        <mesh position={[4.8, 4.8, -33.65]} material={mats.stainedGlassMat}>
+          <boxGeometry args={[1.0, 2.8, 0.14]} />
         </mesh>
-        {/* Stone Approach Steps */}
-        <mesh position={[0, 0.25, 4.6]} material={mats.stoneMat}>
-          <boxGeometry args={[6.4, 0.5, 2.2]} />
+
+        {/* Interior Timber Pews & Clue 02 Marble Altar */}
+        <mesh position={[-3.95, 0.72, -38.75]} material={mats.woodMat}>
+          <boxGeometry args={[3.2, 0.85, 0.8]} />
         </mesh>
+        <mesh position={[-3.95, 0.72, -36.75]} material={mats.woodMat}>
+          <boxGeometry args={[3.2, 0.85, 0.8]} />
+        </mesh>
+        <group position={[0, 0.3, -41.5]}>
+          <mesh position={[0, 0.55, 0]} material={mats.marbleAltarMat}>
+            <boxGeometry args={[3.2, 1.1, 1.4]} />
+          </mesh>
+          <mesh position={[0, 1.15, 0.15]} material={mats.emberWaxMat}>
+            <boxGeometry args={[0.55, 0.08, 0.38]} />
+          </mesh>
+          <mesh position={[-1.0, 1.32, -0.25]} material={mats.emberWaxMat}>
+            <cylinderGeometry args={[0.05, 0.06, 0.42, 8]} />
+          </mesh>
+          <mesh position={[1.0, 1.32, -0.25]} material={mats.emberWaxMat}>
+            <cylinderGeometry args={[0.05, 0.06, 0.42, 8]} />
+          </mesh>
+        </group>
+
+        {/* East Chapel Stairwell Enclosing Chute & 16 Stone Steps Descending to Zone E (y: 0.3 -> -4.5) */}
+        <mesh position={[2.2, -1.6, -46.2]} material={mats.stoneMat}>
+          <boxGeometry args={[0.55, 6.4, 10.6]} />
+        </mesh>
+        <mesh position={[5.9, -1.6, -49.5]} material={mats.stoneMat}>
+          <boxGeometry args={[0.75, 6.4, 17.6]} />
+        </mesh>
+        {Array.from({ length: 16 }, (_, stepIdx) => {
+          const t = (stepIdx + 0.5) / 16;
+          const sz = -41.1 - t * 10.0;
+          const sy = 0.25 - t * 4.75;
+          return (
+            <mesh
+              key={`crypt-step-${stepIdx}`}
+              position={[3.95, sy - 0.18, sz]}
+              material={mats.pavingMat}
+            >
+              <boxGeometry args={[3.1, 0.36, 0.68]} />
+            </mesh>
+          );
+        })}
+      </group>
+
+      {/* Zone E — Underground Crypt Vault (y = -4.5, sub-surface corridors & Breaker Alcove) */}
+      <group>
+        {/* Subterranean Flagstone Floor & Stone Ceiling */}
+        <mesh position={[-0.6, -4.65, -54.2]} material={mats.pavingMat}>
+          <boxGeometry args={[14.2, 0.3, 10.4]} />
+        </mesh>
+        <mesh position={[-0.6, -0.55, -54.2]} material={mats.stoneMat}>
+          <boxGeometry args={[14.2, 0.4, 10.4]} />
+        </mesh>
+        {/* North, West, Divider, and Concealed Alcove Walls */}
+        <mesh position={[-0.6, -2.6, -58.65]} material={mats.stoneMat}>
+          <boxGeometry args={[14.0, 4.1, 1.0]} />
+        </mesh>
+        <mesh position={[-7.05, -2.6, -54.1]} material={mats.stoneMat}>
+          <boxGeometry args={[0.9, 4.1, 10.2]} />
+        </mesh>
+        <mesh position={[0.55, -2.6, -53.5]} material={mats.stoneMat}>
+          <boxGeometry args={[3.9, 4.1, 1.3]} />
+        </mesh>
+        <mesh position={[-3.95, -2.6, -49.6]} material={mats.stoneMat}>
+          <boxGeometry args={[7.0, 4.1, 1.1]} />
+        </mesh>
+        <mesh position={[-0.85, -2.6, -51.6]} material={mats.stoneMat}>
+          <boxGeometry args={[0.9, 4.1, 5.2]} />
+        </mesh>
+
+        {/* Stone Arched Ceiling Ribs */}
+        {([-52.0, -55.2, -57.6] as const).map((rz) => (
+          <mesh key={`crypt-rib-${rz}`} position={[-2.2, -1.05, rz]} material={mats.stoneMat}>
+            <boxGeometry args={[9.6, 0.55, 0.55]} />
+          </mesh>
+        ))}
+
+        {/* Two Carved Stone Sarcophagi */}
+        {([
+          [-4.2, -4.5, -55.4],
+          [0.85, -4.5, -57.2],
+        ] as const).map(([sx, sy, sz], sIdx) => (
+          <group key={`sarcophagus-${sIdx}`} position={[sx, sy, sz]}>
+            <mesh position={[0, 0.52, 0]} material={mats.stoneMat}>
+              <boxGeometry args={[2.1, 1.04, 1.25]} />
+            </mesh>
+            <mesh position={[0, 1.12, 0]} material={mats.marbleAltarMat}>
+              <boxGeometry args={[1.95, 0.16, 1.12]} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Flickering Crypt Altar Candles & Carved Inscription Tablets */}
+        {([
+          [-6.4, -3.2, -55.4],
+          [-6.4, -3.2, -51.8],
+          [1.6, -3.2, -58.0],
+          [5.1, -3.2, -55.0],
+        ] as const).map(([cx, cy, cz], cIdx) => (
+          <group key={`crypt-candle-${cIdx}`} position={[cx, cy, cz]}>
+            <mesh position={[0, 0, 0]} material={mats.darkIronMat}>
+              <boxGeometry args={[0.24, 0.12, 0.24]} />
+            </mesh>
+            <mesh position={[0, 0.18, 0]} material={mats.emberWaxMat}>
+              <cylinderGeometry args={[0.04, 0.05, 0.28, 6]} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Dormant Milestone 3 Objective: Concealed LIGHT MODE Breaker Box Alcove [-4.0, -4.5, -50.2] */}
+        <group position={[-4.0, -3.2, -50.22]}>
+          <mesh position={[0, 0, 0]} material={mats.darkIronMat}>
+            <boxGeometry args={[1.05, 1.35, 0.24]} />
+          </mesh>
+          <mesh position={[0, -0.1, 0.15]} material={mats.stoneMat}>
+            <boxGeometry args={[0.16, 0.55, 0.16]} />
+          </mesh>
+          <mesh position={[0.28, 0.42, 0.14]} material={mats.emberWaxMat}>
+            <boxGeometry args={[0.14, 0.14, 0.05]} />
+          </mesh>
+        </group>
       </group>
 
       {/* Debug Collision Bounds Wireframes (?debug=true toggle) */}
       {debugEnabled && showCollisionWireframes && (
         <group>
-          {STATIC_AABB_COLLIDERS.map((box) => (
-            <mesh
-              key={`dbg-${box.id}`}
-              position={[
-                (box.minX + box.maxX) / 2,
-                box.height / 2,
-                (box.minZ + box.maxZ) / 2,
-              ]}
-              material={mats.wireWallMat}
-            >
-              <boxGeometry
-                args={[
-                  box.maxX - box.minX,
-                  box.height,
-                  box.maxZ - box.minZ,
+          {STATIC_AABB_COLLIDERS.map((box) => {
+            const clampedH = Math.min(box.height, 4.2);
+            const baseY = box.minY !== undefined && box.minY < -1.0 ? -4.5 : 0;
+            return (
+              <mesh
+                key={`dbg-${box.id}`}
+                position={[
+                  (box.minX + box.maxX) / 2,
+                  baseY + clampedH / 2,
+                  (box.minZ + box.maxZ) / 2,
                 ]}
-              />
-            </mesh>
-          ))}
+                material={mats.wireWallMat}
+              >
+                <boxGeometry
+                  args={[
+                    box.maxX - box.minX,
+                    clampedH,
+                    box.maxZ - box.minZ,
+                  ]}
+                />
+              </mesh>
+            );
+          })}
           {gateLockedBehind && (
             <mesh
               position={[

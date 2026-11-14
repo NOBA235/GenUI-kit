@@ -30,6 +30,7 @@ export const templateEntry: DualModeTemplateEntry = {
 export * from "./types.js";
 export * from "./store.js";
 export * from "./engine/collision.js";
+export * from "./engine/world-data.js";
 export * from "./engine/procedural-geometries.js";
 export * from "./audio/soundscape.js";
 export default templateEntry;

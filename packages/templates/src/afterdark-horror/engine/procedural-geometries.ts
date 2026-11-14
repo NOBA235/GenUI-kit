@@ -142,6 +142,64 @@ export function createGnarledTreeGeometry(): THREE.BufferGeometry {
 }
 
 /**
+ * Builds an ancient weathered Celtic stone cross (stepped base + shaft + crossbar + stone halo ring).
+ */
+export function createCelticCrossGeometry(): THREE.BufferGeometry {
+  const base = new THREE.BoxGeometry(0.95, 0.28, 0.56);
+  base.translate(0, 0.14, 0);
+
+  const shaft = new THREE.BoxGeometry(0.28, 1.82, 0.18);
+  shaft.translate(0, 1.15, 0);
+
+  const arm = new THREE.BoxGeometry(0.96, 0.24, 0.18);
+  arm.translate(0, 1.54, 0);
+
+  const ring = new THREE.TorusGeometry(0.32, 0.055, 6, 14);
+  ring.translate(0, 1.54, 0);
+
+  return mergeSimpleGeometries([base, shaft, arm, ring]);
+}
+
+/**
+ * Builds a tiered crumbling Dead Garden stone fountain centerpiece.
+ */
+export function createFountainBasinGeometry(): THREE.BufferGeometry {
+  const outerRim = new THREE.CylinderGeometry(1.9, 2.05, 0.58, 14);
+  outerRim.translate(0, 0.29, 0);
+
+  const lowerPedestal = new THREE.CylinderGeometry(0.55, 0.72, 1.15, 10);
+  lowerPedestal.translate(0, 0.92, 0);
+
+  const upperBowl = new THREE.CylinderGeometry(1.08, 0.42, 0.36, 12);
+  upperBowl.translate(0, 1.58, 0);
+
+  const spireRemnant = new THREE.CylinderGeometry(0.18, 0.3, 0.85, 8);
+  spireRemnant.rotateZ(0.08);
+  spireRemnant.translate(0.02, 2.15, 0);
+
+  return mergeSimpleGeometries([outerRim, lowerPedestal, upperBowl, spireRemnant]);
+}
+
+/**
+ * Builds a procedural 3D hooded/draped apparition silhouette (cloak skirt + shoulders + veiled head).
+ * Zero 2D billboards or sprites.
+ */
+export function createHumanoidSilhouetteGeometry(): THREE.BufferGeometry {
+  const robe = new THREE.CylinderGeometry(0.22, 0.52, 1.48, 10);
+  robe.translate(0, 0.74, 0);
+
+  const torso = new THREE.CylinderGeometry(0.28, 0.22, 0.52, 10);
+  torso.scale(1.15, 1, 0.68);
+  torso.translate(0, 1.65, 0);
+
+  const head = new THREE.SphereGeometry(0.2, 10, 8);
+  head.scale(0.88, 1.12, 0.96);
+  head.translate(0, 2.1, 0.04);
+
+  return mergeSimpleGeometries([robe, torso, head]);
+}
+
+/**
  * Builds a single wrought-iron fence/gate picket with diamond spear finial.
  */
 export function createIronPicketGeometry(height = 2.6): THREE.BufferGeometry {
@@ -158,8 +216,11 @@ export function createIronPicketGeometry(height = 2.6): THREE.BufferGeometry {
 export interface AfterdarkSharedGeometries {
   readonly lancetTombstone: THREE.BufferGeometry;
   readonly obeliskTombstone: THREE.BufferGeometry;
+  readonly celticCross: THREE.BufferGeometry;
   readonly gnarledTree: THREE.BufferGeometry;
   readonly fencePicket: THREE.BufferGeometry;
+  readonly fountainBasin: THREE.BufferGeometry;
+  readonly apparitionSilhouette: THREE.BufferGeometry;
   readonly stoneBlock: THREE.BufferGeometry;
 }
 
@@ -167,8 +228,11 @@ export function createAfterdarkSharedGeometries(): AfterdarkSharedGeometries {
   return {
     lancetTombstone: createLancetTombstoneGeometry(),
     obeliskTombstone: createObeliskGeometry(),
+    celticCross: createCelticCrossGeometry(),
     gnarledTree: createGnarledTreeGeometry(),
     fencePicket: createIronPicketGeometry(2.5),
+    fountainBasin: createFountainBasinGeometry(),
+    apparitionSilhouette: createHumanoidSilhouetteGeometry(),
     stoneBlock: new THREE.BoxGeometry(1, 1, 1),
   };
 }
@@ -178,7 +242,10 @@ export function disposeAfterdarkSharedGeometries(
 ): void {
   geometries.lancetTombstone.dispose();
   geometries.obeliskTombstone.dispose();
+  geometries.celticCross.dispose();
   geometries.gnarledTree.dispose();
   geometries.fencePicket.dispose();
+  geometries.fountainBasin.dispose();
+  geometries.apparitionSilhouette.dispose();
   geometries.stoneBlock.dispose();
 }

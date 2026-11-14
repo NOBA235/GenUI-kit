@@ -4,6 +4,8 @@ import * as THREE from "three";
 import { getAfterdarkSoundscape } from "../audio/soundscape.js";
 import {
   buildCircleColliders,
+  getWalkableFloorHeight,
+  isInsideChapelFloorboards,
   isOnStonePaving,
   PLAYER_EYE_HEIGHT,
   resolvePlayerMovement,
@@ -35,6 +37,7 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
   const pitchRef = useRef(0);
   const velXRef = useRef(0);
   const velZRef = useRef(0);
+  const feetYRef = useRef(0);
   const stridePhaseRef = useRef(0);
   const lastStepIndexRef = useRef(0);
   const transitionElapsedRef = useRef(0);
@@ -74,6 +77,30 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       // Allow Alt+G & browser shortcuts through cleanly
       if (e.altKey || e.metaKey || e.ctrlKey) return;
+
+      // Handle [E] Examination & Reader dismiss on non-repeat key press
+      if (e.code === "KeyE" && !e.repeat) {
+        const st = useAfterdarkStore.getState();
+        if (st.phase === "exploration") {
+          if (st.activeReaderClueId) {
+            st.closeClueReader();
+            return;
+          }
+          if (st.activeInteractableId) {
+            st.examineClue(st.activeInteractableId);
+            return;
+          }
+        }
+      }
+
+      if (e.code === "Escape") {
+        const st = useAfterdarkStore.getState();
+        if (st.activeReaderClueId) {
+          st.closeClueReader();
+          return;
+        }
+      }
+
       keysPressed.current.add(e.code);
     };
 
@@ -133,6 +160,7 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
     ) {
       lastTeleportSeqRef.current = state.pendingTeleport.seq;
       const [tx, ty, tz] = state.pendingTeleport.position;
+      feetYRef.current = ty - PLAYER_EYE_HEIGHT;
       camera.position.set(tx, ty, tz);
       yawRef.current = state.pendingTeleport.yaw;
       pitchRef.current = 0;
@@ -213,6 +241,13 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
 
     // 5. Scene 03+: Genuine First-Person Exploration + AABB/Circle Collision
     if (state.phase === "exploration") {
+      // Freeze translation smoothly while reading an examined Clue Parchment
+      if (state.activeReaderClueId) {
+        velXRef.current = 0;
+        velZRef.current = 0;
+        return;
+      }
+
       // Apply virtual touch drag look delta if any
       if (
         touchLookDeltaRef.current.x !== 0 ||
@@ -277,8 +312,16 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
 
       const resolved = resolvePlayerMovement(curX, curZ, desiredX, desiredZ, {
         gateLocked: state.gateLockedBehind,
+        playerFeetY: feetYRef.current,
         circleColliders: circleCollidersRef.current,
       });
+
+      const targetFeetY = getWalkableFloorHeight(
+        resolved.x,
+        resolved.z,
+        feetYRef.current,
+      );
+      feetYRef.current += (targetFeetY - feetYRef.current) * Math.min(1, dt * 14);
 
       // Zero-out normal component if stopped hard against boundary
       if (dt > 0) {
@@ -292,7 +335,7 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
         }
       }
 
-      // Sync subtle head-bob & gravel/stone footsteps with stride speed
+      // Sync subtle head-bob & gravel/stone/chapel-wood footsteps with stride speed
       let bobY = 0;
       let bobSway = 0;
       const actualSpeed = Math.hypot(
@@ -308,9 +351,15 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
         const stepIdx = Math.floor(stridePhaseRef.current / Math.PI);
         if (stepIdx !== lastStepIndexRef.current) {
           lastStepIndexRef.current = stepIdx;
-          const surface = isOnStonePaving(resolved.x, resolved.z)
-            ? "stone"
-            : "gravel";
+          const surface = isInsideChapelFloorboards(
+            resolved.x,
+            resolved.z,
+            feetYRef.current,
+          )
+            ? "wood"
+            : isOnStonePaving(resolved.x, resolved.z, feetYRef.current)
+              ? "stone"
+              : "gravel";
           audio.playFootstep(surface, isSprinting);
         }
       } else {
@@ -318,7 +367,11 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
         bobY = Math.sin(performance.now() * 0.0018) * 0.009;
       }
 
-      camera.position.set(resolved.x, PLAYER_EYE_HEIGHT + bobY, resolved.z);
+      camera.position.set(
+        resolved.x,
+        feetYRef.current + PLAYER_EYE_HEIGHT + bobY,
+        resolved.z,
+      );
       camera.rotation.set(pitchRef.current, yawRef.current, bobSway * 0.35);
 
       // Throttled store update (~10 Hz) keeps HUD telemetry fresh without re-render jank
@@ -336,7 +389,7 @@ export const FirstPersonController: React.FC<FirstPersonControllerProps> = ({
         state.setPlayerTelemetry(
           [
             Number(resolved.x.toFixed(2)),
-            Number(camera.position.y.toFixed(2)),
+            Number((feetYRef.current + PLAYER_EYE_HEIGHT).toFixed(2)),
             Number(resolved.z.toFixed(2)),
           ],
           Number(yawRef.current.toFixed(2)),

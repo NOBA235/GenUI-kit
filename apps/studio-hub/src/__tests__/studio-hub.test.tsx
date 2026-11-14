@@ -195,9 +195,11 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       expect(typographyHtml).toContain("Something is waiting.");
       expect(typographyHtml).toContain("ENTER THE CEMETERY");
 
-      // 3. Exploration + ?debug=true Telemetry Overlay + Quality Presets + Zone Teleports
+      // 3. Exploration + ?debug=true Telemetry Overlay + Quality Presets + Zone Teleports A-E + Clues 1-3 + Encounters 1-5
       useAfterdarkStore.getState().finishGateEntry();
       useAfterdarkStore.getState().toggleDebug(true);
+      useAfterdarkStore.getState().setActiveInteractable("clue-01");
+      useAfterdarkStore.getState().triggerEncounter("enc-04", Date.now(), true);
       const debugHtml = renderToStaticMarkup(
         <App initialPath="/preview/afterdark-horror" instantStreamForTest />,
       );
@@ -206,7 +208,22 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       expect(debugHtml).toContain("QUALITY PRESET:");
       expect(debugHtml).toContain("TELEPORT TO ZONE:");
       expect(debugHtml).toContain("Chapel Steps");
+      expect(debugHtml).toContain("Zone B: Forgotten Graves");
+      expect(debugHtml).toContain("Zone C: Dead Garden");
+      expect(debugHtml).toContain("Zone E: Underground Crypt");
+      expect(debugHtml).toContain('data-testid="afterdark-examine-prompt"');
+      expect(debugHtml).toContain('data-testid="afterdark-encounter-subtitle"');
+      expect(debugHtml).toContain("looking in the wrong direction.");
+
+      // 4. [E] Clue Reader Modal Inscription
+      useAfterdarkStore.getState().examineClue("clue-01");
+      const clueReaderHtml = renderToStaticMarkup(
+        <App initialPath="/preview/afterdark-horror" instantStreamForTest />,
+      );
+      expect(clueReaderHtml).toContain('data-testid="afterdark-clue-reader"');
+      expect(clueReaderHtml).toContain("THE LIGHT WAS NEVER LOST. IT WAS HIDDEN.");
     } finally {
+      useAfterdarkStore.getState().resetClues();
       useAfterdarkStore.getState().resetExperience();
       useAfterdarkStore.getState().toggleDebug(false);
     }
