@@ -1,0 +1,83 @@
+/* Strictly Scoped Theme Isolation for AFTERDARK ([data-template-theme="afterdark-horror"]) */
+[data-template-theme="afterdark-horror"] {
+  color-scheme: only dark;
+  --tpl-bg: #000000;
+  --tpl-surface: #09090d;
+  --tpl-fg: #f1f5f9;
+  --tpl-muted: #94a3b8;
+  --tpl-accent: #dc2626;
+  --tpl-font-display: "Cinzel", "Instrument Serif", Georgia, serif;
+  --tpl-font-body: "Inter", system-ui, sans-serif;
+  --tpl-radius: 0.25rem;
+  background-color: var(--tpl-bg);
+  color: var(--tpl-fg);
+  font-family: var(--tpl-font-body);
+  isolation: isolate;
+  contain: layout style;
+  container-type: inline-size;
+}
+
+[data-template-theme="afterdark-horror"][data-color-scheme="light"] {
+  color-scheme: only light;
+  --tpl-bg: #f8f5ef;
+  --tpl-surface: #ffffff;
+  --tpl-fg: #141418;
+  --tpl-muted: #52525b;
+  --tpl-accent: #991b1b;
+  background-color: var(--tpl-bg);
+  color: var(--tpl-fg);
+}
+
+@scope ([data-template-theme="afterdark-horror"]) {
+  .afterdark-display {
+    font-family: var(--tpl-font-display);
+    letter-spacing: 0.14em;
+  }
+
+  /* Compositor-only reveal animation for timed shutdown typography */
+  @keyframes afterdarkTextAppear {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 12px, 0) scale(0.985);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .afterdark-reveal-text {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .afterdark-reveal-text {
+      animation: afterdarkTextAppear 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .afterdark-reveal-text {
+      transition: opacity 0.18s linear;
+    }
+  }
+
+  .afterdark-touch-surface {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid #ef4444;
+    outline-offset: 3px;
+  }
+
+  .afterdark-debug-panel {
+    background: rgba(5, 7, 11, 0.88);
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    backdrop-filter: blur(10px);
+  }
+}

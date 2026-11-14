@@ -3,10 +3,10 @@
 **Project Name:** GenUI Studio (`GenUI-kit`)  
 **Track:** Developer Tools / AI Agent Frameworks  
 **License:** Open Source (MIT)  
-**Repository:** [github.com/developer/GenUI-kit](https://github.com/developer/GenUI-kit)  
-**Live Deployed Apps:**
-- **App 1 (FinOps Command Center):** `http://localhost:5173`
-- **App 2 (Aegis 3D Spatial War-Room):** `http://localhost:5174`
+**Repository:** [github.com/NOBA235/GenUI-kit](https://github.com/NOBA235/GenUI-kit)  
+**Local Showcase Ports:**
+- **SpatialOps (Aegis 3D Spatial Workbench):** `http://localhost:5174` (in-memory simulation default)
+- **Studio Hub (WIP Storefront):** `http://localhost:5175`
 
 ---
 
@@ -19,7 +19,7 @@ While Vercel's `@json-render` introduced guardrailed JSON catalogs, building ent
 2. **Adversarial & Hallucinated Stream Topologies:** Fragmented LLM patch streams could inject cyclic element graphs (`RangeError: Maximum call stack size exceeded`), prototype pollution (`__proto__`), or non-finite numbers (`NaN`/`Infinity`), taking down the entire browser tab.
 3. **Agent Integration Disconnect:** Autonomous coding agents lacked a standardized protocol to inspect available catalogs, validate proposed UI specs prior to streaming, and run property-based fuzz tests.
 
-**GenUI Studio** is the world's first **Formally Verified Generative UI Skeleton Framework, Verification Workbench, and Model Context Protocol (MCP) Server**. Built on Vercel's `@json-render` v0.22.0 ecosystem and completely orchestrated by **Kiro Spec-Driven Development**, GenUI Studio proves that generative UI can be fast, deterministic, mathematically safe, and accessible to any AI agent in 60 seconds.
+**GenUI Studio** is a **Property-Based Tested (`fast-check`) & Runtime-Guardrailed Generative UI Reliability Engine, CLI Validator, and Model Context Protocol (MCP) Server**. Built on Vercel's `@json-render` v0.22.0 ecosystem and orchestrated with **Kiro Spec-Driven Development**, GenUI Studio focuses on deterministic stream compilation, DAG & value hardening, hook-safe React fault isolation, and reproducible developer tooling.
 
 ---
 
@@ -34,8 +34,8 @@ flowchart TD
         Steering["2. Steering Documents\n.kiro/steering/*\ngenui-invariants, tech, structure, spatial-3d"]
         Hooks["3. Agent Hooks\n.kiro/hooks/*\ncatalog-sync, spec-invariants, raw-jsx-guard"]
         Powers["4. Kiro Powers\n.kiro/powers/json-render-power\n5 Golden Rules & conversion playbooks"]
-        MCP["5. Model Context Protocol\n.kiro/settings/mcp.json\npackages/genui-mcp (3 tools)"]
-        PBT["6. fast-check Verification\n4 Mathematical Theorems\nShrunk counterexamples & self-healing"]
+        MCP["5. Model Context Protocol\n.kiro/settings/mcp.json\npackages/genui-mcp (3 verification + 3 telemetry tools)"]
+        PBT["6. fast-check Verification\n4 Property-Based Invariants\nShrunk counterexamples & self-healing"]
     end
 
     Specs --> Steering
@@ -50,10 +50,9 @@ We structured the development of the framework and both applications using Kiro'
 - **Core Skeleton Specification** ([`.kiro/specs/core-skeleton/`](./.kiro/specs/core-skeleton/)):
   - [`requirements.md`](./.kiro/specs/core-skeleton/requirements.md): 20 formal requirements specified strictly using **EARS** (*Easy Approach to Requirements Syntax*: `WHEN... WHILE... IF... THEN SHALL...`).
   - [`design.md`](./.kiro/specs/core-skeleton/design.md): Deep architectural blueprints detailing 3-color Depth-First Search (DFS) DAG cycle severance, RFC 6901 JSON Pointer escaping, and structural-sharing state stores.
-  - [`correctness.md`](./.kiro/specs/core-skeleton/correctness.md): Mathematical definitions of the 4 formal invariant theorems, proving that arbitrary stream chunking, adversarial payloads, and out-of-order state mutations cannot crash the renderer.
+  - [`correctness.md`](./.kiro/specs/core-skeleton/correctness.md): Definitions of the 4 property-based invariants (`INV-PBT-01`..`04`) tested via `fast-check` for stream chunking, adversarial payloads, out-of-order state mutations, and catalog determinism.
   - [`tasks.md`](./.kiro/specs/core-skeleton/tasks.md): Phased execution tasks with exact verification criteria.
-- **App 1: FinOps Command Center** ([`.kiro/specs/app-finops-command/`](./.kiro/specs/app-finops-command/)): Requirements and tasks covering the 14-component financial operations catalog, 240 seeded customer accounts, and 4 bidirectional mutation cards.
-- **App 2: Aegis Spatial War-Room** ([`.kiro/specs/app-spatial-warroom/`](./.kiro/specs/app-spatial-warroom/)): Requirements and tasks for the 14-component hybrid 3D (React Three Fiber) + 2D (HUD) incident command center, shared `TimeTravelStateStore`, and WebGL memory boundaries.
+- **SpatialOps (Aegis 3D Spatial War-Room)** ([`.kiro/specs/app-spatial-warroom/`](./.kiro/specs/app-spatial-warroom/)): Requirements and tasks for the hybrid 3D (React Three Fiber) + 2D (HUD) incident & trace workbench, shared `TimeTravelStateStore`, and WebGL memory boundaries.
 
 ### 2. Steering Documents (`.kiro/steering/`)
 To prevent "agent amnesia" and architectural drift across long coding sessions, we established permanent steering files:
@@ -85,13 +84,14 @@ We authored a modular Kiro Power ([`.kiro/powers/json-render-power/`](./.kiro/po
 - [`react-to-catalog.md`](./.kiro/powers/json-render-power/steering/react-to-catalog.md) & [`three-and-mcp-patterns.md`](./.kiro/powers/json-render-power/steering/three-and-mcp-patterns.md): Concrete transformation playbooks for containers, data tables, and 3D scenes.
 
 ### 5. GenUI Studio Model Context Protocol (MCP) Server (`packages/genui-mcp`)
-We packaged the entire verification engine into a real **Model Context Protocol (MCP)** server configured in [`.kiro/settings/mcp.json`](./.kiro/settings/mcp.json):
-- **`list_catalog_components`**: Allows Kiro, Claude, or Cursor to introspect the 28 available components (FinOps & Spatial), their Zod prop contracts, constraints, and fallback props.
-- **`validate_ui_spec`**: Validates a proposed Spec tree or raw RFC 6902 JSONL stream against the target catalog before rendering, returning exact structural diagnostics (cycles, dangling pointers, prototype pollution attempts) and auto-fix suggestions.
-- **`fuzz_test_catalog`**: Enables agents to trigger real-time `fast-check` property tests on demand directly through MCP tool invocation.
+We packaged the verification engine into a **Model Context Protocol (MCP)** server configured in [`.kiro/settings/mcp.json`](./.kiro/settings/mcp.json) with 3 core verification tools plus 3 pluggable SpatialOps telemetry tools:
+- **`list_catalog_components`**: Allows Kiro, Claude, or Cursor to introspect the 15 SpatialOps components, their Zod prop contracts, constraints, and fallback props.
+- **`validate_ui_spec`**: Validates a proposed Spec tree, RFC 6902 JSONL stream, or SSE stream against the target catalog before rendering, returning exact structural diagnostics (cycles, dangling pointers, prototype pollution attempts) and auto-fix suggestions.
+- **`fuzz_test_catalog`**: Enables agents to trigger live `fast-check` property tests directly through MCP tool invocation.
+- **Pluggable Telemetry Tools (`query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`):** Backed by an in-memory simulated mesh provider by default (`setMcpTelemetryProvider` supports wiring live OTLP / cluster telemetry adapters).
 
 ### 6. Property-Based Testing (PBT) & Shrinking with `fast-check`
-Rather than relying on brittle example-based unit tests, we formulated **4 core mathematical theorems** verified by running thousands of randomized iterations with `fast-check` ([`packages/genui-core/src/testing/index.ts`](./packages/genui-core/src/testing/index.ts)).
+Rather than relying solely on example-based unit tests, we formulated **4 core property-based invariants** checked across randomized inputs with `fast-check` ([`packages/genui-core/src/testing/index.ts`](./packages/genui-core/src/testing/index.ts)).
 
 During Phase 2, `fast-check`'s shrinking engine uncovered **5 critical edge-case bugs** that traditional unit tests would have never caught:
 
@@ -105,52 +105,26 @@ During Phase 2, `fast-check`'s shrinking engine uncovered **5 critical edge-case
 
 ---
 
-## 🚀 The 2 Production Domain Applications
+## 🚀 Reference Application & Registry Tooling
 
-### Application #1: FinOps & RevOps Command Center (2D)
-A production B2B SaaS financial operations command center managing **240 seeded customer accounts**:
-- **14 Zod Components:** `WorkspaceShell`, `SectionGrid`, `KpiMetricCard`, `MrrChurnChart`, `CohortRetentionMatrix`, `AnomalyAlertCard`, `CustomerLedgerTable`, `WebhookStreamTicker`, `IssueRefundCard`, `ExtendTrialCard`, `RetryWebhookCard`, `RetentionDiscountCard`, `RevenueWaterfallCard`, `AuditTrailBanner`.
-- **Live Bidirectional Mutations:** Settle disputed balances via `IssueRefundCard`, extend trial windows via `ExtendTrialCard`, replay failed Stripe charges via `RetryWebhookCard`, and apply bounded retention discounts (5%–50%) via `RetentionDiscountCard`.
-- **Real-Time Financial Telemetry:** Every mutation recalculates Net MRR, Unsettled Balance, and Failed Charges live in the header, with 1-click **Time-Travel Undo/Redo**.
-- **Adversarial Chaos Injection:** Click **"⚡ Inject Corrupted AI Packet"** to fire prototype pollution (`__proto__`), 999% discount props, and cyclic elements directly into the active stream to watch the guardrails clamp, heal, and badge in real time with zero crash!
+### SpatialOps: Aegis 3D Spatial Incident War-Room (3D WebGL + 2D HUD)
+An SRE incident command center combining a **3D WebGL distributed microservice mesh** with a **2D tactical HUD** over a shared `TimeTravelStateStore`:
+- **15 Spatial Components:** `AegisWarRoomShell`, `ClusterTopologyCanvas` (Three.js WebGL canvas), `ServiceMeshNode3D`, `TrafficFlowEdge3D`, `BlastRadiusSphere3D`, `RegionZoneBoundary3D`, `IncidentHeroBanner`, `ServiceDiagnosticPanel`, `LatencyHistogramCard`, `ErrorLogTailer`, `BlastRadiusDependencyTree`, `RunbookActionDesk`, `ClusterMetricsGrid`, `SreAuditTrailBanner`, `TraceWaterfallViewer`.
+- **Dual-Surface State Coherence:** Adjusting an SRE runbook slider in the 2D HUD updates the 3D WebGL scene's emissive node colors, traffic packet velocities, and volumetric blast radius spheres without re-mounting the WebGL canvas.
+- **Incident Remediation:** Trip circuit breakers, trigger regional failovers, scale container pod replicas, and inspect trace waterfalls with full time-travel audit logging.
 
-### Application #2: Aegis 3D Spatial Incident War-Room (3D WebGL + 2D HUD)
-An autonomous SRE incident command center combining a **3D WebGL distributed microservice mesh** with a **2D tactical HUD** over a shared `TimeTravelStateStore`:
-- **14 Spatial Components:** `AegisWarRoomShell`, `ClusterTopologyCanvas` (Three.js WebGL canvas), `ServiceMeshNode3D`, `TrafficFlowEdge3D`, `BlastRadiusSphere3D`, `RegionZoneBoundary3D`, `IncidentHeroBanner`, `ServiceDiagnosticPanel`, `LatencyHistogramCard`, `ErrorLogTailer`, `BlastRadiusDependencyTree`, `RunbookActionDesk`, `ClusterMetricsGrid`, `SreAuditTrailBanner`.
-- **Dual-Surface State Coherence:** Adjusting an SRE runbook slider in the 2D HUD instantly updates the 3D WebGL scene's emissive node colors, traffic packet velocities, and volumetric blast radius spheres at 60fps without re-rendering the WebGL canvas.
-- **Incident Remediation:** Trip circuit breakers, trigger regional cross-datacenter failovers, scale container pod replicas, and execute canary rollbacks with full time-travel audit logging.
-
-### Commercial Distribution & Agent Skill Registry Layer
-GenUI Studio is a creator distribution platform for monetizing and sharing Generative UI:
+### Distribution & Agent Skill Registry Layer (CLI + Local Scaffolding)
+GenUI Studio includes local CLI tooling and registry primitives ready to connect to a hosted entitlement backend:
 - **Agent-Ready Template Packs:** Self-contained bundles uniting React/Three.js code, Zod Catalogs (`catalog.ts`), AI Agent Skills (`SKILL.md` + `.kiro/powers/`), and `fast-check` PBT suites.
-- **Token-Gated CLI Installer (`npx genui-studio add <pack>`):** Installs free packs (`saas-kpi-starter`, `spatial-mesh-starter`) or verifies bearer license keys for Pro packs (`finops-command-pro`, `spatial-ops-3d-pro`).
-- **One-Click `.ZIP` & MCP Exporter Modal:** Embedded in both applications with tabs for CLI install, client-side streaming `.zip` project generation, and MCP server configuration.
-
----
-
-## ⏱️ Second-by-Second Demo Video Script (2:45)
-
-**Total Duration:** 2 minutes 45 seconds (165 seconds)  
-**Target Resolution:** 1080p 60fps  
-**Host URL:** `http://localhost:5173` (App 1) and `http://localhost:5174` (App 2)
-
-| Timestamp | Visual / Click Sequence | Voiceover Script |
-|---|---|---|
-| **0:00 - 0:15** (15s) | **Opening Title Screen & Architecture Diagram**<br>Display README architecture diagram showing Kiro Specs -> `@genui-studio/core` -> Dual Domain Apps -> MCP Server. | *"Welcome to GenUI Studio—the world's first formally verified Generative UI skeleton framework, verification workbench, and MCP server, powered by Vercel's json-render ecosystem and orchestrated entirely with Kiro."* |
-| **0:15 - 0:40** (25s) | **App 1: FinOps Command Center (Zero-Setup Stream)**<br>Screen is on `http://localhost:5173`. Click the **"MRR Churn Spike"** scenario button. Watch RFC 6902 JSONL patches stream in real time, rendering the 14-component SaaS dashboard, waterfall charts, and 240-account customer table. | *"We begin in App 1: our FinOps Command Center. Notice there are zero API keys or setup required. With one click, the agent streams an RFC 6902 JSONL patch sequence. Rather than raw HTML, our skeleton compiler validates every component against strict Zod catalogs, rendering executive KPI cards, MRR churn charts, and a 240-account SaaS ledger."* |
-| **0:40 - 1:05** (25s) | **Live Bidirectional Mutation & Time-Travel Undo**<br>Scroll down to the `IssueRefundCard`. Click **"Issue $2,450 Refund"**. Watch the header Net MRR, Unsettled Balance, and Failed Charges update instantly. Then click **"↶ Undo"** and **"↷ Redo"** in the top navigation bar. | *"These aren't static mockups. When we issue a partial refund or apply a retention discount, our TimeTravelStateStore mutates the live ledger state and recalculates Net MRR in real time. And because our state store maintains structural sharing, operators can perform one-click Time-Travel Undo and Redo with zero state corruption."* |
-| **1:05 - 1:30** (25s) | **App 2: Aegis 3D Spatial Incident War-Room**<br>Click **"App 2: Spatial War-Room 3D ↗"** in the top bar. Seamless transition to `http://localhost:5174`. Orbit the 3D WebGL service mesh with the mouse. Click on `srv-postgres-primary` to reveal its telemetry panel. Click **"Trigger Regional Failover"**. | *"Now, let's switch to App 2: our Aegis 3D Spatial Incident War-Room. Here, json-render-react-three-fiber streams a WebGL microservice topology that shares the exact same state store with the 2D tactical HUD. Clicking any node selects it in 3D space. When we trigger a regional failover, traffic shifts and the volumetric blast radius sphere updates live at 60 frames per second."* |
-| **1:30 - 1:55** (25s) | **Adversarial Chaos Injection & Self-Healing**<br>Click **"⚡ Inject Cascading Outage"** (Chaos Packet). Watch the top bar reflect 0 crashes. Open the **"Spec & Telemetry X-Ray"** drawer. Point out the live telemetry: token throughput, 0 cyclic leaks, and the yellow `<DiagnosticHealedBadge />`. | *"What happens when an LLM hallucinates or attacks the runtime? Let's click 'Inject Corrupted AI Packet'. We just fired prototype pollution keys, a 999% discount prop, and a cyclic element graph directly into the stream. In any other framework, this is a fatal white screen. In GenUI Studio, our 3-color DFS DAG sanitizer severs the cycle, clamps the prop to the catalog bound, and badges it with diagnostic provenance—zero crash."* |
-| **1:55 - 2:20** (25s) | **In-Browser fast-check PBT Fuzzing Inspector**<br>In the X-Ray drawer, click the **"fast-check PBT Suite"** tab. Click **"Run fast-check PBT Suite"**. Watch all 4 formal theorems execute and pass in the browser with live run counts and millisecond timings. | *"Inside our X-Ray Inspector, judges can run our formal Property-Based Testing suite directly in the browser. Powered by fast-check, it tests stream chunking invariance, adversarial payload resilience, and batch mutation determinism across randomized iterations. During Phase 2, this shrinking engine caught 5 real edge-case bugs before our code ever hit production."* |
-| **2:20 - 2:45** (25s) | **Kiro MCP Server & Conclusion**<br>Switch to VS Code showing `.kiro/settings/mcp.json` and terminal running `pnpm mcp`. Show the 3 exposed tools: `list_catalog_components`, `validate_ui_spec`, `fuzz_test_catalog`. Closing summary. | *"Finally, our complete verification engine is exposed over the Model Context Protocol in packages/genui-mcp, allowing Kiro IDE or any MCP agent to inspect catalogs, validate proposed specs, and fuzz test schemas. GenUI Studio is fully open-source under the MIT license, completely green across all builds and tests, and ready for you to clone and run in 60 seconds. Thank you!"* |
+- **CLI Spec Validator & Pack Installer (`npx genui-studio validate` / `add` / `export`):** Validates `.json`/`.jsonl`/`.sse` specs in CI/CD (`validate`), installs free starter packs (`spatial-mesh-starter`), and checks Pro packs (`spatial-ops-3d-pro`) using offline format validation (`local-format-demo`) or an injected custom `LicenseVerifier` hook for production billing.
+- **One-Click `.ZIP` & MCP Exporter Modal:** Embedded in SpatialOps with tabs for CLI install, client-side streaming `.zip` project generation, and MCP server configuration.
 
 ---
 
 ## 🛠️ Verification Checklist
 
-- [x] **Monorepo Build:** `pnpm build` completes with exit code 0 across all 6 workspace projects (`@genui-studio/core`, `@genui-studio/mcp`, `genui-studio` CLI, `@genui-studio/finops-command`, `@genui-studio/spatial-ops`).
-- [x] **Unit & PBT Test Suite:** `pnpm test` passes 100% (40 tests across core invariants, CLI installer, MCP server tools, and both domain applications).
-- [x] **Commercial Distribution & Skill Registry:** Token-gated CLI installer (`npx genui-studio add`), shadcn/Next.js compatible registry API, and in-UI one-click `.ZIP` project exporter.
-- [x] **Model Context Protocol (MCP) Server:** Tested and verified over stdio JSON-RPC protocol (`node packages/genui-mcp/dist/cli.js`), configured in `.kiro/settings/mcp.json`.
+- [x] **Monorepo Build & Typecheck:** `pnpm build` and `pnpm typecheck` complete cleanly across workspace packages and apps (`@genui-studio/core`, `@genui-studio/mcp`, `genui-studio` CLI, `@genui-studio/templates`, `spatial-ops`, `studio-hub`).
+- [x] **CLI Spec Linter & Registry Scaffolding:** Spec/stream linter (`npx genui-studio validate <file|->`), CLI installer/exporter (`npx genui-studio add|list|export`), and pluggable `LicenseVerifier` hook (defaulting to offline `local-format-demo` mode).
+- [x] **Model Context Protocol (MCP) Server:** Tested over stdio JSON-RPC protocol (`node packages/genui-mcp/dist/cli.js`), configured in `.kiro/settings/mcp.json`.
 - [x] **Frictionless Developer DX:** Single root commands (`pnpm dev`, `pnpm mcp`, `pnpm test`, `pnpm genui-studio`), zero setup, zero API keys required.
 - [x] **Kiro Ecosystem Integration:** Formal Specs in EARS syntax, Steering Documents, Agent Hooks with Node scripts, Custom Kiro Power (`json-render-power`), and MCP Server configuration.

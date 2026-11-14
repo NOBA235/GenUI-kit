@@ -54,11 +54,21 @@ export function normalizeSafePointer(rawPath: string): string | null {
   return withSlash;
 }
 
+export const DEFAULT_MAX_VALUE_DEPTH = 32;
+export const DEFAULT_MAX_VALUE_NODES = 10_000;
+
 export interface DeepSanitizeCounters {
   healedNumbersCount: number;
   blockedUrisCount: number;
   blockedPathsCount: number;
   issues: GraphIssue[];
+  nodeCount?: number;
+  limitReached?: boolean;
+}
+
+export interface DeepSanitizeLimits {
+  readonly maxDepth?: number;
+  readonly maxNodes?: number;
 }
 
 /**
@@ -67,6 +77,7 @@ export interface DeepSanitizeCounters {
  * - Canonicalizes `-0` to `0` and heals `NaN` / `±Infinity` to `0`
  * - Blocks `javascript:`, `vbscript:`, and `data:text/html` URIs
  * - Protects against circular JS object references via a `WeakSet`
+ * - Enforces nesting depth (`maxDepth`) and total node budget (`maxNodes`)
  */
 export function deepCloneAndSanitizeValue(
   value: unknown,
@@ -74,7 +85,27 @@ export function deepCloneAndSanitizeValue(
   pathContext = "",
   elementKey?: string,
   seen: WeakSet<object> = new WeakSet(),
+  depth = 0,
+  limits: DeepSanitizeLimits = {},
 ): unknown {
+  const maxDepth = limits.maxDepth ?? DEFAULT_MAX_VALUE_DEPTH;
+  const maxNodes = limits.maxNodes ?? DEFAULT_MAX_VALUE_NODES;
+
+  counters.nodeCount = (counters.nodeCount ?? 0) + 1;
+  if (counters.nodeCount > maxNodes) {
+    if (!counters.limitReached) {
+      counters.limitReached = true;
+      counters.issues.push({
+        severity: "error",
+        code: "value_budget_exceeded",
+        message: `Value node count exceeded maxNodes (${maxNodes}) at "${pathContext}".`,
+        elementKey,
+        path: pathContext,
+      });
+    }
+    return null;
+  }
+
   if (value === null || value === undefined) {
     return value;
   }
@@ -131,18 +162,47 @@ export function deepCloneAndSanitizeValue(
     return null;
   }
 
+  if (depth >= maxDepth) {
+    counters.issues.push({
+      severity: "error",
+      code: "value_depth_exceeded",
+      message: `Value nesting depth exceeds maxDepth (${maxDepth}) at "${pathContext}".`,
+      elementKey,
+      path: pathContext,
+    });
+    return null;
+  }
+
   seen.add(value);
 
   if (Array.isArray(value)) {
-    const out = value.map((item, idx) =>
-      deepCloneAndSanitizeValue(
-        item,
-        counters,
-        `${pathContext}/${idx}`,
-        elementKey,
-        seen,
-      ),
-    );
+    const out: unknown[] = [];
+    for (let idx = 0; idx < value.length; idx += 1) {
+      if ((counters.nodeCount ?? 0) >= maxNodes) {
+        if (!counters.limitReached) {
+          counters.limitReached = true;
+          counters.issues.push({
+            severity: "error",
+            code: "value_budget_exceeded",
+            message: `Value node count exceeded maxNodes (${maxNodes}) at "${pathContext}".`,
+            elementKey,
+            path: pathContext,
+          });
+        }
+        break;
+      }
+      out.push(
+        deepCloneAndSanitizeValue(
+          value[idx],
+          counters,
+          `${pathContext}/${idx}`,
+          elementKey,
+          seen,
+          depth + 1,
+          limits,
+        ),
+      );
+    }
     seen.delete(value);
     return out;
   }
@@ -160,6 +220,19 @@ export function deepCloneAndSanitizeValue(
       });
       continue;
     }
+    if ((counters.nodeCount ?? 0) >= maxNodes) {
+      if (!counters.limitReached) {
+        counters.limitReached = true;
+        counters.issues.push({
+          severity: "error",
+          code: "value_budget_exceeded",
+          message: `Value node count exceeded maxNodes (${maxNodes}) at "${pathContext}".`,
+          elementKey,
+          path: pathContext,
+        });
+      }
+      break;
+    }
     const rawChild = (value as Record<string, unknown>)[key];
     out[key] = deepCloneAndSanitizeValue(
       rawChild,
@@ -167,6 +240,8 @@ export function deepCloneAndSanitizeValue(
       `${pathContext}/${key}`,
       elementKey,
       seen,
+      depth + 1,
+      limits,
     );
   }
 
@@ -320,6 +395,9 @@ export function inspectSpecGraph(
         message: `Element "${nodeKey}" at depth ${depth} exceeds maxDepth (${maxDepth}).`,
         elementKey: nodeKey,
       });
+      color.set(nodeKey, BLACK);
+      topologicalOrder.push(nodeKey);
+      return;
     }
 
     const el = rawElements[nodeKey];

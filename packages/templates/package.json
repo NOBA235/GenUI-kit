@@ -1,0 +1,55 @@
+{
+  "name": "@genui-studio/templates",
+  "version": "1.0.0",
+  "description": "Dual-Mode Template Registry, Scoped Theme Container Engine, Standalone Drop-In Ingestion Adapter, and Next.js .ZIP Exporter for GenUI Studio.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js",
+      "default": "./dist/node/index.js"
+    }
+  },
+  "scripts": {
+    "prebuild": "node ../../scripts/sync-templates.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@genui-studio/core": "workspace:*",
+    "@json-render/core": "^0.22.0",
+    "@json-render/react": "^0.22.0",
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^0.475.0",
+    "three": "^0.173.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.1.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/jszip": "^3.4.1",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.173.0",
+    "fast-check": "^4.10.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

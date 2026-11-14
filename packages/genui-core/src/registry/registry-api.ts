@@ -5,21 +5,55 @@ import type {
   ShadcnRegistryItem,
 } from "./types.js";
 
+export type LicenseVerificationMode =
+  | "free-tier"
+  | "local-format-demo"
+  | "custom-verifier";
+
+export interface LicenseValidationResult {
+  readonly valid: boolean;
+  readonly reason?: string;
+  readonly verificationMode: LicenseVerificationMode;
+  readonly subjectId?: string;
+}
+
+export type LicenseVerifier = (
+  token: string,
+  context: { readonly tier: "free" | "pro"; readonly packId?: string },
+) =>
+  | LicenseValidationResult
+  | { readonly valid: boolean; readonly reason?: string; readonly subjectId?: string };
+
+export interface ValidateLicenseTokenOptions {
+  /** Inject a real backend entitlement verifier (Stripe / Lemon Squeezy / signed JWT) */
+  readonly verifier?: LicenseVerifier;
+  /** Optional pack identifier passed to custom verifier */
+  readonly packId?: string;
+  /** Allow built-in local demo/judge tokens when no custom verifier is configured (default: true for local OSS/demo use) */
+  readonly allowDemoPasses?: boolean;
+}
+
 /**
  * Validates a Bearer license token for commercial Pro template packs.
- * Ready to hook into Lemon Squeezy, Gumroad, or Stripe license verification.
+ *
+ * By default (when no `options.verifier` is supplied), this performs **offline key-format
+ * and demo-pass validation only** (`verificationMode: "local-format-demo"`). Production SaaS
+ * deployments must inject a real server-side `options.verifier` backed by Stripe, Lemon Squeezy,
+ * or signed entitlement tokens and set `allowDemoPasses: false`.
  */
 export function validateLicenseToken(
   token?: string | null,
   tier: "free" | "pro" = "free",
-): { valid: boolean; reason?: string; customerEmail?: string } {
+  options: ValidateLicenseTokenOptions = {},
+): LicenseValidationResult {
   if (tier === "free") {
-    return { valid: true };
+    return { valid: true, verificationMode: "free-tier" };
   }
 
   if (!token || typeof token !== "string" || token.trim() === "") {
     return {
       valid: false,
+      verificationMode: options.verifier ? "custom-verifier" : "local-format-demo",
       reason:
         "Authentication required: Pro template pack requires a valid Bearer license key. Purchase at https://genui.studio/pro or pass --license=<key>.",
     };
@@ -27,15 +61,36 @@ export function validateLicenseToken(
 
   const cleanToken = token.replace(/^Bearer\s+/i, "").trim();
 
-  // Valid commercial license formats:
-  // - GENUI_PRO_* (official GenUI Studio license keys)
-  // - lic_live_* / lic_test_* (Lemon Squeezy format)
-  // - gs_tok_* (Stripe custom token format)
-  // - gum_* (Gumroad format)
-  // - dev-pro-license (Local developer pass for judges)
-  const isWellFormedKey =
+  if (options.verifier) {
+    const delegated = options.verifier(cleanToken, {
+      tier,
+      packId: options.packId,
+    });
+    return {
+      valid: delegated.valid,
+      reason: delegated.reason,
+      subjectId: delegated.subjectId,
+      verificationMode: "custom-verifier",
+    };
+  }
+
+  const allowDemoPasses = options.allowDemoPasses ?? true;
+  const isDemoPass =
     cleanToken === "dev-pro-license" ||
-    cleanToken === "kiroween-2026-judge-pass" ||
+    cleanToken === "kiroween-2026-judge-pass";
+
+  if (isDemoPass && !allowDemoPasses) {
+    return {
+      valid: false,
+      verificationMode: "local-format-demo",
+      reason:
+        "Invalid license key format: local demo passes are disabled when allowDemoPasses=false.",
+    };
+  }
+
+  // Offline key-format patterns (does NOT query a remote billing API unless options.verifier is set):
+  const isWellFormedKey =
+    (allowDemoPasses && isDemoPass) ||
     cleanToken.startsWith("GENUI_PRO_") ||
     cleanToken.startsWith("lic_live_") ||
     cleanToken.startsWith("lic_test_") ||
@@ -46,13 +101,14 @@ export function validateLicenseToken(
   if (!isWellFormedKey) {
     return {
       valid: false,
-      reason: `Invalid license key format "${cleanToken}". Expected prefix 'GENUI_PRO_', 'lic_live_', or 'kiroween-2026-judge-pass'.`,
+      verificationMode: "local-format-demo",
+      reason: `Invalid license key format "${cleanToken}". Expected prefix 'GENUI_PRO_', 'lic_live_', or configured verifier token.`,
     };
   }
 
   return {
     valid: true,
-    customerEmail: "verified-buyer@customer.org",
+    verificationMode: "local-format-demo",
   };
 }
 
@@ -124,6 +180,8 @@ export function handleRegistryApiRequest(
   options: {
     authHeader?: string | null;
     licenseToken?: string | null;
+    verifier?: LicenseVerifier;
+    allowDemoPasses?: boolean;
   } = {},
 ): RegistryApiResponse {
   const pack = ALL_TEMPLATE_PACKS[packId];
@@ -140,7 +198,11 @@ export function handleRegistryApiRequest(
   }
 
   const token = options.licenseToken ?? options.authHeader ?? null;
-  const auth = validateLicenseToken(token, pack.tier);
+  const auth = validateLicenseToken(token, pack.tier, {
+    verifier: options.verifier,
+    packId,
+    allowDemoPasses: options.allowDemoPasses,
+  });
 
   if (!auth.valid) {
     return {

@@ -1,4 +1,4 @@
-# Formal Correctness & Property-Based Testing (PBT) Specification
+# Property-Based Testing (PBT) & Invariant Specification
 
 **Spec ID:** `core-skeleton/correctness`  
 **Verification Engine:** `fast-check` (`^4.10.2`) + `vitest` (`^3.0.0`)  
@@ -12,25 +12,25 @@ In traditional UI engineering, component trees are statically authored by develo
 2. **Adversarial & Hallucinated Topologies:** Cyclic parent-child pointers (`A -> B -> A`), self-loops (`A -> A`), diamond shared-key aliasing (`A -> C` and `B -> C`), prototype-pollution paths (`/__proto__/isAdmin`), non-finite IEEE-754 floats (`NaN`, `Infinity`, `-0`), and `javascript:` XSS URIs.
 3. **Order-Dependent State & Prompt Drift:** Concurrent or out-of-order JSON Pointer state updates where parent/child paths collide (e.g. updating `/form` and `/form/email` in a batch), or non-deterministic LLM system prompt generation caused by JavaScript object key ordering.
 
-To achieve **mathematical confidence**, `@genui-studio/core` translates any registered `@json-render/core` Zod Catalog into a composable `fast-check` Arbitrary (`catalogToSpecArbitrary`) and verifies formal invariants across thousands of randomized and shrunk inputs.
+To establish **high-confidence empirical coverage**, `@genui-studio/core` translates any registered `@json-render/core` Zod Catalog into a composable `fast-check` Arbitrary (`catalogToSpecArbitrary`) and tests runtime invariants across randomized and shrunk inputs.
 
 ---
 
-## 2. Formal Mathematical Invariants
+## 2. Property-Based Invariants
 
-### Theorem 1: Stream Chunking Invariance (`INV-PBT-01`)
+### Property 1: Stream Chunking Invariance (`INV-PBT-01`)
 Let $S$ be any valid `Spec` generated from a registered `VerifiedCatalog` $\mathcal{C}$, and let $L = \text{specToJsonlStream}(S)$ be its serialized RFC 6902 JSONL patch stream of byte/character length $N = |L|$.
 
 For any random partition vector $P = (p_1, p_2, \dots, p_k)$ where $0 < p_1 < p_2 < \dots < p_k < N$, define the chunk sequence $c_i = L[p_{i-1} \dots p_i)$.
 
 $$\forall S \in \text{ValidSpecs}(\mathcal{C}), \forall P \in \text{Partitions}(|L|): \quad \text{Finalize}\left(\bigoplus_{i=1}^{k+1} \text{Push}(c_i)\right).\text{spec} \equiv \text{CompileBatch}(L).\text{spec} \equiv S$$
 
-**What this proves:**
-- Line buffering inside `GuardrailedStreamCompiler` is 100% invariant to arbitrary network packet fragmentation, 1-byte drips, `\r\n` vs `\n` line endings, code-fence wrappers (` ```spec `), and missing trailing newlines at EOF.
+**What this tests:**
+- Line buffering inside `GuardrailedStreamCompiler` is invariant to arbitrary network packet fragmentation, 1-byte drips, `\r\n` vs `\n` line endings, code-fence wrappers (` ```spec `), SSE `data:` framing, and missing trailing newlines at EOF.
 
 ---
 
-### Theorem 2: Adversarial Payload Resilience & Total Non-Crash Guarantee (`INV-PBT-02`)
+### Property 2: Adversarial Payload Resilience & Total Non-Crash Guarantee (`INV-PBT-02`)
 Let $\Sigma^*$ be the universe of arbitrary, corrupted, or adversarial string chunks and mutated `Spec` objects containing:
 - Prototype pollution vectors: `__proto__`, `constructor`, `prototype` in JSON Patch paths or element keys.
 - Non-finite and boundary numbers: `NaN`, `+Infinity`, `-Infinity`, `-0`, `Number.MAX_SAFE_INTEGER + 1`, out-of-range `.min()`/`.max()` numbers.
@@ -46,7 +46,7 @@ Furthermore, for any sanitized spec $S' = \text{sanitizeSpecGraph}(S).\text{spec
 
 ---
 
-### Theorem 3: State Pointer Idempotency, Determinism & Session Isolation (`INV-PBT-03`)
+### Property 3: State Pointer Idempotency, Determinism & Session Isolation (`INV-PBT-03`)
 Let $\mathcal{M}_1, \mathcal{M}_2$ be two independent `TimeTravelStateStore` instances initialized with state $S_0$.
 
 1. **Pointer Idempotency:** Applying the same value $v$ at JSON Pointer path $p$ twice produces zero redundant state transitions or history entries:
@@ -58,14 +58,14 @@ Let $\mathcal{M}_1, \mathcal{M}_2$ be two independent `TimeTravelStateStore` ins
 
 ---
 
-### Theorem 4: Catalog-to-Prompt & Fingerprint Determinism (`INV-PBT-04`)
+### Property 4: Catalog-to-Prompt & Fingerprint Determinism (`INV-PBT-04`)
 Let $\mathcal{C}_A$ and $\mathcal{C}_B$ be two catalog definitions containing the exact same set of component schemas and action definitions, but constructed with arbitrary key insertion permutations $\pi_{\text{comp}}, \pi_{\text{props}}, \pi_{\text{act}}$.
 
 $$\forall \pi_{\text{comp}}, \pi_{\text{props}}, \pi_{\text{act}}: \quad \text{createVerifiedCatalog}(\mathcal{C}_A).\text{metadata.catalogHash} === \text{createVerifiedCatalog}(\mathcal{C}_B).\text{metadata.catalogHash}$$
 $$\land \quad \text{generateSynchronizedPrompt}(\mathcal{C}_A, \text{opts}) === \text{generateSynchronizedPrompt}(\mathcal{C}_B, \text{opts})$$
 
-**What this proves:**
-- System prompt compilation and SHA-256/FNV-1a schema fingerprinting are 100% deterministic, immune to V8 key-insertion order variance, and lossless (every registered component name, prop key, and action name is provably present in the compiled prompt).
+**What this tests:**
+- System prompt compilation and synchronous FIPS 180-4 SHA-256 schema fingerprinting over canonical UTF-8 JSON are deterministic, immune to V8 key-insertion order variance, and lossless (every registered component name, prop key, and action name is present in the compiled prompt).
 
 ---
 

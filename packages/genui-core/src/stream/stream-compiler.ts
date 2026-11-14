@@ -43,6 +43,14 @@ export interface GuardrailedStreamCompilerOptions {
   readonly maxDepth?: number;
   /** Maximum allowed elements (default: 500) */
   readonly maxElements?: number;
+  /** Maximum pending incomplete line buffer size in bytes (default: 524288 = 512 KB) */
+  readonly maxBufferBytes?: number;
+  /** Maximum single line length in bytes (default: 524288 = 512 KB) */
+  readonly maxLineLength?: number;
+  /** Maximum total bytes accepted over stream lifetime (default: 8388608 = 8 MB) */
+  readonly maxTotalStreamBytes?: number;
+  /** Maximum number of applied patches over stream lifetime (default: 5000) */
+  readonly maxPatches?: number;
   /** Optional external telemetry tracker to share across components */
   readonly telemetryTracker?: TelemetryTracker;
 }
@@ -236,10 +244,24 @@ export function createGuardrailedStreamCompiler(
 ): GuardrailedStreamCompiler {
   const maxDepth = options.maxDepth ?? 16;
   const maxElements = options.maxElements ?? 500;
+  const maxBufferBytes = Math.max(1024, options.maxBufferBytes ?? 512 * 1024);
+  const maxLineLength = Math.max(1024, options.maxLineLength ?? 512 * 1024);
+  const maxTotalStreamBytes = Math.max(
+    1024,
+    options.maxTotalStreamBytes ?? 8 * 1024 * 1024,
+  );
+  const maxPatches = Math.max(1, options.maxPatches ?? 5_000);
+  const maxRejectedLog = 1_000;
+  const utf8Encoder = new TextEncoder();
+  const getUtf8ByteLength = (text: string): number =>
+    utf8Encoder.encode(text).byteLength;
   const catalog = options.catalog;
   const tracker = options.telemetryTracker ?? createTelemetryTracker();
 
   let lineBuffer = "";
+  let droppingOversizedLine = false;
+  let totalBytesReceived = 0;
+  let streamLimitTripped = false;
   let rawPatchState: Record<string, unknown> = createInitialRawState(
     options.initialSpec,
   );
@@ -247,6 +269,15 @@ export function createGuardrailedStreamCompiler(
   let currentHealedDiagnostics: HealedDiagnosticsByElement = {};
   const appliedPatches: SpecStreamLine[] = [];
   const rejectedLines: string[] = [];
+
+  function recordRejectedLine(line: string, stepRejected: string[]): void {
+    const preview =
+      line.length > 512 ? `${line.slice(0, 512)}...[truncated]` : line;
+    stepRejected.push(preview);
+    if (rejectedLines.length < maxRejectedLog) {
+      rejectedLines.push(preview);
+    }
+  }
 
   /**
    * Groups healed diagnostics by element key. Because sanitizeAndHealCurrentState re-evaluates
@@ -340,53 +371,33 @@ export function createGuardrailedStreamCompiler(
     };
   }
 
-  function processSingleLine(
-    rawLine: string,
+  function applyValidatedPatchCandidate(
+    candidate: unknown,
+    sourceLine: string,
     stepApplied: SpecStreamLine[],
     stepRejected: string[],
     stepIssues: GraphIssue[],
   ): { healedDelta: number; rejectedDelta: number } {
-    const trimmed = rawLine.trim();
-    if (!trimmed) {
-      return { healedDelta: 0, rejectedDelta: 0 };
+    if (appliedPatches.length >= maxPatches) {
+      recordRejectedLine(sourceLine, stepRejected);
+      stepIssues.push({
+        severity: "error",
+        code: "stream_limit_exceeded",
+        message: `Patch count reached maxPatches (${maxPatches}); patch rejected.`,
+      });
+      return { healedDelta: 0, rejectedDelta: 1 };
     }
 
-    // Ignore markdown code fence lines (e.g. ```spec, ```jsonl, ```json, ```) or comments
-    if (trimmed.startsWith("```") || trimmed.startsWith("//")) {
-      return { healedDelta: 0, rejectedDelta: 0 };
-    }
-
-    // Parse JSON line safely
-    let parsedJson: unknown;
-    try {
-      parsedJson = JSON.parse(trimmed);
-    } catch {
-      // Fallback to @json-render/core's parseSpecStreamLine if applicable
-      const fallback = parseSpecStreamLine(trimmed);
-      if (!fallback) {
-        rejectedLines.push(trimmed);
-        stepRejected.push(trimmed);
-        stepIssues.push({
-          severity: "warning",
-          code: "malformed_patch_line",
-          message: `Rejected malformed JSONL line: ${trimmed.slice(0, 80)}`,
-        });
-        return { healedDelta: 0, rejectedDelta: 1 };
-      }
-      parsedJson = fallback;
-    }
-
-    const safety = validatePatchSafety(parsedJson, rawPatchState);
+    const safety = validatePatchSafety(candidate, rawPatchState);
     if (!safety.ok) {
-      rejectedLines.push(trimmed);
-      stepRejected.push(trimmed);
+      recordRejectedLine(sourceLine, stepRejected);
       stepIssues.push({
         severity: "error",
         code: "blocked_unsafe_path",
         message: safety.reason,
         path:
-          typeof (parsedJson as Record<string, unknown>)?.path === "string"
-            ? ((parsedJson as Record<string, unknown>).path as string)
+          typeof (candidate as Record<string, unknown>)?.path === "string"
+            ? ((candidate as Record<string, unknown>).path as string)
             : undefined,
       });
       return { healedDelta: 0, rejectedDelta: 1 };
@@ -426,8 +437,7 @@ export function createGuardrailedStreamCompiler(
       };
     } catch (err) {
       rawPatchState = backup;
-      rejectedLines.push(trimmed);
-      stepRejected.push(trimmed);
+      recordRejectedLine(sourceLine, stepRejected);
       stepIssues.push({
         severity: "error",
         code: "malformed_patch_line",
@@ -444,6 +454,102 @@ export function createGuardrailedStreamCompiler(
     }
   }
 
+  function processSingleLine(
+    rawLine: string,
+    stepApplied: SpecStreamLine[],
+    stepRejected: string[],
+    stepIssues: GraphIssue[],
+  ): { healedDelta: number; rejectedDelta: number } {
+    let trimmed = rawLine.trim();
+    if (!trimmed) {
+      return { healedDelta: 0, rejectedDelta: 0 };
+    }
+
+    // Ignore markdown code fence lines (e.g. ```spec, ```jsonl, ```json, ```) or comments
+    if (trimmed.startsWith("```") || trimmed.startsWith("//")) {
+      return { healedDelta: 0, rejectedDelta: 0 };
+    }
+
+    // Ignore SSE comments/keepalives and control lines; unwrap SSE `data:` payloads
+    if (trimmed.startsWith(":") || /^(?:event|id|retry):/i.test(trimmed)) {
+      return { healedDelta: 0, rejectedDelta: 0 };
+    }
+    if (/^data:/i.test(trimmed)) {
+      trimmed = trimmed.replace(/^data:\s*/i, "").trim();
+      if (!trimmed || trimmed === "[DONE]") {
+        return { healedDelta: 0, rejectedDelta: 0 };
+      }
+    }
+
+    // Parse JSON line safely
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(trimmed);
+    } catch {
+      // Fallback to @json-render/core's parseSpecStreamLine if applicable
+      const fallback = parseSpecStreamLine(trimmed);
+      if (!fallback) {
+        recordRejectedLine(trimmed, stepRejected);
+        stepIssues.push({
+          severity: "warning",
+          code: "malformed_patch_line",
+          message: `Rejected malformed JSONL line: ${trimmed.slice(0, 80)}`,
+        });
+        return { healedDelta: 0, rejectedDelta: 1 };
+      }
+      parsedJson = fallback;
+    }
+
+    // Support whole-Spec `{ root, elements, state? }` payloads (common SSE/single-shot output)
+    if (
+      parsedJson !== null &&
+      typeof parsedJson === "object" &&
+      !Array.isArray(parsedJson) &&
+      !("op" in parsedJson) &&
+      typeof (parsedJson as Record<string, unknown>).root === "string" &&
+      (parsedJson as Record<string, unknown>).elements !== null &&
+      typeof (parsedJson as Record<string, unknown>).elements === "object" &&
+      !Array.isArray((parsedJson as Record<string, unknown>).elements)
+    ) {
+      const specObj = parsedJson as Record<string, unknown>;
+      const candidates: Array<{ op: "add"; path: string; value: unknown }> = [
+        { op: "add", path: "/root", value: specObj.root },
+        { op: "add", path: "/elements", value: specObj.elements },
+      ];
+      if (
+        specObj.state !== undefined &&
+        specObj.state !== null &&
+        typeof specObj.state === "object" &&
+        !Array.isArray(specObj.state)
+      ) {
+        candidates.push({ op: "add", path: "/state", value: specObj.state });
+      }
+
+      let healedDelta = 0;
+      let rejectedDelta = 0;
+      for (const candidate of candidates) {
+        const res = applyValidatedPatchCandidate(
+          candidate,
+          trimmed,
+          stepApplied,
+          stepRejected,
+          stepIssues,
+        );
+        healedDelta += res.healedDelta;
+        rejectedDelta += res.rejectedDelta;
+      }
+      return { healedDelta, rejectedDelta };
+    }
+
+    return applyValidatedPatchCandidate(
+      parsedJson,
+      trimmed,
+      stepApplied,
+      stepRejected,
+      stepIssues,
+    );
+  }
+
   return {
     push(chunk: string): GuardrailedStreamStepResult {
       const startTime = performance.now();
@@ -453,27 +559,94 @@ export function createGuardrailedStreamCompiler(
         tracker.startStream();
       }
 
-      lineBuffer += safeChunk;
-
       const stepApplied: SpecStreamLine[] = [];
       const stepRejected: string[] = [];
       const stepIssues: GraphIssue[] = [];
       let patchHealedDelta = 0;
       let patchRejectedDelta = 0;
 
-      let newlineIdx = lineBuffer.indexOf("\n");
-      while (newlineIdx !== -1) {
-        const line = lineBuffer.slice(0, newlineIdx).replace(/\r$/, "");
-        lineBuffer = lineBuffer.slice(newlineIdx + 1);
-        const deltas = processSingleLine(
-          line,
-          stepApplied,
-          stepRejected,
-          stepIssues,
-        );
-        patchHealedDelta += deltas.healedDelta;
-        patchRejectedDelta += deltas.rejectedDelta;
-        newlineIdx = lineBuffer.indexOf("\n");
+      const chunkByteLength = getUtf8ByteLength(safeChunk);
+      totalBytesReceived += chunkByteLength;
+
+      if (streamLimitTripped) {
+        patchRejectedDelta += 1;
+      } else if (totalBytesReceived > maxTotalStreamBytes) {
+        streamLimitTripped = true;
+        lineBuffer = "";
+        droppingOversizedLine = false;
+        recordRejectedLine(safeChunk, stepRejected);
+        patchRejectedDelta += 1;
+        stepIssues.push({
+          severity: "error",
+          code: "stream_limit_exceeded",
+          message: `Stream exceeded maxTotalStreamBytes (${maxTotalStreamBytes}); remaining chunks dropped.`,
+        });
+      } else {
+        let cursor = 0;
+        while (cursor < safeChunk.length) {
+          const nlIdx = safeChunk.indexOf("\n", cursor);
+          if (nlIdx === -1) {
+            const remainder = safeChunk.slice(cursor);
+            if (!droppingOversizedLine) {
+              const combinedByteLength =
+                getUtf8ByteLength(lineBuffer) + getUtf8ByteLength(remainder);
+              if (combinedByteLength > maxBufferBytes) {
+                const combinedPreview = `${lineBuffer}${remainder}`;
+                lineBuffer = "";
+                droppingOversizedLine = true;
+                recordRejectedLine(combinedPreview, stepRejected);
+                patchRejectedDelta += 1;
+                stepIssues.push({
+                  severity: "error",
+                  code: "line_limit_exceeded",
+                  message: `Buffered incomplete line exceeded maxBufferBytes (${maxBufferBytes}) and was discarded.`,
+                });
+              } else {
+                lineBuffer += remainder;
+              }
+            }
+            break;
+          }
+
+          const segment = safeChunk.slice(cursor, nlIdx);
+          cursor = nlIdx + 1;
+
+          if (droppingOversizedLine) {
+            droppingOversizedLine = false;
+            continue;
+          }
+
+          const segmentClean = segment.endsWith("\r")
+            ? segment.slice(0, -1)
+            : segment;
+          const rawCompleteLine =
+            lineBuffer.length > 0 ? `${lineBuffer}${segmentClean}` : segmentClean;
+          lineBuffer = "";
+
+          const cleanLine = rawCompleteLine.endsWith("\r")
+            ? rawCompleteLine.slice(0, -1)
+            : rawCompleteLine;
+
+          if (getUtf8ByteLength(cleanLine) > maxLineLength) {
+            recordRejectedLine(cleanLine, stepRejected);
+            patchRejectedDelta += 1;
+            stepIssues.push({
+              severity: "error",
+              code: "line_limit_exceeded",
+              message: `Stream line exceeded maxLineLength (${maxLineLength} bytes) and was rejected.`,
+            });
+            continue;
+          }
+
+          const deltas = processSingleLine(
+            cleanLine,
+            stepApplied,
+            stepRejected,
+            stepIssues,
+          );
+          patchHealedDelta += deltas.healedDelta;
+          patchRejectedDelta += deltas.rejectedDelta;
+        }
       }
 
       let sanitizeResult = {
@@ -529,12 +702,26 @@ export function createGuardrailedStreamCompiler(
       let patchRejectedDelta = 0;
 
       // Flush any trailing line that did not end with \n (Fixes BUG-PBT-01)
-      if (lineBuffer.length > 0) {
+      if (streamLimitTripped || droppingOversizedLine) {
+        lineBuffer = "";
+        droppingOversizedLine = false;
+      } else if (lineBuffer.length > 0) {
         const remainingLines = lineBuffer.split("\n");
         lineBuffer = "";
         for (const rawLine of remainingLines) {
+          const cleanLine = rawLine.replace(/\r$/, "");
+          if (getUtf8ByteLength(cleanLine) > maxLineLength) {
+            recordRejectedLine(cleanLine, stepRejected);
+            patchRejectedDelta += 1;
+            stepIssues.push({
+              severity: "error",
+              code: "line_limit_exceeded",
+              message: `Trailing stream line exceeded maxLineLength (${maxLineLength} bytes) and was rejected.`,
+            });
+            continue;
+          }
           const deltas = processSingleLine(
-            rawLine.replace(/\r$/, ""),
+            cleanLine,
             stepApplied,
             stepRejected,
             stepIssues,
@@ -602,6 +789,9 @@ export function createGuardrailedStreamCompiler(
 
     reset(nextInitialSpec?: Spec): void {
       lineBuffer = "";
+      droppingOversizedLine = false;
+      totalBytesReceived = 0;
+      streamLimitTripped = false;
       appliedPatches.length = 0;
       rejectedLines.length = 0;
       rawPatchState = createInitialRawState(nextInitialSpec);

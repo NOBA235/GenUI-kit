@@ -8,11 +8,6 @@ import {
   handleFetchTraceSpans,
   handleExecuteRemediation,
 } from "./tools/telemetry-tools.js";
-import {
-  handleQueryFinopsLedger,
-  handleInspectFailedWebhooks,
-  handleExecuteFinopsRemediation,
-} from "./tools/finops-tools.js";
 
 export interface CreateMcpServerOptions {
   name?: string;
@@ -20,7 +15,7 @@ export interface CreateMcpServerOptions {
 }
 
 /**
- * Creates and configures the GenUI Studio MCP Server with all 3 core verification tools.
+ * Creates and configures the GenUI Studio MCP Server with core verification tools and SpatialOps telemetry tools.
  */
 export function createGenUIMcpServer(
   options: CreateMcpServerOptions = {},
@@ -33,12 +28,12 @@ export function createGenUIMcpServer(
   // Tool 1: list_catalog_components
   server.tool(
     "list_catalog_components",
-    "Inspect available UI/3D components and their Zod schemas in either app (FinOps Command Center or Spatial War-Room).",
+    "Inspect available SpatialOps UI/3D components and their Zod schemas.",
     {
       app: z
-        .enum(["finops", "spatial", "all"])
+        .enum(["spatial", "all"])
         .optional()
-        .describe("Target application catalog ('finops', 'spatial', or 'all')"),
+        .describe("Target application catalog ('spatial' or 'all')"),
       componentName: z
         .string()
         .optional()
@@ -74,11 +69,12 @@ export function createGenUIMcpServer(
   // Tool 2: validate_ui_spec
   server.tool(
     "validate_ui_spec",
-    "Validate a proposed JSON UI tree against a target catalog and return detailed structural diagnostics or auto-fix suggestions.",
+    "Validate a proposed JSON UI tree against the SpatialOps catalog and return detailed structural diagnostics or auto-fix suggestions.",
     {
       app: z
-        .enum(["finops", "spatial"])
-        .describe("Target application catalog ('finops' or 'spatial')"),
+        .enum(["spatial"])
+        .optional()
+        .describe("Target application catalog ('spatial', default: 'spatial')"),
       spec: z
         .any()
         .describe("The proposed Spec JSON tree or raw RFC 6902 JSONL text"),
@@ -119,11 +115,12 @@ export function createGenUIMcpServer(
   // Tool 3: fuzz_test_catalog
   server.tool(
     "fuzz_test_catalog",
-    "Trigger a quick fast-check property test run on a component schema or the full catalog invariant suite, returning the compliance report.",
+    "Trigger a quick fast-check property test run on a component schema or the full SpatialOps catalog invariant suite, returning the compliance report.",
     {
       app: z
-        .enum(["finops", "spatial"])
-        .describe("Target application catalog ('finops' or 'spatial')"),
+        .enum(["spatial"])
+        .optional()
+        .describe("Target application catalog ('spatial', default: 'spatial')"),
       componentName: z
         .string()
         .optional()
@@ -166,7 +163,7 @@ export function createGenUIMcpServer(
   // Tool 4: query_telemetry_metrics
   server.tool(
     "query_telemetry_metrics",
-    "Query real-time service mesh telemetry metrics (RPS, error rate, p95 latency, health status) to detect anomalies.",
+    "[Sandbox Demo / Pluggable Provider] Query service mesh telemetry metrics (RPS, error rate, p95 latency, health status) using the configured McpTelemetryProvider (defaults to an in-memory seeded simulation provider).",
     {
       serviceId: z
         .string()
@@ -207,7 +204,7 @@ export function createGenUIMcpServer(
   // Tool 5: fetch_trace_spans
   server.tool(
     "fetch_trace_spans",
-    "Fetch distributed trace waterfall spans for root-cause diagnosis. Identifies the exact bottleneck span and database query causing latency or failure.",
+    "[Sandbox Demo / Pluggable Provider] Fetch distributed trace waterfall spans from the configured McpTelemetryProvider (defaults to an in-memory seeded simulation provider).",
     {
       traceId: z
         .string()
@@ -248,7 +245,7 @@ export function createGenUIMcpServer(
   // Tool 6: execute_remediation
   server.tool(
     "execute_remediation",
-    "Execute a verified SRE remediation action (tripCircuitBreaker, scaleServiceReplicas, triggerRegionalFailover, rollbackDeployment) against the live infrastructure target.",
+    "[Sandbox Demo / Pluggable Provider] Dispatch an SRE remediation action (tripCircuitBreaker, scaleServiceReplicas, triggerRegionalFailover, rollbackDeployment) through the configured McpTelemetryProvider (defaults to in-memory simulation state).",
     {
       action: z
         .enum([
@@ -284,141 +281,6 @@ export function createGenUIMcpServer(
             {
               type: "text",
               text: `Error executing remediation: ${
-                err instanceof Error ? err.message : String(err)
-              }`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Tool 7: query_finops_ledger
-  server.tool(
-    "query_finops_ledger",
-    "Query live SaaS revenue ledger metrics (MRR, At-Risk MRR, Disputed Balance, failed charges) and filter enterprise accounts.",
-    {
-      region: z
-        .enum(["NA", "EMEA", "APAC", "LATAM"])
-        .optional()
-        .describe("Optional region filter (e.g. 'EMEA')"),
-      status: z
-        .string()
-        .optional()
-        .describe("Optional subscription status filter (e.g. 'PAST_DUE')"),
-      onlyAtRisk: z
-        .boolean()
-        .optional()
-        .describe("Return only PAST_DUE, DISPUTED, or AT_RISK accounts"),
-    },
-    async (args) => {
-      try {
-        const result = handleQueryFinopsLedger(args);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (err) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: `Error querying FinOps ledger: ${
-                err instanceof Error ? err.message : String(err)
-              }`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Tool 8: inspect_failed_webhooks
-  server.tool(
-    "inspect_failed_webhooks",
-    "Inspect live Stripe/Adyen failed payment webhooks and distributed 3DS2 gateway trace waterfall spans to diagnose decline root causes.",
-    {
-      webhookId: z
-        .string()
-        .optional()
-        .describe("Optional specific webhook event ID to inspect"),
-      onlyFailed: z
-        .boolean()
-        .optional()
-        .describe("Only return failed or pending retry webhooks"),
-    },
-    async (args) => {
-      try {
-        const result = handleInspectFailedWebhooks(args);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (err) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: `Error inspecting failed webhooks: ${
-                err instanceof Error ? err.message : String(err)
-              }`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Tool 9: execute_finops_remediation
-  server.tool(
-    "execute_finops_remediation",
-    "Execute verified FinOps recovery operations (failoverPaymentGateway, retryFailedWebhook, issuePartialRefund, applyRetentionDiscount, extendTrialPeriod) and verify gateway recovery.",
-    {
-      action: z
-        .enum([
-          "retryFailedWebhook",
-          "failoverPaymentGateway",
-          "issuePartialRefund",
-          "applyRetentionDiscount",
-          "extendTrialPeriod",
-        ])
-        .describe("FinOps remediation action to execute"),
-      targetAccountId: z
-        .string()
-        .describe("Target enterprise customer account ID (e.g. 'acct_1001')"),
-      parameters: z
-        .record(z.string(), z.any())
-        .optional()
-        .describe("Optional action parameters such as routeGateway or amountCents"),
-    },
-    async (args) => {
-      try {
-        const result = handleExecuteFinopsRemediation(args);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (err) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: `Error executing FinOps remediation: ${
                 err instanceof Error ? err.message : String(err)
               }`,
             },

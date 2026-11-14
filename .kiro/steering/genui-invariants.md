@@ -4,7 +4,7 @@ inclusion: always
 
 # GenUI Invariants & Safety Contracts (`genui-invariants.md`)
 
-Every module in `@genui-studio/core`, `apps/workbench`, and `apps/spatial-ops` MUST enforce the following 7 formal invariants. These invariants are verified continuously via `fast-check` property-based tests.
+Every module in `@genui-studio/core` and `apps/spatial-ops` MUST enforce the following 7 runtime and safety invariants. These invariants are continuously checked via `fast-check` property-based tests and Vitest integration suites.
 
 ---
 
@@ -31,7 +31,7 @@ Every module in `@genui-studio/core`, `apps/workbench`, and `apps/spatial-ops` M
 - **Enforcement:**
   - `inspectSpecGraph(spec)` performs a 3-color depth-first traversal (`WHITE`, `GRAY`, `BLACK`) starting from `spec.root` (and scanning all keys in `spec.elements`) across both `children` and `slots`.
   - Any back-edge (`target` is `GRAY`) is detected in $O(V + E)$ time, reported with issue code `"cyclic_reference"`, and deterministically severed by `sanitizeSpecGraph(spec)` before `<Renderer>` receives the spec.
-  - Maximum tree depth is bounded by `maxDepth` (default `16`) and maximum total elements by `maxElements` (default `500`).
+  - Maximum tree depth is bounded by `maxDepth` (default `16`), maximum total elements by `maxElements` (default `500`), recursive JS values by `maxValueDepth` (`32`) / `maxValueNodes` (`10_000`), and stream framing by `maxBufferBytes`/`maxLineLength` (`512 KB`), `maxTotalStreamBytes` (`8 MB`), and `maxPatches` (`5_000`).
 
 ---
 
@@ -55,7 +55,7 @@ Every module in `@genui-studio/core`, `apps/workbench`, and `apps/spatial-ops` M
 ## Invariant 6: Structural Sharing & Watch Cascade Termination
 - **Rule:** Bidirectional state updates via `StateStore` (`set`, `update`) must preserve referential identity for unmodified subtrees (`immutableSetByPath`) and prevent infinite `watch` action loops (`watch: { "/a": { action: "setB" } }` -> `watch: { "/b": { action: "setA" } }`).
 - **Enforcement:**
-  - State updates use `@json-render/core/store-utils` `immutableSetByPath(snapshot, path, value)` so untouched branches keep their exact `===` object reference.
+  - State updates use `@json-render/core/store-utils` `immutableSetByPath(snapshot, path, value)` and recursive `deepFreezeValue()` so snapshots and `getHistory()` entries cannot be mutated externally while untouched branches keep their exact `===` object reference.
   - The state store tracks causal mutation depth per tick; if cascading `watch` reactions exceed `maxCascadeDepth` (default `10`) within a single synchronous flush window, the cascade circuit breaker trips and logs a structured telemetry warning.
 
 ---
@@ -63,5 +63,5 @@ Every module in `@genui-studio/core`, `apps/workbench`, and `apps/spatial-ops` M
 ## Invariant 7: Per-Element Fault Isolation (Zero White-Screen Guarantee)
 - **Rule:** A runtime exception or invalid prop inside a single rendered `UIElement` must NEVER unmount or crash the parent tree or sibling components.
 - **Enforcement:**
-  - Every component registered through `@genui-studio/core`'s `wrapRegistryWithTelemetry()` is wrapped in a granular React Error Boundary and Zod prop pre-validator.
+  - Every component registered through `@genui-studio/core`'s `wrapRegistryWithTelemetry()` isolates component hook execution in `<SafeElementInvoker>` inside `<GenUIElementErrorBoundary>` alongside Zod prop pre-validation, ensuring React Rules-of-Hooks consistency across invalid/valid/error transitions.
   - If an element throws during render or fails strict prop coercion, only that element's bounding box renders a compact `<ElementFaultFallback />` telemetry card displaying the element key, component type, and Zod/runtime diagnostic, while the rest of the dashboard or 3D scene continues operating normally.

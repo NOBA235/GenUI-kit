@@ -22,7 +22,7 @@ export const TemplateExportModal: React.FC<TemplateExportModalProps> = ({
   const [zipSuccessMsg, setZipSuccessMsg] = useState<string | null>(null);
 
   const pack: AgentReadyPackManifest =
-    ALL_TEMPLATE_PACKS[packId] ?? ALL_TEMPLATE_PACKS["finops-command-pro"]!;
+    ALL_TEMPLATE_PACKS[packId] ?? ALL_TEMPLATE_PACKS["spatial-ops-3d-pro"]!;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -224,7 +224,7 @@ export const TemplateExportModal: React.FC<TemplateExportModalProps> = ({
                     className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-1.5 font-mono text-xs text-slate-100 focus:border-purple-400 focus:outline-none"
                   />
                   <p className="text-[11px] text-slate-400">
-                    Token is validated via Bearer Authorization header against our Registry API before streaming files.
+                    Token is checked via Bearer Authorization in local format/demo mode by default (plug in a custom <code className="text-slate-300">LicenseVerifier</code> for production Stripe/Lemon Squeezy billing).
                   </p>
                 </div>
               )}

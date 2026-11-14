@@ -10,14 +10,14 @@ import {
 import { getVerifiedCatalog, type AppCatalogKey } from "../catalogs/index.js";
 
 export interface ValidateUiSpecInput {
-  app: "finops" | "spatial";
+  app?: "spatial";
   spec: unknown;
   autoFix?: boolean;
 }
 
 export interface ValidateUiSpecResult {
   valid: boolean;
-  app: "finops" | "spatial";
+  app: "spatial";
   catalogHash: string;
   graph: {
     hasCycles: boolean;
@@ -94,10 +94,11 @@ function normalizeSpecInput(
 export function handleValidateUiSpec(
   input: ValidateUiSpecInput,
 ): ValidateUiSpecResult {
-  const verifiedCat = getVerifiedCatalog(input.app);
+  const app: AppCatalogKey = input.app ?? "spatial";
+  const verifiedCat = getVerifiedCatalog(app);
   const autoFix = input.autoFix ?? true;
 
-  const { spec, parsingErrors } = normalizeSpecInput(input.spec, input.app);
+  const { spec, parsingErrors } = normalizeSpecInput(input.spec, app);
   const inspection: GraphInspectionResult = inspectSpecGraph(spec);
 
   // Validate elements against catalog schemas
@@ -196,7 +197,7 @@ export function handleValidateUiSpec(
     propDiagnostics.every((d) => d.status === "valid");
 
   const summary = isValid
-    ? `Spec is 100% valid DAG conforming to @genui-studio/${input.app} catalog (hash: ${verifiedCat.metadata.catalogHash.slice(
+    ? `Spec is 100% valid DAG conforming to @genui-studio/${app} catalog (hash: ${verifiedCat.metadata.catalogHash.slice(
         0,
         12,
       )}).`
@@ -206,7 +207,7 @@ export function handleValidateUiSpec(
 
   return {
     valid: isValid,
-    app: input.app,
+    app,
     catalogHash: verifiedCat.metadata.catalogHash,
     graph: {
       hasCycles: inspection.hasCycles,

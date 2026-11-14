@@ -51,7 +51,11 @@ export type GraphIssueCode =
   | "blocked_unsafe_uri"
   | "healed_non_finite_number"
   | "unknown_component"
-  | "malformed_patch_line";
+  | "malformed_patch_line"
+  | "stream_limit_exceeded"
+  | "line_limit_exceeded"
+  | "value_depth_exceeded"
+  | "value_budget_exceeded";
 
 /**
  * Extended structural / security issue reported by @genui-studio/core.

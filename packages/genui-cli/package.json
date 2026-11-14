@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@genui-studio/core": "workspace:*",
+    "@genui-studio/templates": "workspace:*",
     "jszip": "^3.10.2"
   },
   "devDependencies": {

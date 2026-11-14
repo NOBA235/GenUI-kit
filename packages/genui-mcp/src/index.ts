@@ -37,26 +37,8 @@ export {
 } from "./tools/telemetry-tools.js";
 
 export {
-  handleQueryFinopsLedger,
-  handleInspectFailedWebhooks,
-  handleExecuteFinopsRemediation,
-  setMcpFinOpsProvider,
-  getMcpFinOpsProvider,
-  type McpFinOpsAccount,
-  type McpFinOpsWebhook,
-  type McpPaymentTraceSpan,
-  type McpPaymentTrace,
-  type McpFinOpsLedgerSummary,
-  type McpFinOpsProvider,
-} from "./tools/finops-tools.js";
-
-export { describeZodSchema } from "./schema-describer.js";
-
-export {
   BUILTIN_CATALOGS,
   BUILTIN_CATALOG_DEFINITIONS,
-  finopsCatalogDefinitions,
-  finopsVerifiedCatalog,
   spatialCatalogDefinitions,
   spatialVerifiedCatalog,
   getVerifiedCatalog,

@@ -20,6 +20,27 @@ export interface TimeTravelStateStoreOptions {
   readonly onCascadeTrip?: (depth: number, path: string) => void;
 }
 
+function deepFreezeValue<T>(value: T): T {
+  if (value === null || value === undefined || typeof value !== "object") {
+    return value;
+  }
+  // Short-circuit already-frozen branches so structural sharing stays O(changed-path).
+  if (Object.isFrozen(value)) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i += 1) {
+      deepFreezeValue(value[i]);
+    }
+    return Object.freeze(value);
+  }
+  const record = value as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    deepFreezeValue(record[key]);
+  }
+  return Object.freeze(value);
+}
+
 function sanitizeStateValue(value: unknown, pathContext: string): unknown {
   const counters: DeepSanitizeCounters = {
     healedNumbersCount: 0,
@@ -27,7 +48,9 @@ function sanitizeStateValue(value: unknown, pathContext: string): unknown {
     blockedPathsCount: 0,
     issues: [],
   };
-  return deepCloneAndSanitizeValue(value, counters, pathContext);
+  return deepFreezeValue(
+    deepCloneAndSanitizeValue(value, counters, pathContext),
+  );
 }
 
 /**
@@ -81,19 +104,18 @@ export function createTimeTravelStateStore(
   const maxHistory = Math.max(2, options.maxHistory ?? 128);
   const maxCascadeDepth = Math.max(1, options.maxCascadeDepth ?? 10);
 
-  let currentSnapshot: StateModel = (sanitizeStateValue(
-    initialState,
-    "/initial",
-  ) ?? {}) as StateModel;
+  let currentSnapshot: StateModel = deepFreezeValue(
+    (sanitizeStateValue(initialState, "/initial") ?? {}) as StateModel,
+  );
 
   let history: StateHistoryEntry[] = [
-    {
+    Object.freeze({
       index: 0,
       timestamp: Date.now(),
       label: "Initial State",
-      changedPaths: [],
+      changedPaths: Object.freeze([]),
       snapshot: currentSnapshot,
-    },
+    }),
   ];
   let historyCursor = 0;
   let reentrantDepth = 0;
@@ -184,7 +206,7 @@ export function createTimeTravelStateStore(
         return;
       }
 
-      currentSnapshot = nextSnapshot;
+      currentSnapshot = deepFreezeValue(nextSnapshot);
       pushHistorySnapshot(currentSnapshot, `set ${safePath}`, [safePath]);
       notifyListeners();
     },
@@ -243,7 +265,7 @@ export function createTimeTravelStateStore(
         return;
       }
 
-      currentSnapshot = workingSnapshot;
+      currentSnapshot = deepFreezeValue(workingSnapshot);
       pushHistorySnapshot(
         currentSnapshot,
         `update (${changedPaths.length} paths)`,
@@ -253,10 +275,16 @@ export function createTimeTravelStateStore(
     },
 
     getSnapshot(): StateModel {
+      if (!Object.isFrozen(currentSnapshot)) {
+        currentSnapshot = deepFreezeValue(currentSnapshot);
+      }
       return currentSnapshot;
     },
 
     getServerSnapshot(): StateModel {
+      if (!Object.isFrozen(currentSnapshot)) {
+        currentSnapshot = deepFreezeValue(currentSnapshot);
+      }
       return currentSnapshot;
     },
 
@@ -307,7 +335,15 @@ export function createTimeTravelStateStore(
     },
 
     getHistory(): readonly StateHistoryEntry[] {
-      return history;
+      return Object.freeze(
+        history.map((entry) =>
+          Object.freeze({
+            ...entry,
+            changedPaths: Object.freeze([...entry.changedPaths]),
+            snapshot: deepFreezeValue(entry.snapshot),
+          }),
+        ),
+      );
     },
 
     getCascadeTripCount(): number {

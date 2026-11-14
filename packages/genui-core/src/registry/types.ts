@@ -5,7 +5,6 @@
 export type PackTier = "free" | "pro";
 
 export type PackCategory =
-  | "finops"
   | "spatial-3d"
   | "analytics"
   | "sre"

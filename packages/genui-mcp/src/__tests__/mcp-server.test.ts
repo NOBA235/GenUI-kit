@@ -7,27 +7,17 @@ import {
   handleQueryTelemetryMetrics,
   handleFetchTraceSpans,
   handleExecuteRemediation,
-  handleQueryFinopsLedger,
-  handleInspectFailedWebhooks,
-  handleExecuteFinopsRemediation,
 } from "../index.js";
 
 describe("GenUI Studio MCP Server & Tool Handlers", () => {
   describe("Tool 1: list_catalog_components", () => {
-    it("lists all 30 components and actions across both catalogs by default", () => {
+    it("lists all 15 SpatialOps components and actions by default", () => {
       const result = handleListCatalogComponents({ app: "all" });
 
-      expect(result.totalComponents).toBe(30); // 15 FinOps + 15 Spatial
-      expect(result.catalogs).toHaveLength(2);
-      expect(result.catalogs.map((c) => c.app)).toEqual(["finops", "spatial"]);
-      expect(result.totalActions).toBeGreaterThanOrEqual(8); // 4 in FinOps + 4 in Spatial
-
-      // Spot check a FinOps component
-      const kpiCard = result.components.find((c) => c.name === "KpiMetricCard");
-      expect(kpiCard).toBeDefined();
-      expect(kpiCard?.app).toBe("finops");
-      expect(kpiCard?.propsSchema.type).toBe("object");
-      expect(kpiCard?.hasFallbackProps).toBe(true);
+      expect(result.totalComponents).toBe(15);
+      expect(result.catalogs).toHaveLength(1);
+      expect(result.catalogs.map((c) => c.app)).toEqual(["spatial"]);
+      expect(result.totalActions).toBeGreaterThanOrEqual(4);
 
       // Spot check a 3D Spatial component
       const canvas3D = result.components.find(
@@ -39,18 +29,7 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       expect(canvas3D?.slots).toContain("default");
     });
 
-    it("filters components by specific app (finops)", () => {
-      const result = handleListCatalogComponents({ app: "finops" });
-      expect(result.totalComponents).toBe(15);
-      expect(result.components.every((c) => c.app === "finops")).toBe(true);
-      expect(result.components.map((c) => c.name)).toContain("WorkspaceShell");
-      expect(result.components.map((c) => c.name)).toContain("MrrChurnChart");
-      expect(result.components.map((c) => c.name)).toContain(
-        "PaymentTraceInspector",
-      );
-    });
-
-    it("filters components by specific app (spatial)", () => {
+    it("filters components by spatial app", () => {
       const result = handleListCatalogComponents({ app: "spatial" });
       expect(result.totalComponents).toBe(15);
       expect(result.components.every((c) => c.app === "spatial")).toBe(true);
@@ -62,39 +41,42 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
 
     it("filters to a specific component by name", () => {
       const result = handleListCatalogComponents({
-        app: "finops",
-        componentName: "IssueRefundCard",
+        app: "spatial",
+        componentName: "ServiceMeshNode3D",
       });
       expect(result.totalComponents).toBe(1);
-      expect(result.components[0]?.name).toBe("IssueRefundCard");
-      expect(result.components[0]?.fallbackProps).toHaveProperty("accountId");
+      expect(result.components[0]?.name).toBe("ServiceMeshNode3D");
+      expect(result.components[0]?.fallbackProps).toHaveProperty("serviceId");
     });
   });
 
   describe("Tool 2: validate_ui_spec", () => {
-    it("validates a healthy acyclic FinOps spec with 100% compliance", () => {
+    it("validates a healthy acyclic Spatial spec with 100% compliance", () => {
       const validSpec = {
         root: "shell-1",
         elements: {
           "shell-1": {
-            type: "WorkspaceShell",
+            type: "AegisWarRoomShell",
             props: {
-              title: "Q4 Revenue Operations",
-              subtitle: "Seeded enterprise accounts telemetry",
-              playbookTag: "MRR_CHURN_TRIAGE",
-              riskLevel: "NOMINAL",
+              incidentTitle: "Payment DB Saturation",
+              severity: "SEV-1",
+              activeRegion: "US-East",
+              hudPosition: "RIGHT_SPLIT",
             },
-            children: ["kpi-1"],
+            slots: {
+              spatial: ["canvas-1"],
+              hud: [],
+            },
+            children: [],
           },
-          "kpi-1": {
-            type: "KpiMetricCard",
+          "canvas-1": {
+            type: "ClusterTopologyCanvas",
             props: {
-              label: "Net ARR",
-              valuePath: "/ledger/metrics/totalMrrCents",
-              unit: "USD",
-              deltaText: "+12.4% YoY",
-              deltaDirection: "UP_GOOD",
-              caption: "Audited SaaS ARR",
+              cameraFov: 50,
+              enableOrbitControls: true,
+              enableGrid: true,
+              enableBloom: true,
+              ambientIntensity: 0.8,
             },
             children: [],
           },
@@ -102,7 +84,7 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       };
 
       const result = handleValidateUiSpec({
-        app: "finops",
+        app: "spatial",
         spec: validSpec,
       });
 
@@ -120,22 +102,22 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
         root: "node-a",
         elements: {
           "node-a": {
-            type: "WorkspaceShell",
+            type: "AegisWarRoomShell",
             props: {
-              title: "Cyclic Test A",
-              subtitle: "Sub A",
-              playbookTag: "CHAOS_VERIFICATION",
-              riskLevel: "CRITICAL",
+              incidentTitle: "Cyclic Test A",
+              severity: "SEV-1",
+              activeRegion: "GLOBAL",
+              hudPosition: "RIGHT_SPLIT",
             },
             children: ["node-b"],
           },
           "node-b": {
-            type: "WorkspaceShell",
+            type: "AegisWarRoomShell",
             props: {
-              title: "Cyclic Test B",
-              subtitle: "Sub B",
-              playbookTag: "CHAOS_VERIFICATION",
-              riskLevel: "CRITICAL",
+              incidentTitle: "Cyclic Test B",
+              severity: "SEV-1",
+              activeRegion: "GLOBAL",
+              hudPosition: "RIGHT_SPLIT",
             },
             children: ["node-a"], // Mutual cycle!
           },
@@ -143,7 +125,7 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       };
 
       const result = handleValidateUiSpec({
-        app: "finops",
+        app: "spatial",
         spec: cyclicSpec,
         autoFix: true,
       });
@@ -163,15 +145,16 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
 
     it("detects out-of-bounds props and heals them deterministically with fallbackProps", () => {
       const invalidPropSpec = {
-        root: "discount-1",
+        root: "canvas-1",
         elements: {
-          "discount-1": {
-            type: "RetentionDiscountCard",
+          "canvas-1": {
+            type: "ClusterTopologyCanvas",
             props: {
-              accountId: "acct_999",
-              discountPercent: 999, // Max allowed is 50!
-              durationMonths: 6,
-              justification: "Massive illegal discount",
+              cameraFov: 999, // Max allowed is 90!
+              enableOrbitControls: true,
+              enableGrid: true,
+              enableBloom: true,
+              ambientIntensity: 0.8,
             },
             children: [],
           },
@@ -179,7 +162,7 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       };
 
       const result = handleValidateUiSpec({
-        app: "finops",
+        app: "spatial",
         spec: invalidPropSpec,
         autoFix: true,
       });
@@ -187,14 +170,14 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       expect(result.valid).toBe(false);
       expect(result.healedCount).toBeGreaterThan(0);
       const healedProp = result.diagnostics.find(
-        (d) => d.propName === "discountPercent",
+        (d) => d.propName === "cameraFov",
       );
       expect(healedProp?.status).toBe("healed");
-      expect(healedProp?.resolvedValue).toBe(50); // Clamped to schema max bound (50)
+      expect(healedProp?.resolvedValue).toBe(90); // Clamped to schema max bound (90)
 
       expect(
-        result.autoFixedSpec?.elements["discount-1"]?.props?.discountPercent,
-      ).toBe(50);
+        result.autoFixedSpec?.elements["canvas-1"]?.props?.cameraFov,
+      ).toBe(90);
     });
 
     it("parses and validates RFC 6902 JSONL stream text directly", () => {
@@ -229,9 +212,9 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       expect(result.totalDurationMs).toBeGreaterThan(0);
     });
 
-    it("runs the full 4-theorem PBT invariant suite against FinOps catalog", () => {
+    it("runs the full 4-theorem PBT invariant suite against SpatialOps catalog", () => {
       const result = handleFuzzTestCatalog({
-        app: "finops",
+        app: "spatial",
         numRuns: 15,
       });
 
@@ -298,65 +281,6 @@ describe("GenUI Studio MCP Server & Tool Handlers", () => {
       const metricsAfter = handleQueryTelemetryMetrics();
       expect(metricsAfter.clusterSummary.severity).toBe("NOMINAL");
       expect(metricsAfter.clusterSummary.activeIncidents).toBe(0);
-    });
-  });
-
-  describe("Tool 7: query_finops_ledger", () => {
-    it("queries FinOps ledger summary and detects at-risk EMEA accounts during outage", () => {
-      const result = handleQueryFinopsLedger({
-        region: "EMEA",
-        onlyAtRisk: true,
-      });
-
-      expect(result.summary.gatewayStatus).toBe("OUTAGE");
-      expect(result.summary.atRiskMrrCents).toBeGreaterThan(0);
-      expect(result.summary.failedChargesTotal).toBeGreaterThan(0);
-      expect(result.accounts.length).toBeGreaterThanOrEqual(2);
-      expect(result.accounts.every((a) => a.region === "EMEA")).toBe(true);
-    });
-  });
-
-  describe("Tool 8: inspect_failed_webhooks", () => {
-    it("retrieves failed Stripe webhooks and 3DS2 payment trace bottleneck spans", () => {
-      const result = handleInspectFailedWebhooks({ onlyFailed: true });
-
-      expect(result.gatewayStatus).toBe("OUTAGE");
-      expect(result.failedCount).toBeGreaterThanOrEqual(2);
-      expect(result.latestTrace.hasError).toBe(true);
-      expect(result.latestTrace.totalDurationMs).toBeGreaterThan(1500);
-      expect(result.latestTrace.rootCauseHypothesis).toContain(
-        "STRIPE_EU_FALLBACK",
-      );
-
-      const errorSpan = result.latestTrace.spans.find(
-        (s) => s.status === "ERROR",
-      );
-      expect(errorSpan?.errorCode).toBe("three_d_secure_timeout");
-    });
-  });
-
-  describe("Tool 9: execute_finops_remediation", () => {
-    it("executes verified gateway failover remediation and restores FinOps ledger health", () => {
-      const res = handleExecuteFinopsRemediation({
-        action: "failoverPaymentGateway",
-        targetAccountId: "acct_1001",
-        parameters: { routeGateway: "STRIPE_EU_FALLBACK" },
-      });
-
-      expect(res.success).toBe(true);
-      expect(res.verificationPassed).toBe(true);
-      expect(res.targetGateway).toBe("STRIPE_EU_FALLBACK");
-      expect(res.recoveredMrrCents).toBeGreaterThan(0);
-
-      // Verify closed-loop recovery across both FinOps query tools
-      const ledgerAfter = handleQueryFinopsLedger();
-      expect(ledgerAfter.summary.gatewayStatus).toBe("NOMINAL");
-      expect(ledgerAfter.summary.activeGateway).toBe("STRIPE_EU_FALLBACK");
-      expect(ledgerAfter.summary.failedChargesTotal).toBe(0);
-
-      const webhooksAfter = handleInspectFailedWebhooks({ onlyFailed: true });
-      expect(webhooksAfter.failedCount).toBe(0);
-      expect(webhooksAfter.latestTrace.hasError).toBe(false);
     });
   });
 

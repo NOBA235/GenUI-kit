@@ -15,9 +15,11 @@
   "scripts": {
     "dev": "pnpm --parallel --filter \"./apps/*\" dev",
     "dev:all": "pnpm --parallel --filter \"./apps/*\" dev",
-    "dev:finops": "pnpm --filter @genui-studio/finops-command dev",
-    "dev:workbench": "pnpm --filter @genui-studio/finops-command dev",
     "dev:spatial": "pnpm --filter @genui-studio/spatial-ops dev",
+    "dev:hub": "pnpm --filter @genui-studio/studio-hub dev",
+    "new:template": "node scripts/new-template.ts",
+    "ingest:standalone": "node scripts/ingest-standalone.ts",
+    "sync:templates": "node scripts/sync-templates.ts",
     "mcp": "node packages/genui-mcp/dist/cli.js",
     "genui-studio": "node packages/genui-cli/dist/cli.js",
     "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",

@@ -3,42 +3,39 @@
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-10B981.svg)](./LICENSE)
-[![Tests: 40/40 Passing](https://img.shields.io/badge/Tests-40%2F40%20Passing%20(100%25)-10B981.svg)](./packages/genui-core/src/__tests__)
-[![Engine: @json-render v0.22.0](https://img.shields.io/badge/%40json--render-v0.22.0-0070F3.svg)](https://github.com/vercel-labs/json-render)
 [![Verification: fast-check PBT](https://img.shields.io/badge/Verification-fast--check%20PBT-F59E0B.svg)](./.kiro/specs/core-skeleton/correctness.md)
+[![Engine: @json-render v0.22.0](https://img.shields.io/badge/%40json--render-v0.22.0-0070F3.svg)](https://github.com/vercel-labs/json-render)
 [![MCP: Model Context Protocol](https://img.shields.io/badge/MCP-JSON--RPC%202024--11--05-8B5CF6.svg)](./packages/genui-mcp)
 [![Orchestration: Kiro Spec-Driven](https://img.shields.io/badge/Kiro-Specs%20%7C%20Steering%20%7C%20Hooks%20%7C%20Powers-9333EA.svg)](./.kiro)
-[![TypeScript: Strict](https://img.shields.io/badge/TypeScript-5.9%20Strict-3178C6.svg)](./tsconfig.base.json)
+[![TypeScript: Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-3178C6.svg)](./tsconfig.base.json)
 [![Node: >=20.0](https://img.shields.io/badge/Node-%3E%3D20.0.0-339933.svg)](./package.json)
 
-**The Formally Verified Generative UI Skeleton Framework, Creator Template Registry & Model Context Protocol (MCP) Server.**  
-*Powering deterministic, crash-proof 2D/3D streaming interfaces for AI agents, orchestrated with Kiro Spec-Driven Development.*
+**The Property-Based Tested & Runtime-Guardrailed Generative UI Engine, CI Validator (`genui-studio validate`), and Model Context Protocol (MCP) Server.**  
+*Hardening `@json-render` v0.22.0 for real-world LLM streams (JSONL, SSE `data:`, and whole-Spec snapshots), hook-safe React boundaries, and deterministic schema verification.*
 
-[**Explore App 1 (FinOps)**](http://localhost:5173) • [**Explore App 2 (3D War-Room)**](http://localhost:5174) • [**Kiroween Submission**](./SUBMISSION.md) • [**Kiro Power Manual**](./.kiro/powers/json-render-power/POWER.md)
+[**Explore SpatialOps (3D/2D Workbench)**](http://localhost:5174) • [**Submission Notes**](./SUBMISSION.md) • [**Kiro Power Manual**](./.kiro/powers/json-render-power/POWER.md)
 
 </div>
 
 ---
 
 > [!IMPORTANT]
-> **Kiroween 2026 Hackathon Submission:** For the full judging submission, deep-dive into Kiro's agentic ecosystem (Specs, Steering Docs, Agent Hooks, Powers, MCP, and PBT), the 5 shrunk edge-case bug post-mortems, and the second-by-second **2-Minute 45-Second Demo Video Script**, read [**`SUBMISSION.md`**](./SUBMISSION.md).
+> **Project Overview & Verification:** For architectural background on the Kiro spec-driven setup, the 5 shrunk `fast-check` counterexamples, and demo workflow, see [**`SUBMISSION.md`**](./SUBMISSION.md).
 
 ---
 
 ## 📑 Table of Contents
 
 - [Why GenUI Studio Exists](#-why-genui-studio-exists)
-- [Framework Comparison Matrix](#-framework-comparison-matrix)
+- [How GenUI Studio Hardens `@json-render`](#-how-genui-studio-hardens-json-render)
 - [System Architecture](#-system-architecture)
 - [Monorepo Structure](#-monorepo-structure)
 - [Zero-Setup Quickstart](#-zero-setup-quickstart)
 - [Core Skeleton Engine (`@genui-studio/core`)](#-core-skeleton-engine-genui-studiocore)
-- [Dual Production Domain Applications](#-dual-production-domain-applications)
-  - [App 1: FinOps & RevOps Command Center (2D)](#app-1-finops--revops-command-center-2d)
-  - [App 2: Aegis 3D Spatial Incident War-Room (3D + 2D)](#app-2-aegis-3d-spatial-incident-war-room-3d--2d)
+- [Reference Application: SpatialOps (`apps/spatial-ops`)](#-reference-application-spatialops-appsspatial-ops)
 - [Model Context Protocol (MCP) Server (`@genui-studio/mcp`)](#-model-context-protocol-mcp-server-genui-studiomcp)
-- [Commercial Distribution & Agent Skill Registry (`npx genui-studio add`)](#-commercial-distribution--agent-skill-registry-npx-genui-studio-add)
-- [Mathematical Correctness & Property-Based Testing](#-mathematical-correctness--property-based-testing)
+- [Spec Validator CLI & Template Registry (`genui-studio`)](#-spec-validator-cli--template-registry-genui-studio)
+- [Property-Based Testing & Runtime Invariants](#-property-based-testing--runtime-invariants)
 - [Kiro Spec-Driven Agentic Ecosystem](#-kiro-spec-driven-agentic-ecosystem)
 - [License](#-license)
 
@@ -53,23 +50,28 @@ However, having LLMs emit raw JSX or HTML introduces three catastrophic failure 
 2. **Schema–Component–Prompt Drift:** In traditional setups, React/Three.js components, Zod schemas, action handlers, and AI system prompts (`catalog.prompt()`) quickly drift apart, resulting in hallucinations and broken components.
 3. **Agent Integration & Tooling Disconnect:** AI coding agents lack standardized protocols to inspect available catalogs, validate proposed UI specs before streaming, and run property-based fuzz tests.
 
-**GenUI Studio** solves all three problems at the framework level through a formally verified skeleton core (`@genui-studio/core`), an integrated MCP Server (`@genui-studio/mcp`), a token-gated template pack registry (`genui-studio` CLI), and two full-scale production applications.
+**GenUI Studio** solves these reliability bottlenecks as a focused hardening layer **on top of [`@json-render`](https://github.com/vercel-labs/json-render)** (`v0.22.0`). Rather than reinventing `@json-render`'s catalog/renderer model, `@genui-studio/core` adds strict DAG/value sanitization, bounded multi-protocol stream compilation (`JSONL`, `SSE data:`, whole-Spec fallback), semantic enum/prop healing, Rules-of-Hooks-safe React fault boundaries, deep-frozen time-travel state management, a CI CLI linter (`genui-studio validate`), and an MCP server (`@genui-studio/mcp`).
+
+> [!NOTE]
+> **Production Primitives vs. Reference Demo Layer:**  
+> - **Production-Hardened Runtime & Developer Tooling:** `@genui-studio/core`, `genui-studio validate` CLI, `@genui-studio/mcp` core verification tools (`list_catalog_components`, `validate_ui_spec`, `fuzz_test_catalog`), and the `fast-check` / React DOM test suites.  
+> - **Reference App & Registry Scaffolding:** `apps/spatial-ops` currently defaults to a zero-API-key in-memory service mesh simulator (`LiveServiceMeshSimulator`); `@genui-studio/mcp`'s telemetry tools (`query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`) use pluggable `McpTelemetryProvider` hooks defaulting to in-memory simulation; `validateLicenseToken` defaults to offline `"local-format-demo"` checks unless wired to a server-side `LicenseVerifier`; `@genui-studio/templates` and `apps/studio-hub` are under active development.
 
 ---
 
-## 📊 Framework Comparison Matrix
+## 📊 How GenUI Studio Hardens `@json-render`
 
-| Capability / Failure Mode | Raw JSX / HTML Streaming | Unchecked `@json-render` | **GenUI Studio (`GenUI-kit`)** |
+| Capability / Failure Mode | Raw JSX / HTML Streaming | Base `@json-render` | **GenUI Studio (`GenUI-kit`)** |
 | :--- | :--- | :--- | :--- |
-| **Cyclic Graph Safety** | ❌ Infinite loop whiteout | ❌ Stack overflow | ✅ **3-Color DFS DAG Sanitizer** (severs cycles, zero crash) |
-| **Prototype Pollution** | ❌ Critical XSS vulnerability | ❌ Vulnerable to `__proto__` | ✅ **RFC 6901 Escaper** (drops `__proto__`, `constructor`) |
-| **Out-of-Bounds Props** | ❌ Throws runtime error | ❌ Throws Zod error | ✅ **Deterministic Healing & `<DiagnosticHealedBadge />`** |
-| **Non-Finite Floats** | ❌ `NaN`/`Infinity` breaks JSON | ❌ Corrupts downstream state | ✅ **Clamped & Normalized** (`-0 -> 0`, `NaN -> null`) |
-| **Stream Chunk Invariance** | ❌ Syntax errors on partial tags | ⚠️ Drops trailing line buffer | ✅ **Chunk-Invariant Line Buffer** (`INV-PBT-01` verified) |
-| **State Mutations & Undo** | ❌ Ad-hoc manual re-renders | ⚠️ Unordered key conflicts | ✅ **Structural-Sharing `TimeTravelStateStore`** (undo/redo) |
-| **Agent Tooling Standard** | ❌ None | ⚠️ Manual prompts | ✅ **Model Context Protocol (MCP)** (`stdio` JSON-RPC) |
-| **Commercial Distribution** | ❌ None | ❌ None | ✅ **Token-Gated CLI (`npx genui-studio add`) & In-UI `.ZIP`** |
-| **Formal Verification** | ❌ None | ⚠️ Example unit tests | ✅ **4 Mathematical Theorems via `fast-check` PBT** |
+| **Cyclic Graph & Recursion Caps** | ❌ Infinite loop whiteout | ⚠️ Vulnerable if unvalidated | ✅ **3-Color DFS DAG Sanitizer** + `maxDepth`/`maxElements`/`maxValueDepth`/`maxValueNodes` |
+| **Prototype Pollution & XSS** | ❌ Critical XSS vulnerability | ❌ Vulnerable to `__proto__` | ✅ **RFC 6901 Pointer Guard** (drops `__proto__`, `constructor`, `prototype`; blocks `javascript:`/`vbscript:`/`data:text/html`) |
+| **LLM Prop & Enum Drift** | ❌ Throws runtime error | ❌ Strict schema rejection | ✅ **Semantic Case/Separator Enum Healing, Clamping & `<DiagnosticHealedBadge />`** |
+| **Hook-Safe Fault Isolation** | ❌ Whole tree crashes | ⚠️ Component error unmounts parent | ✅ **`<SafeElementInvoker>` + `<GenUIElementErrorBoundary>`** (Rules-of-Hooks safe across invalid/valid/error patches) |
+| **Non-Finite Floats** | ❌ `NaN`/`Infinity` breaks JSON | ❌ Corrupts downstream state | ✅ **Healed & Normalized** (`-0 -> 0`, `NaN`/`±Infinity -> 0` + diagnostic issue) |
+| **Multi-Protocol Chunk Invariance** | ❌ Syntax errors on partial tags | ⚠️ Drops trailing line buffer | ✅ **Chunk-Invariant Compiler** (`JSONL`, **SSE `data:`/`[DONE]`**, **whole-Spec `{ root, elements }`**) + `maxBufferBytes`/`maxTotalStreamBytes`/`maxPatches` |
+| **State Mutations & Undo** | ❌ Ad-hoc manual re-renders | ⚠️ Mutable snapshots / key order drift | ✅ **Deep-Frozen `TimeTravelStateStore`** (`deepFreezeValue` + immutable `getHistory()` + `===` structural sharing) |
+| **Catalog Digest & Tooling** | ❌ None | ⚠️ Manual prompts | ✅ **FIPS 180-4 SHA-256 Prompt Digest**, **`genui-studio validate` CI CLI**, & **MCP Server (`stdio`)** |
+| **Verification Discipline** | ❌ None | ⚠️ Example unit tests | ✅ **4 Property-Based Invariants (`fast-check`)** + Live React DOM (`jsdom`) & Node Tests |
 
 ---
 
@@ -78,42 +80,40 @@ However, having LLMs emit raw JSX or HTML introduces three catastrophic failure 
 ```mermaid
 flowchart TD
     subgraph Agentic["1. Agent & MCP Integration Layer"]
-        KiroIDE["Kiro IDE / CLI / Claude Code"] <-->|"MCP (JSON-RPC stdio)"| MCPServer["@genui-studio/mcp"]
-        MCPServer -->|"list_catalog_components"| CatDefs["Zod Catalogs (FinOps & Spatial)"]
+        KiroIDE["Kiro IDE / CLI / Claude Code / Cursor"] <-->|"MCP (JSON-RPC stdio)"| MCPServer["@genui-studio/mcp"]
+        MCPServer -->|"list_catalog_components"| CatDefs["SpatialOps Zod Catalog"]
         MCPServer -->|"validate_ui_spec"| CompilerCheck["Guardrailed Stream Validation"]
         MCPServer -->|"fuzz_test_catalog"| PbtSuite["fast-check Property-Based Testing"]
     end
 
     subgraph CoreEngine["2. @genui-studio/core Engine"]
-        StreamIn["RFC 6902 JSONL Stream"] --> LineBuf["Chunk-Invariant Buffer"]
+        StreamIn["JSONL / SSE / Spec Input"] --> LineBuf["Bounded Chunk-Invariant Buffer"]
         LineBuf --> ProtoGuard["RFC 6901 Pointer & Prototype Guard"]
         ProtoGuard --> PatchApply["applySpecStreamPatch()"]
         PatchApply --> DAGSanitizer["sanitizeSpecGraph() (3-Color DFS DAG)"]
-        DAGSanitizer --> PropHeal["Deterministic Prop Healing & Badging"]
+        DAGSanitizer --> PropHeal["Semantic Enum & Prop Healing + Badging"]
     end
 
-    subgraph Distribution["3. Commercial Distribution & Registry"]
+    subgraph Distribution["3. CLI Validator & Template Registry"]
+        ValidateCLI["npx genui-studio validate"] --> CoreEngine
         CLI["npx genui-studio add <pack>"] --> RegAPI["Registry API Endpoint"]
-        RegAPI --> LicenseAuth["Bearer License Token Guard"]
+        RegAPI --> LicenseAuth["License Verifier Hook"]
         LicenseAuth --> PackBundler["Agent-Ready Pack (React + Zod + SKILL.md + PBT)"]
         ExportModal["In-UI Modal (CLI / .ZIP / MCP)"] --> PackBundler
     end
 
-    subgraph DualApps["4. Production Domain Applications"]
-        App1["App 1: FinOps Command Center\n(240 SaaS Accounts · Live Ledger Mutations)"]
-        App2["App 2: Aegis 3D Spatial War-Room\n(Three.js WebGL · Shared TimeTravelStateStore)"]
+    subgraph ReferenceApp["4. SpatialOps Reference Application"]
+        SpatialApp["SpatialOps 3D/2D Workbench\n(Three.js WebGL · Shared TimeTravelStateStore · OTel Spans)"]
     end
 
-    subgraph Verification["5. Formal Verification & Telemetry"]
+    subgraph Verification["5. Verification & Telemetry"]
         PBT["4 Invariant Theorems (fast-check)"] --> CoreEngine
-        Telemetry["TelemetryTracker (tok/s · latency · compliance)"] --> App1
-        Telemetry --> App2
+        Telemetry["TelemetryTracker (tok/s · latency · compliance)"] --> SpatialApp
         XRay["Spec & Telemetry X-Ray Drawer"] --> Telemetry
     end
 
     CatDefs --> CoreEngine
-    CoreEngine --> App1
-    CoreEngine --> App2
+    CoreEngine --> SpatialApp
     CoreEngine --> Distribution
 ```
 
@@ -140,8 +140,7 @@ GenUI-kit/
 │   │   └── spatial-3d-rules.md              # React Three Fiber zero-allocation memory rules
 │   ├── specs/                               # Formal Specs in EARS syntax
 │   │   ├── core-skeleton/                   # Core engine requirements, design, tasks & PBT theorems
-│   │   ├── app-finops-command/              # App 1 specification & mutation requirements
-│   │   └── app-spatial-warroom/             # App 2 3D WebGL topology & dual-viewport specification
+│   │   └── app-spatial-warroom/             # SpatialOps 3D/2D topology & telemetry specification
 │   ├── hooks/                               # Event-driven agent verification hooks
 │   │   ├── catalog-schema-sync.json         # Audits catalog-registry parity on save
 │   │   ├── spec-invariants-test.json        # Runs fast-check PBT suite on save
@@ -155,43 +154,45 @@ GenUI-kit/
 ├── packages/
 │   ├── genui-core/                          # @genui-studio/core — Core Reusable Skeleton Engine
 │   │   └── src/
-│   │       ├── catalog/verified-catalog.ts  # Canonical SHA-256 fingerprinting & prop healing
-│   │       ├── stream/dag-sanitizer.ts      # 3-color DFS cycle severance & prototype protector
-│   │       ├── stream/stream-compiler.ts    # Chunk-invariant RFC 6902 JSONL compiler
-│   │       ├── state/time-travel-store.ts   # Structural-sharing StateStore with undo/redo
-│   │       ├── boundary/safe-renderer.tsx   # Per-node error boundary & <DiagnosticHealedBadge />
+│   │       ├── catalog/verified-catalog.ts  # FIPS 180-4 SHA-256 fingerprinting & semantic prop healing
+│   │       ├── stream/dag-sanitizer.ts      # 3-color DFS cycle severance, depth/node budgets & prototype protector
+│   │       ├── stream/stream-compiler.ts    # Chunk-invariant JSONL/SSE/Spec compiler with byte & patch bounds
+│   │       ├── state/time-travel-store.ts   # Deep-frozen immutable StateStore with undo/redo
+│   │       ├── boundary/safe-renderer.tsx   # Hooks-safe <SafeElementInvoker>, error boundary & <DiagnosticHealedBadge />
 │   │       ├── telemetry/telemetry-tracker.ts # Real-time tok/s, latency & compliance tracking
-│   │       ├── registry/                    # Commercial Template Packs, API endpoints & Exporter
+│   │       ├── registry/                    # Template Packs, pluggable LicenseVerifier & Exporter
 │   │       └── testing/index.ts             # fast-check arbitraries & runCatalogInvariantSuite()
-│   ├── genui-cli/                           # genui-studio — Token-gated CLI Installer & Registry Client
+│   ├── genui-cli/                           # genui-studio — Spec Linter CLI & Template Pack Installer
 │   │   └── src/
-│   │       ├── cli.ts                       # npx genui-studio add <pack> command runner
+│   │       ├── cli.ts                       # npx genui-studio validate <file|-> & add <pack> runner
+│   │       ├── validate.ts                  # CI spec/JSONL/SSE validator (--catalog, --strict, --json)
 │   │       └── installer.ts                 # Pack unpacker, license verification & skill injector
-│   └── genui-mcp/                           # @genui-studio/mcp — Model Context Protocol Server
+│   ├── genui-mcp/                           # @genui-studio/mcp — Model Context Protocol Server
+│   │   └── src/
+│   │       ├── server.ts                    # McpServer (3 verification tools + 3 telemetry tools)
+│   │       ├── cli.ts                       # Executable JSON-RPC stdio transport runner
+│   │       ├── schema-describer.ts          # Zod-to-JSON Schema contract extractor
+│   │       └── tools/                       # list/validate/fuzz tools + pluggable telemetry tools
+│   └── templates/                           # @genui-studio/templates — Template Registry & Ingestion (WIP)
 │       └── src/
-│           ├── server.ts                    # McpServer with list, validate, and fuzz tools
-│           ├── cli.ts                       # Executable JSON-RPC stdio transport runner
-│           ├── schema-describer.ts          # Zod-to-JSON Schema contract extractor
-│           └── tools/                       # list_catalog_components, validate_ui_spec, fuzz_test_catalog
+│           ├── node/ingest-standalone.ts    # Project ingestion & manifest generator (unverified by default)
+│           └── registry-entries.generated.ts # Generated template pack entries
 └── apps/
-    ├── finops-command/                      # Application #1: FinOps & RevOps Command Center (2D)
-    │   ├── src/catalog/                     # 14 Zod Components & React registry
-    │   ├── src/components/                  # X-Ray Drawer, live telemetry & chaos injector
-    │   ├── src/data/                        # 240-account SaaS ledger with live mutation engine
-    │   └── src/streams/                     # RFC 6902 JSONL streaming playbooks & judge presets
-    └── spatial-ops/                         # Application #2: Aegis 3D Spatial Incident War-Room (3D + 2D)
-        ├── src/catalog/                     # 14 Hybrid 3D (R3F) + 2D (HUD) Zod Components
-        ├── src/three/                       # WebGL canvas, OrbitControls, emissive nodes, packet edges
-        ├── src/components/                  # Spatial X-Ray drawer, live cluster telemetry
-        ├── src/data/                        # 16-microservice topology & SRE mutation engine
-        └── src/streams/                     # SRE incident stream scenarios & failover playbooks
+    ├── spatial-ops/                         # SpatialOps: Aegis 3D/2D SRE & Telemetry Workbench
+    │   ├── src/catalog/                     # 15 Hybrid 3D (R3F) + 2D (HUD) Zod Components
+    │   ├── src/three/                       # WebGL canvas, OrbitControls, emissive nodes, packet edges
+    │   ├── src/telemetry/                   # OpenTelemetry span types, mesh simulator & bridge
+    │   ├── src/components/                  # Spatial X-Ray drawer, live cluster telemetry
+    │   ├── src/data/                        # 16-microservice topology & SRE mutation engine
+    │   └── src/streams/                     # SRE incident stream scenarios & failover playbooks
+    └── studio-hub/                          # Studio Hub & Template Workspace App (WIP)
 ```
 
 ---
 
 ## ⚡ Zero-Setup Quickstart
 
-The entire monorepo runs with **zero API keys** and **zero external configuration**. All LLM scenarios are bundled with recorded streaming playbooks and live mutation engines.
+The core packages and reference apps run with **zero API keys** and **zero external configuration**.
 
 ```bash
 # 1. Clone the repository
@@ -204,19 +205,22 @@ pnpm install
 # 3. Build all packages and applications
 pnpm build
 
-# 4. Launch BOTH applications in parallel (App 1 on :5173, App 2 on :5174)
+# 4. Launch workspace apps (:5174 SpatialOps, :5175 Studio Hub WIP)
 pnpm dev
 
-# 5. Run the full test suite (40/40 tests passing across all packages)
-pnpm test
+# 5. Run verified test suites
+pnpm --filter @genui-studio/core test
+pnpm --filter genui-studio test
+pnpm --filter @genui-studio/mcp test
+pnpm --filter @genui-studio/spatial-ops test
+
+# 6. Validate a .json, .jsonl, or .sse UI spec in CI
+pnpm genui-studio validate path/to/spec.jsonl --strict --json
 ```
 
-### Application URLs & Switcher
-- **App 1 (FinOps Command Center):** [`http://localhost:5173`](http://localhost:5173)
-- **App 2 (Aegis 3D Spatial War-Room):** [`http://localhost:5174`](http://localhost:5174)
-
-> [!TIP]
-> Each application features an **App Switcher** in the header navigation bar, allowing one-click toggling between the FinOps Command Center and the 3D Spatial War-Room.
+### Application URLs
+- **SpatialOps (3D/2D Workbench):** [`http://localhost:5174`](http://localhost:5174)
+- **Studio Hub (WIP Storefront):** [`http://localhost:5175`](http://localhost:5175)
 
 ---
 
@@ -226,66 +230,39 @@ The core engine provides the foundational runtime primitives that make generativ
 
 ### 1. 3-Color DFS DAG Sanitizer (`dag-sanitizer.ts`)
 Standard tree renderers crash with infinite recursion when an LLM emits cyclic element graphs (e.g. `nodeA -> nodeB -> nodeA`). Our sanitizer runs a strict 3-color (White/Grey/Black) Depth-First Search over the element graph:
-- **Cycle Severance:** When a back-edge to an in-flight Grey node is detected, the cyclic child pointer is severed, preventing infinite recursion while preserving the rest of the tree.
-- **Prototype Pollution Prevention:** Rejects any keys matching `__proto__`, `prototype`, or `constructor`.
+- **Cycle Severance:** When a back-edge to an in-flight Grey node is detected, the cyclic child pointer is severed, preventing infinite recursion while preserving the rest of the tree. `inspectSpecGraph()` also halts DFS traversal beyond `maxDepth`.
+- **Prototype Pollution & Value Budget Protection:** Rejects keys matching `__proto__`, `prototype`, or `constructor`, strips unsafe URI schemes, and bounds recursive JS values (`maxValueDepth = 32`, `maxValueNodes = 10,000`).
 - **Dangling Pointer Removal:** Removes any child keys referencing elements not present in the spec elements map.
 
-### 2. Chunk-Invariant Stream Compiler (`stream-compiler.ts`)
-Network packet boundaries can slice an RFC 6902 JSONL line across arbitrary byte cuts. The compiler maintains a chunk-invariant line buffer:
-- Accumulates fragments until a complete newline `\n` is encountered.
+### 2. Bounded Multi-Protocol Stream Compiler (`stream-compiler.ts`)
+Network packet boundaries and heterogeneous model SDKs emit varied chunk formats. The compiler maintains a chunk-invariant line buffer:
+- Supports raw RFC 6902 JSONL patches, **SSE `data:` framing / `[DONE]` / keepalives**, and **single-shot `{ root, elements, state? }` Spec snapshots** normalized through the same safety validators.
+- Enforces hard resource caps (`maxBufferBytes`, `maxLineLength`, `maxTotalStreamBytes`, `maxPatches`) while recovering cleanly at the next `\n`.
 - Flushes residual buffers upon stream EOF via `finalize()`.
-- Validates patches before applying them, guaranteeing deterministic state convergence.
 
-### 3. Bidirectional TimeTravelStateStore (`time-travel-store.ts`)
+### 3. Deep-Frozen TimeTravelStateStore (`time-travel-store.ts`)
 A fast, immutable state container utilizing RFC 6901 JSON Pointers (`/ledger/accounts/0/status`):
-- **Structural Sharing:** Preserves reference equality (`===`) on unmodified branches for sub-millisecond React render performance.
+- **Structural Sharing & External Immutability:** Preserves reference equality (`===`) on unmodified branches for `useSyncExternalStore` while recursively deep-freezing snapshots (`deepFreezeValue`) and returning frozen shallow snapshots from `getHistory()` so external mutations cannot corrupt store state.
 - **Batch Mutation Ordering:** Automatically sorts batch update keys by pointer depth (shallowest first), ensuring parent containers are instantiated before children.
-- **Deterministic Undo/Redo:** Built-in history stack supporting unbounded time-travel without memory leaks.
+- **Deterministic Undo/Redo:** Bounded snapshot history stack with cascade circuit breaker protection.
 
-### 4. Telemetry Error Boundary (`safe-renderer.tsx`)
-Wraps every rendered node in a per-component boundary:
-- Prevents component-level runtime failures from unmounting sibling trees.
-- Displays `<DiagnosticHealedBadge />` with tooltip provenance whenever an out-of-bounds prop was automatically clamped or healed to catalog specifications.
-
----
-
-## 📱 Dual Production Domain Applications
-
-### App 1: FinOps & RevOps Command Center (2D)
-A high-density B2B SaaS revenue operations dashboard managing **240 seeded customer subscription accounts**:
-
-```text
-http://localhost:5173
-```
-
-- **14 Zod Components:**
-  1. `WorkspaceShell`: Top-level FinOps shell organizing metrics and active playbooks.
-  2. `SectionGrid`: Responsive multi-column CSS grid container for grouping cards.
-  3. `KpiMetricCard`: Executive KPI card with Net MRR, Unsettled Balance, and Churn metrics.
-  4. `MrrChurnChart`: 12-month SaaS MRR Waterfall & Churn SVG chart.
-  5. `CohortRetentionMatrix`: Regional and plan-tier Net Dollar Retention heatmap.
-  6. `AnomalyAlertCard`: Severity-badged alerts for sudden churn spikes or failed webhooks.
-  7. `CustomerLedgerTable`: Paginated, filterable table of 240 seeded customer accounts.
-  8. `WebhookStreamTicker`: Live ticker monitoring simulated Stripe webhook events.
-  9. `IssueRefundCard`: Live mutation card to issue partial/full refunds on disputed balances.
-  10. `ExtendTrialCard`: Live mutation card to grant 7/14/30 day trial extensions.
-  11. `RetryWebhookCard`: Live mutation card to replay failed Stripe event deliveries.
-  12. `RetentionDiscountCard`: Live mutation card applying bounded retention discounts (5%–50%).
-  13. `RevenueWaterfallCard`: Breakdown of expansion, contraction, and churned MRR.
-  14. `AuditTrailBanner`: Cryptographic audit trail logging every user mutation.
-- **Interactive Live Mutations:** Mutating financial state via cards immediately recalculates Net MRR, Unsettled Balances, and Churn rates in the header with 1-click **Time-Travel Undo/Redo**.
-- **Adversarial Chaos Injection:** Click **"⚡ Inject Corrupted AI Packet"** to fire prototype pollution attacks, 999% discount props, and cyclic elements directly into the active stream. Watch the guardrails clamp, heal, and badge in real time with **zero crash**.
+### 4. Hook-Safe Telemetry Error Boundary (`safe-renderer.tsx`)
+Wraps every rendered node cleanly:
+- Isolates the component call inside `<SafeElementInvoker>` under `<GenUIElementErrorBoundary>` so valid/invalid/fault transitions never alter React hook call order inside the parent wrapper and failures never crash sibling trees.
+- Displays `<DiagnosticHealedBadge />` with tooltip provenance whenever semantic enum healing or prop clamping repaired a value.
 
 ---
 
-### App 2: Aegis 3D Spatial Incident War-Room (3D + 2D)
-An autonomous SRE incident command center combining a **3D WebGL microservice mesh** with a **2D tactical HUD** over a shared `TimeTravelStateStore`:
+## 📱 Reference Application: SpatialOps (`apps/spatial-ops`)
+
+### Aegis 3D Spatial Incident War-Room (3D + 2D)
+An SRE incident and distributed-trace workbench combining a **3D WebGL microservice mesh** with a **2D tactical HUD** over a shared `TimeTravelStateStore`:
 
 ```text
 http://localhost:5174
 ```
 
-- **14 Spatial Components:**
+- **15 Spatial & Telemetry Components:**
   1. `AegisWarRoomShell`: SRE war-room container orchestrating 3D canvas and HUD.
   2. `ClusterTopologyCanvas`: React Three Fiber WebGL canvas with OrbitControls and Bloom.
   3. `ServiceMeshNode3D`: 3D emissive microservice node with health-driven shaders.
@@ -299,14 +276,15 @@ http://localhost:5174
   11. `BlastRadiusDependencyTree`: Upstream and downstream dependency topology list.
   12. `RunbookActionDesk`: Interactive SRE controls (Circuit Breakers, Failover, Pod Scaling).
   13. `ClusterMetricsGrid`: Cluster-wide CPU, memory, and network saturation dials.
-  14. `SreAuditTrailBanner`: Immutable audit log recording all SRE failover actions.
-- **Dual-Viewport State Coherence:** Adjusting an SRE runbook slider or triggering a regional failover in the 2D HUD updates the 3D WebGL scene's emissive node colors, traffic packet velocities, and volumetric blast radius spheres at **60 frames per second** without remounting the Three.js canvas.
+  14. `SreAuditTrailBanner`: Structured audit log recording SRE remediation actions.
+  15. `TraceWaterfallViewer`: Distributed trace span timeline with span attribute & SQL error inspection.
+- **Dual-Viewport State Coherence:** Adjusting an SRE runbook slider or triggering a remediation in the 2D HUD updates the 3D WebGL scene's emissive node colors, traffic packet velocities, and volumetric blast radius spheres without remounting the Three.js canvas.
 
 ---
 
 ## 🛠️ Model Context Protocol (MCP) Server (`@genui-studio/mcp`)
 
-GenUI Studio exposes a production **Model Context Protocol (MCP)** server over stdio JSON-RPC. Configured out-of-the-box in [`.kiro/settings/mcp.json`](./.kiro/settings/mcp.json), any MCP-compatible agent (Kiro IDE, Kiro CLI, Claude Desktop, Cursor) can interact directly with our component catalogs:
+GenUI Studio exposes a **Model Context Protocol (MCP)** server over stdio JSON-RPC. Configured out-of-the-box in [`.kiro/settings/mcp.json`](./.kiro/settings/mcp.json), any MCP-compatible agent (Kiro IDE, Kiro CLI, Claude Desktop, Cursor) can interact directly with our component catalogs:
 
 ```bash
 # Start standalone stdio MCP server
@@ -316,24 +294,24 @@ pnpm mcp
 ### Available MCP Tools
 
 #### 1. `list_catalog_components`
-Inspects available components and their Zod schemas across both applications.
+Inspects available SpatialOps components and their Zod schemas.
 ```json
 // Input:
 {
-  "app": "finops",
-  "componentName": "RetentionDiscountCard"
+  "app": "spatial",
+  "componentName": "ClusterTopologyCanvas"
 }
 
 // Output:
 {
   "components": [
     {
-      "name": "RetentionDiscountCard",
-      "description": "Retention discount card applying 5%–50% discount",
+      "name": "ClusterTopologyCanvas",
+      "description": "3D WebGL scene viewport rendering the distributed microservice mesh with camera controls and memory safety guards.",
       "props": {
-        "discountPercent": { "type": "number", "minimum": 5, "maximum": 50 }
+        "cameraFov": { "type": "integer", "minimum": 30, "maximum": 90 }
       },
-      "fallbackProps": { "discountPercent": 15 }
+      "fallbackProps": { "cameraFov": 50 }
     }
   ]
 }
@@ -344,8 +322,8 @@ Validates a proposed Spec DAG or raw RFC 6902 JSONL stream against the target ca
 ```json
 // Input:
 {
-  "app": "finops",
-  "spec": { "root": "shell-1", "elements": { ... } },
+  "app": "spatial",
+  "spec": { "root": "warroom-1", "elements": { ... } },
   "autoFix": true
 }
 
@@ -375,6 +353,10 @@ Triggers an automated `fast-check` property test run against a component schema 
 }
 ```
 
+### Pluggable Telemetry Provider Tools
+In addition to the 3 verification tools above, `@genui-studio/mcp` exposes 3 OpenTelemetry/remediation tools backed by pluggable providers (`setMcpTelemetryProvider`) that default to an in-memory simulation provider:
+- `query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`
+
 ### Kiro IDE / Claude Desktop MCP Configuration
 
 Add this block to your `.kiro/settings/mcp.json` or `claude_desktop_config.json`:
@@ -398,62 +380,66 @@ Add this block to your `.kiro/settings/mcp.json` or `claude_desktop_config.json`
 
 ---
 
-## 📦 Commercial Distribution & Agent Skill Registry (`npx genui-studio add`)
+## 📦 Spec Validator CLI & Template Registry (`genui-studio`)
 
-GenUI Studio is also a **creator distribution and monetization platform for agent-ready 2D/3D templates, generative UI blocks, and AI Agent Skills**.
+GenUI Studio provides a developer CLI for **CI Spec Validation** (`validate`) plus local scaffolding for **Agent-Ready 2D/3D Template Packs** (`add`, `list`, `export`).
 
-### 1. The "Agent-Ready Template Pack" Standard
-Every pack in `packages/genui-core/src/registry/` is a self-contained commercial distribution bundle combining:
-- **Production React / Three.js Components:** Zero-drift code with fallback props and telemetry instrumentation.
-- **Strict Zod Catalog & Canonical Hash (`catalog.ts`):** Cryptographically deterministic schema ensuring the LLM cannot hallucinate props.
-- **AI Agent Skill & Kiro Power (`SKILL.md` + `.kiro/powers/`):** Full context injection for Claude Code, Cursor, and Kiro IDE detailing props, camera math, and design system tokens.
-- **`fast-check` Property Test Suite (`*.fuzz.test.ts`):** 100-iteration adversarial test verifying zero whiteout crashes.
+### 1. CI/CD Spec & Stream Linter (`npx genui-studio validate`)
+Validate `.json`, `.jsonl`, or `.sse` generative UI payloads in pre-commit hooks or CI pipelines:
 
-### 2. Available Template Packs
+```bash
+# Validate an LLM stream or static spec JSON and output machine-readable diagnostics
+npx genui-studio validate ./specs/dashboard.jsonl --allowed=WorkspaceShell,KpiMetricCard --strict --json
 
-| Pack ID | Tier | Price | Category | Components | Description |
+# Read from stdin in pipelines (exits non-zero on cycles, XSS URIs, __proto__, or rejected lines)
+cat stream.sse | npx genui-studio validate - --max-depth=12
+```
+
+### 2. Agent-Ready Template Pack Scaffolding (`npx genui-studio add`)
+> [!NOTE]
+> By default, `validateLicenseToken()` runs offline in **`"local-format-demo"`** mode (including demo/judge tokens such as `kiroween-2026-judge-pass`). Production commercial deployments should inject a server-side `LicenseVerifier` callback (`options.verifier`) and set `allowDemoPasses: false`. Standalone projects ingested via Mode B (`ingestStandaloneProject`) default to `verified: false` until verified.
+
+Every pack in `packages/genui-core/src/registry/` bundles React/Three.js components, Zod schemas (`catalog.ts`), AI skills (`SKILL.md` + `.kiro/powers/`), and `fast-check` tests.
+
+| Pack ID | Tier | Reference Price | Category | Components | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`finops-command-pro`** | **Pro** | **$49** | FinOps / RevOps | 14 Components | Full B2B SaaS ledger, 4 live financial mutations, time-travel store, Stripe webhook recovery. |
-| **`spatial-ops-3d-pro`** | **Pro** | **$79** | Spatial 3D WebGL | 14 Spatial / HUD | Three.js microservice mesh, dual-viewport state sync, circuit breaker & failover controls. |
-| **`saas-kpi-starter`** | **Free** | **$0** | SaaS Dashboards | 6 Components | Metric cards, MRR churn charts, retention heatmap, and audit trail banner. |
+| **`spatial-ops-3d-pro`** | **Pro** | **$79** | Spatial 3D WebGL | 14 Spatial / HUD | Three.js microservice mesh, dual-viewport state sync, failover controls. |
 | **`spatial-mesh-starter`** | **Free** | **$0** | Spatial 3D | 5 Spatial Nodes | Interactive WebGL cluster canvas, 3D nodes, and latency histogram cards. |
 
-### 3. Token-Gated CLI Installer (`npx genui-studio add`)
-
-Developers and AI coding agents install packs directly into their repositories:
+### 3. CLI Usage (`validate` / `add` / `list` / `export`)
 
 ```bash
 # Install a free starter pack (no license required)
-npx genui-studio add saas-kpi-starter
+npx genui-studio add spatial-mesh-starter
 
-# Install a Pro commercial template pack (token-gated)
-npx genui-studio add finops-command-pro --license=kiroween-2026-judge-pass
+# Install a 3D WebGL Pro pack into a target directory (--cwd)
+npx genui-studio add spatial-ops-3d-pro --license=kiroween-2026-judge-pass --cwd=./src/components/spatial
 
-# Install a 3D WebGL Pro pack into a target directory
-npx genui-studio add spatial-ops-3d-pro --license=kiroween-2026-judge-pass --outDir=./src/components/spatial
+# Export a runnable Next.js 15 project .zip
+npx genui-studio export spatial-mesh-starter
 
 # Inspect available packs in the registry
 npx genui-studio list
 ```
 
 ### 4. In-UI Template Exporter Modal
-Both showcase applications feature an interactive **"Export Template 📦"** button in their navigation header:
+`apps/spatial-ops` features an interactive **"Export 3D Pack 📦"** button in its navigation header:
 - **Tab 1 (CLI Install):** Pre-configured `npx genui-studio add` command with live license token input.
 - **Tab 2 (Download `.ZIP`):** Generates and downloads a complete, runnable Next.js / React project zip containing all components, catalogs, tests, and `.kiro` configuration.
 - **Tab 3 (MCP Connect):** One-click JSON snippet to configure the template pack catalog in Kiro IDE (`.kiro/settings/mcp.json`) or Claude Desktop.
 
 ---
 
-## 🔬 Mathematical Correctness & Property-Based Testing
+## 🔬 Property-Based Testing & Runtime Invariants
 
-Every build is verified against **4 formal mathematical theorems** defined in [`.kiro/specs/core-skeleton/correctness.md`](./.kiro/specs/core-skeleton/correctness.md) using `fast-check`:
+Core packages are tested against **4 property-based invariant suites** defined in [`.kiro/specs/core-skeleton/correctness.md`](./.kiro/specs/core-skeleton/correctness.md) using `fast-check`, alongside unit tests and live React 19 DOM recovery tests (`jsdom`):
 
-| Theorem ID | Formal Mathematical Property |
+| Invariant ID | Tested Property |
 | :--- | :--- |
-| **`INV-PBT-01`** | **Stream Chunking Invariance:** For any valid `Spec`, splitting its serialized RFC 6902 JSONL stream across arbitrary random byte chunk cuts or omitting trailing newlines converges to the exact same final `Spec`. |
-| **`INV-PBT-02`** | **Adversarial Payload Resilience & DAG Idempotence:** For any fuzzed payload containing `__proto__`, `NaN`/`±Infinity`/`-0`, self-loops (`A -> A`), mutual cycles (`A -> B -> A`), or `javascript:` URIs, the engine never throws an unhandled exception, never pollutes `Object.prototype`, and guarantees idempotent sanitization (`sanitize(sanitize(S)) === sanitize(S)`). |
-| **`INV-PBT-03`** | **State Pointer Idempotency & Batch Permutation Determinism:** Applying out-of-order parent/child state mutations (`/a` and `/a/b`) produces identical state models regardless of mutation key order, preserves `===` structural sharing on untouched branches, and inverts cleanly via `undo()`/`redo()`. |
-| **`INV-PBT-04`** | **Catalog-to-Prompt Determinism:** Permuting the declaration order of components, Zod shape properties, actions, or custom rules produces the exact same 256-bit `catalogHash` and byte-for-byte identical AI system prompt. |
+| **`INV-PBT-01`** | **Stream Chunking Invariance:** For any valid `Spec`, splitting its serialized RFC 6902 JSONL / SSE stream across arbitrary random byte chunk cuts or omitting trailing newlines converges to the exact same final `Spec`. |
+| **`INV-PBT-02`** | **Adversarial Payload Resilience & DAG Idempotence:** For fuzzed payloads containing `__proto__`, `NaN`/`±Infinity`/`-0`, self-loops (`A -> A`), mutual cycles (`A -> B -> A`), deep nesting, oversized lines, or `javascript:` URIs, the engine never throws an unhandled exception, never pollutes `Object.prototype`, and enforces idempotent sanitization. |
+| **`INV-PBT-03`** | **State Pointer Idempotency & Batch Permutation Determinism:** Applying out-of-order parent/child state mutations (`/a` and `/a/b`) converges deterministically regardless of mutation key order, deep-freezes snapshots (`deepFreezeValue`) & `getHistory()`, preserves `===` structural sharing on untouched branches, and inverts cleanly via `undo()`/`redo()`. |
+| **`INV-PBT-04`** | **Catalog-to-Prompt Determinism:** Permuting the declaration order of components, Zod shape properties, actions, or custom rules produces the exact same FIPS 180-4 SHA-256 `catalogHash` and byte-for-byte identical AI system prompt. |
 
 ### Real Bugs Discovered by `fast-check` Shrinking
 
@@ -483,8 +469,7 @@ GenUI Studio was built from the ground up using **Kiro's complete Agentic Archit
 │   └── spatial-3d-rules.md              # React Three Fiber zero-allocation memory rules
 ├── specs/                               # Formal Specs in EARS syntax
 │   ├── core-skeleton/                   # Requirements, design, tasks & PBT theorems
-│   ├── app-finops-command/              # App 1 specification & mutation requirements
-│   └── app-spatial-warroom/             # App 2 3D WebGL topology & dual-viewport specification
+│   └── app-spatial-warroom/             # SpatialOps 3D WebGL topology & dual-viewport specification
 ├── hooks/                               # Event-driven agent verification hooks
 │   ├── catalog-schema-sync.json         # Audits catalog-registry parity on save
 │   ├── spec-invariants-test.json        # Runs fast-check PBT suite on save
@@ -505,8 +490,7 @@ Three automated hooks run on file save to keep agents strictly aligned:
 
 ---
 
-## 🏆 Submission & Demo Video
+## 🏆 Documentation & License
 
-- **Devpost Submission:** [**`SUBMISSION.md`**](./SUBMISSION.md)
-- **2-Minute 45-Second Video Script:** Included in [`SUBMISSION.md#second-by-second-demo-video-script-245`](./SUBMISSION.md#️-second-by-second-demo-video-script-245)
+- **Overview & Verification Summary:** [**`SUBMISSION.md`**](./SUBMISSION.md)
 - **License:** [MIT](./LICENSE)

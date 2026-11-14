@@ -6,13 +6,13 @@ import {
 import { describeZodSchema } from "../schema-describer.js";
 
 export interface ListCatalogComponentsInput {
-  app?: "finops" | "spatial" | "all";
+  app?: "spatial" | "all";
   componentName?: string;
 }
 
 export interface ComponentInspectionReport {
   name: string;
-  app: "finops" | "spatial";
+  app: "spatial";
   description: string;
   slots: readonly string[];
   propsSchema: Record<string, unknown>;
@@ -22,17 +22,17 @@ export interface ComponentInspectionReport {
 
 export interface ActionInspectionReport {
   name: string;
-  app: "finops" | "spatial";
+  app: "spatial";
   description: string;
   paramsSchema: Record<string, unknown>;
 }
 
 export interface ListCatalogComponentsResult {
-  target: "finops" | "spatial" | "all";
+  target: "spatial" | "all";
   totalComponents: number;
   totalActions: number;
   catalogs: Array<{
-    app: "finops" | "spatial";
+    app: "spatial";
     catalogHash: string;
     componentCount: number;
     actionCount: number;
@@ -49,7 +49,7 @@ export function handleListCatalogComponents(
   const filterComponentName = input.componentName?.trim();
 
   const appKeys: AppCatalogKey[] =
-    target === "all" ? ["finops", "spatial"] : [target];
+    target === "all" ? ["spatial"] : [target];
 
   const components: ComponentInspectionReport[] = [];
   const actions: ActionInspectionReport[] = [];

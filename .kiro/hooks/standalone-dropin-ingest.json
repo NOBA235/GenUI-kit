@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "enabled": true,
+  "name": "Standalone Drop-In Auto-Ingestion Hook",
+  "description": "Scans standalone-dropin/<project-slug>/ on save, generates manifest.json, catalog.ts bridge, SKILL.md, and Kiro POWER.md, and syncs the Dual-Mode Marketplace Registry.",
+  "trigger": "PostFileSave",
+  "matcher": "standalone-dropin/[^/]+/(package\\.json|(src|app|components)/.*\\.(ts|tsx|js|jsx|css))$",
+  "action": {
+    "type": "command",
+    "command": "node scripts/ingest-standalone.ts --all"
+  }
+}

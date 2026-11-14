@@ -5,6 +5,11 @@ import {
   validateLicenseToken,
   type AgentReadyPackManifest,
 } from "@genui-studio/core";
+import {
+  getAllTemplates,
+  getTemplateBySlug,
+  templateToAgentReadyPack,
+} from "@genui-studio/templates";
 
 export interface InstallPackOptions {
   packId: string;
@@ -39,9 +44,18 @@ export interface InstallPackResult {
 export async function installPack(
   options: InstallPackOptions,
 ): Promise<InstallPackResult> {
-  const pack = ALL_TEMPLATE_PACKS[options.packId];
+  const dualModeTemplate = getTemplateBySlug(options.packId);
+  const pack =
+    ALL_TEMPLATE_PACKS[options.packId] ??
+    (dualModeTemplate ? templateToAgentReadyPack(dualModeTemplate) : undefined);
+
   if (!pack) {
-    const available = Object.keys(ALL_TEMPLATE_PACKS).join(", ");
+    const available = Array.from(
+      new Set([
+        ...Object.keys(ALL_TEMPLATE_PACKS),
+        ...getAllTemplates().map((t) => t.manifest.slug),
+      ]),
+    ).join(", ");
     throw new Error(
       `Template pack "${options.packId}" not found. Available packs: ${available}`,
     );

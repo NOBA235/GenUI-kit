@@ -8,14 +8,14 @@ import {
 import { getVerifiedCatalog, type AppCatalogKey } from "../catalogs/index.js";
 
 export interface FuzzTestCatalogInput {
-  app: "finops" | "spatial";
+  app?: "spatial";
   componentName?: string;
   numRuns?: number;
 }
 
 export interface ComponentFuzzReport {
   componentName: string;
-  app: "finops" | "spatial";
+  app: "spatial";
   passed: boolean;
   totalRuns: number;
   durationMs: number;
@@ -25,7 +25,7 @@ export interface ComponentFuzzReport {
 }
 
 export interface FuzzTestCatalogResult {
-  app: "finops" | "spatial";
+  app: "spatial";
   mode: "FULL_PBT_SUITE" | "COMPONENT_FUZZ";
   allPassed: boolean;
   catalogHash: string;
@@ -37,9 +37,10 @@ export interface FuzzTestCatalogResult {
 }
 
 export function handleFuzzTestCatalog(
-  input: FuzzTestCatalogInput,
+  input: FuzzTestCatalogInput = {},
 ): FuzzTestCatalogResult {
-  const verifiedCat = getVerifiedCatalog(input.app);
+  const app: AppCatalogKey = input.app ?? "spatial";
+  const verifiedCat = getVerifiedCatalog(app);
   const numRuns = Math.max(10, Math.min(200, input.numRuns ?? 50));
   const startTime = performance.now();
 
@@ -48,7 +49,7 @@ export function handleFuzzTestCatalog(
     const compName = input.componentName.trim();
     if (!verifiedCat.metadata.componentNames.includes(compName)) {
       throw new Error(
-        `Component "${compName}" not found in @genui-studio/${input.app} catalog. Available components: ${verifiedCat.metadata.componentNames.join(
+        `Component "${compName}" not found in @genui-studio/${app} catalog. Available components: ${verifiedCat.metadata.componentNames.join(
           ", ",
         )}`,
       );
@@ -111,7 +112,7 @@ export function handleFuzzTestCatalog(
 
     const componentReport: ComponentFuzzReport = {
       componentName: compName,
-      app: input.app,
+      app,
       passed,
       totalRuns: numRuns + Math.min(numRuns, 30),
       durationMs,
@@ -121,7 +122,7 @@ export function handleFuzzTestCatalog(
     };
 
     return {
-      app: input.app,
+      app,
       mode: "COMPONENT_FUZZ",
       allPassed: passed,
       catalogHash: verifiedCat.metadata.catalogHash,
@@ -139,11 +140,11 @@ export function handleFuzzTestCatalog(
   const totalDurationMs = Number((performance.now() - startTime).toFixed(2));
 
   const summary = suiteReport.allPassed
-    ? `All 4 formal PBT theorems PASSED against @genui-studio/${input.app} catalog (${suiteReport.totalRuns} total runs in ${totalDurationMs}ms). Zero cyclic leaks, byte-chunk invariant, and state pointer idempotency verified.`
-    : `One or more PBT theorems FAILED against @genui-studio/${input.app} catalog. Check suiteReport for counterexamples.`;
+    ? `All 4 formal PBT theorems PASSED against @genui-studio/${app} catalog (${suiteReport.totalRuns} total runs in ${totalDurationMs}ms). Zero cyclic leaks, byte-chunk invariant, and state pointer idempotency verified.`
+    : `One or more PBT theorems FAILED against @genui-studio/${app} catalog. Check suiteReport for counterexamples.`;
 
   return {
-    app: input.app,
+    app,
     mode: "FULL_PBT_SUITE",
     allPassed: suiteReport.allPassed,
     catalogHash: verifiedCat.metadata.catalogHash,

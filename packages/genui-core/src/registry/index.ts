@@ -12,8 +12,6 @@ export type {
 
 export {
   ALL_TEMPLATE_PACKS,
-  FINOPS_COMMAND_PRO_PACK,
-  SAAS_KPI_STARTER_PACK,
   SPATIAL_MESH_STARTER_PACK,
   SPATIAL_OPS_3D_PRO_PACK,
 } from "./pack-definitions.js";
@@ -22,6 +20,10 @@ export {
   handleRegistryApiRequest,
   packToShadcnRegistryItem,
   validateLicenseToken,
+  type LicenseValidationResult,
+  type LicenseVerificationMode,
+  type LicenseVerifier,
+  type ValidateLicenseTokenOptions,
 } from "./registry-api.js";
 
 export {

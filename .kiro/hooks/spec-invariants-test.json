@@ -4,7 +4,7 @@
   "name": "Auto-PBT Verification Hook",
   "description": "Runs the fast-check property-based testing suite whenever a catalog schema or core parser/sanitizer file is modified.",
   "trigger": "PostFileSave",
-  "matcher": "(packages/genui-core|apps/finops-command|apps/spatial-ops)/src/.*(catalog|stream|state|boundary|testing).*\\.(ts|tsx)$",
+  "matcher": "(packages/genui-core|apps/spatial-ops)/src/.*(catalog|stream|state|boundary|testing).*\\.(ts|tsx)$",
   "action": {
     "type": "command",
     "command": "node .kiro/hooks/scripts/run-pbt-suite.mjs"

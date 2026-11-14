@@ -1,0 +1,73 @@
+{
+  "slug": "afterdark-horror",
+  "id": "afterdark-horror",
+  "name": "afterdark-horror",
+  "title": "AFTERDARK — 3D Horror Cemetery & Restored Editorial Website",
+  "description": "Flagship Website #1: Pitch-black monitor-shutdown opening, procedural Web Audio horror soundscape, first-person cemetery exploration with AABB/circle collision physics, environmental lightning/lantern reveals, and @genui-studio/core Zod catalog integration.",
+  "mode": "native",
+  "version": "1.0.0",
+  "author": "GenUI Studio Flagship Lab",
+  "license": "Commercial-Single",
+  "tier": "pro",
+  "priceUsd": 89,
+  "category": "3D / WebGL",
+  "tags": ["3D / WebGL", "GenUI Verified"],
+  "verified": true,
+  "immersiveExperience": true,
+  "theme": {
+    "defaultColorScheme": "dark",
+    "accentColor": "#dc2626",
+    "surfaceBg": "#000000",
+    "surfaceElevated": "#09090d",
+    "textColor": "#f1f5f9",
+    "mutedColor": "#94a3b8",
+    "displayFont": "\"Cinzel\", \"Instrument Serif\", Georgia, serif",
+    "bodyFont": "\"Inter\", system-ui, sans-serif",
+    "borderRadius": "0.25rem"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "slug": "home",
+      "title": "AFTERDARK · Interactive 3D Experience",
+      "route": "/",
+      "description": "Full-window interactive 3D horror website converging from pitch-dark exploration to an illuminated editorial publication.",
+      "sections": [
+        "DarknessAndWeatherController",
+        "CemeteryZoneCluster",
+        "ClueMonumentNode",
+        "SupernaturalEncounterTrigger",
+        "PhysicalLightModeSwitch"
+      ]
+    }
+  ],
+  "remixPresets": [
+    {
+      "id": "blood-moon-tempest",
+      "label": "Blood Moon Storm",
+      "description": "Amplifies crimson moonlight rim intensity, gale wind, and heavy lightning reveals.",
+      "prompt": "Intensify the nocturnal thunderstorm with heavier wind, thicker mist, and brighter lightning silhouettes."
+    },
+    {
+      "id": "catacomb-whiteout-mist",
+      "label": "Sunken Crypt Fog",
+      "description": "Thickens exponential graveyard fog around the central avenue and weeping grove.",
+      "prompt": "Roll dense low-lying fog across the gravestones while keeping lanterns warm."
+    },
+    {
+      "id": "restore-daylight-edition",
+      "label": "Illuminate Editorial Site",
+      "description": "Previews the restored Light Mode editorial publication transition via @genui-studio/core.",
+      "prompt": "Trigger daylight restoration so the restored editorial website layout illuminates cleanly."
+    }
+  ],
+  "dependencies": {
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "three": "^0.173.0",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.173.0"
+  }
+}

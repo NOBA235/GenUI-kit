@@ -1,16 +1,21 @@
 # `@genui-studio/mcp` · GenUI Studio Model Context Protocol Server
 
-The official Model Context Protocol (MCP) server for **GenUI Studio**. It exposes catalog introspection, Zod prop contract validation, RFC 6902 DAG cycle remediation, and live Property-Based Testing (PBT) fuzzing directly to Kiro IDE, Kiro CLI, Claude Desktop, Cursor, and any MCP-compatible coding agent.
+The Model Context Protocol (MCP) server for **GenUI Studio**. It exposes production UI verification tools (catalog introspection, Zod prop validation/healing, DAG sanitization, and live `fast-check` fuzzing) alongside pluggable OpenTelemetry/service-mesh inspection tools for **SpatialOps**.
 
 ---
 
 ## 🛠️ Exposed MCP Tools
 
+### Core Spec & Catalog Verification Tools
 | Tool | Parameters | Description |
 |---|---|---|
-| `list_catalog_components` | `app: "finops" \| "spatial" \| "all"`, `componentName?: string` | Introspects available UI/3D components and their full Zod prop schemas across both domain apps. |
-| `validate_ui_spec` | `app: "finops" \| "spatial"`, `spec: object \| string`, `autoFix?: boolean` | Validates a proposed Spec DAG or raw RFC 6902 JSONL stream against the target catalog, detecting cycles, dangling pointers, prototype pollution, and out-of-bounds props with auto-fix suggestions. |
-| `fuzz_test_catalog` | `app: "finops" \| "spatial"`, `componentName?: string`, `numRuns?: number` | Triggers a live `fast-check` property test run against a specific component or the entire 4-theorem catalog invariant suite. |
+| `list_catalog_components` | `app?: "spatial" \| "all"`, `componentName?: string` | Introspects available SpatialOps UI/3D components and their JSON Schema derived from Zod prop contracts. |
+| `validate_ui_spec` | `app?: "spatial"`, `spec: object \| string`, `autoFix?: boolean` | Validates a proposed Spec DAG, RFC 6902 JSONL patch stream, or SSE stream against the target catalog, detecting cycles, dangling pointers, prototype pollution, unsafe URIs, and out-of-bounds props. |
+| `fuzz_test_catalog` | `app?: "spatial"`, `componentName?: string`, `numRuns?: number` | Runs randomized `fast-check` property checks against a component schema or the catalog invariant suite. |
+
+### SpatialOps Telemetry Tools (Pluggable Providers)
+These tools expose telemetry inspection and remediation hooks (`setMcpTelemetryProvider` defaults to an in-memory sandbox provider until wired to a live OTLP collector):
+- `query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`
 
 ---
 
@@ -52,4 +57,4 @@ node ./packages/genui-mcp/dist/cli.js
 ```bash
 pnpm --filter @genui-studio/mcp test
 ```
-All 11 unit tests verify schema serialization, cycle severing, prop healing, and PBT execution.
+Verifies SpatialOps catalog JSON-schema serialization, cycle severing, prop healing, `fast-check` fuzz execution, and pluggable telemetry MCP tool handlers.

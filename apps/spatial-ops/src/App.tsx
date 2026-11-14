@@ -389,22 +389,11 @@ export const App: React.FC<AppProps> = ({ instantStreamForTest = false }) => {
             </div>
           </div>
 
-          {/* Quick App Switcher Navigation & Template Export */}
+          {/* Workspace Status & Template Export */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/90 p-0.5 font-mono text-xs">
-              <a
-                href="http://localhost:5173"
-                target="_blank"
-                rel="noreferrer"
-                title="Launch App 1: RevOps / FinOps Generative Command Center"
-                className="rounded px-2.5 py-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition flex items-center gap-1"
-              >
-                App 1: FinOps Command ↗
-              </a>
-              <span className="rounded bg-cyan-500/20 px-2.5 py-1 font-semibold text-cyan-200 border border-cyan-500/40">
-                App 2: Spatial War-Room (Active)
-              </span>
-            </div>
+            <span className="rounded-lg bg-cyan-500/20 px-2.5 py-1 font-mono text-xs font-semibold text-cyan-200 border border-cyan-500/40">
+              SpatialOps · 3D/2D Trace Workbench
+            </span>
             <button
               type="button"
               onClick={() => setIsExportModalOpen(true)}

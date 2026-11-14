@@ -2,6 +2,8 @@ import React, {
   Component,
   createContext,
   useContext,
+  useSyncExternalStore,
+  type ComponentType,
   type ErrorInfo,
   type ReactNode,
 } from "react";
@@ -273,12 +275,87 @@ export interface WrapRegistryOptions {
   readonly onElementFault?: (fault: ElementFaultRecord) => void;
 }
 
+const noopSubscribe = () => () => {};
+const getClientRenderFlag = () => false;
+const getServerRenderFlag = () => true;
+
+interface SafeElementInvokerProps {
+  readonly OriginalComponent: ComponentRenderer<any>;
+  readonly renderProps: ComponentRenderProps<any>;
+  readonly elementKey: string;
+  readonly componentType: string;
+  readonly telemetryTracker?: TelemetryTracker;
+  readonly onElementFault?: (fault: ElementFaultRecord) => void;
+}
+
+/**
+ * Isolates invocation of the user's catalog component on its own child React fiber so
+ * valid <-> invalid schema transitions or render throws inside SafeWrappedComponent never
+ * violate React's Rules of Hooks.
+ */
+function SafeElementInvoker({
+  OriginalComponent,
+  renderProps,
+  elementKey,
+  componentType,
+  telemetryTracker,
+  onElementFault,
+}: SafeElementInvokerProps): ReactNode {
+  const isServerRender = useSyncExternalStore(
+    noopSubscribe,
+    getClientRenderFlag,
+    getServerRenderFlag,
+  );
+
+  // React SSR (renderToStaticMarkup) does not activate class ErrorBoundaries,
+  // so catch synchronous throws directly during SSR passes while letting client
+  // React ErrorBoundaries handle live DOM renders and hook isolation cleanly.
+  if (isServerRender) {
+    try {
+      const callable = OriginalComponent as unknown as (
+        p: ComponentRenderProps<any>,
+      ) => ReactNode;
+      return callable(renderProps);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : String(err ?? "Render error");
+      const fault: ElementFaultRecord = {
+        id: `${elementKey}-sync-render`,
+        elementKey,
+        componentType,
+        phase: "react_render",
+        message,
+        timestamp: Date.now(),
+      };
+      telemetryTracker?.recordElementFault(fault);
+      onElementFault?.(fault);
+
+      return (
+        <ElementFaultCard
+          elementKey={elementKey}
+          componentType={componentType}
+          phase="react_render"
+          message={message}
+        >
+          {renderProps.children}
+        </ElementFaultCard>
+      );
+    }
+  }
+
+  const ComponentToRender = OriginalComponent as ComponentType<
+    ComponentRenderProps<any>
+  >;
+  return <ComponentToRender {...renderProps} />;
+}
+
 /**
  * Wraps every component in a `@json-render/react` `ComponentRegistry` with:
  * 1. Pre-render Zod schema validation & deterministic prop healing (catching NaN, out-of-bounds numbers,
  *    unresolved `$state` paths, and invalid enums).
  * 2. Inspectable `<DiagnosticHealedBadge />` when props are healed.
- * 3. Per-element `<GenUIElementErrorBoundary>` isolation so a throwing component never crashes the parent tree.
+ * 3. Per-element `<GenUIElementErrorBoundary>` isolation on a separate child fiber so hook-using
+ *    components recover cleanly across schema transitions and runtime faults without crashing the tree.
  */
 export function wrapRegistryWithTelemetry(
   verifiedCatalog: VerifiedCatalog<any, any>,
@@ -294,7 +371,8 @@ export function wrapRegistryWithTelemetry(
     const SafeWrappedComponent: ComponentRenderer<any> = (
       renderProps: ComponentRenderProps<any>,
     ) => {
-      // Must be the first hook so hook order is stable across every return path.
+      // Must be the sole unconditional hook in SafeWrappedComponent so hook order
+      // stays identical across valid/invalid validation return branches.
       const upstreamProvenance = useContext(HealedProvenanceContext);
       const rawElement = renderProps.element ?? {
         type: compName,
@@ -377,41 +455,6 @@ export function wrapRegistryWithTelemetry(
         ...validation.diagnostics.filter((d) => d.status === "healed"),
       ];
 
-      let renderedSubtree: ReactNode;
-      try {
-        const callable = OriginalComponent as unknown as (
-          p: ComponentRenderProps<any>,
-        ) => ReactNode;
-        renderedSubtree = callable({
-          ...renderProps,
-          element: healedElement,
-        });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : String(err ?? "Render error");
-        const fault: ElementFaultRecord = {
-          id: `${elementKey}-sync-render`,
-          elementKey,
-          componentType: compName,
-          phase: "react_render",
-          message,
-          timestamp: Date.now(),
-        };
-        options.telemetryTracker?.recordElementFault(fault);
-        options.onElementFault?.(fault);
-
-        return (
-          <ElementFaultCard
-            elementKey={elementKey}
-            componentType={compName}
-            phase="react_render"
-            message={message}
-          >
-            {renderProps.children}
-          </ElementFaultCard>
-        );
-      }
-
       return (
         <GenUIElementErrorBoundary
           elementKey={elementKey}
@@ -428,7 +471,17 @@ export function wrapRegistryWithTelemetry(
               diagnostics={healedDiagnostics}
             />
           )}
-          {renderedSubtree}
+          <SafeElementInvoker
+            OriginalComponent={OriginalComponent}
+            renderProps={{
+              ...renderProps,
+              element: healedElement,
+            }}
+            elementKey={elementKey}
+            componentType={compName}
+            telemetryTracker={options.telemetryTracker}
+            onElementFault={options.onElementFault}
+          />
         </GenUIElementErrorBoundary>
       );
     };

@@ -40,8 +40,10 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^30.0.0",
     "@types/jszip": "^3.4.1",
     "fast-check": "^4.10.2",
+    "jsdom": "^31.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vitest": "^3.0.0"

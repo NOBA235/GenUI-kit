@@ -41,7 +41,6 @@ function runAudit() {
   const startTime = performance.now();
   const scanRoots = [
     path.join(repoRoot, "packages", "genui-core", "src"),
-    path.join(repoRoot, "apps", "finops-command", "src"),
     path.join(repoRoot, "apps", "spatial-ops", "src"),
   ];
 
