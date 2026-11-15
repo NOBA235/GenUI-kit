@@ -32,3 +32,6 @@ Thumbs.db
 # IMPORTANT: /.kiro is explicitly tracked for Kiroween Skeleton Crew compliance
 !.kiro/
 !.kiro/**
+
+# Local multi-agent planning scratchpad
+/Plan.md

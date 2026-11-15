@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
     "@genui-studio/core": "workspace:*",
     "@genui-studio/templates": "workspace:*",
     "@json-render/core": "^0.22.0",

@@ -15,6 +15,8 @@ export interface StudioHudProps {
   readonly onToggleCollapsed: () => void;
   readonly isRemixOpen: boolean;
   readonly onToggleRemix: () => void;
+  readonly isWireframeMode?: boolean;
+  readonly onToggleWireframe?: () => void;
   readonly onOpenXRay: () => void;
   readonly onOpenExport: () => void;
   readonly onNavigateHome: () => void;
@@ -38,6 +40,8 @@ export const StudioHud: React.FC<StudioHudProps> = ({
   onToggleCollapsed,
   isRemixOpen,
   onToggleRemix,
+  isWireframeMode = false,
+  onToggleWireframe,
   onOpenXRay,
   onOpenExport,
   onNavigateHome,
@@ -208,6 +212,22 @@ export const StudioHud: React.FC<StudioHudProps> = ({
           >
             ✨ GenUI Live Remix
           </button>
+
+          {onToggleWireframe && (
+            <button
+              type="button"
+              onClick={onToggleWireframe}
+              data-testid="toggle-wireframe-btn"
+              aria-pressed={isWireframeMode}
+              className={`rounded-lg border px-3 py-1.5 font-semibold transition cursor-pointer ${
+                isWireframeMode
+                  ? "border-sky-400/70 bg-sky-500/25 text-sky-100"
+                  : "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              }`}
+            >
+              📐 Wireframe Architect
+            </button>
+          )}
 
           <button
             type="button"

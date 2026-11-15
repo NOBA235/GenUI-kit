@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Spec } from "@json-render/core";
 import { JSONUIProvider } from "@json-render/react";
 import {
@@ -21,6 +28,13 @@ import {
   TemplateXRayDrawer,
   type HubPatchLogItem,
 } from "../components/TemplateXRayDrawer.js";
+import type { ExcalidrawCompileResult } from "../lib/excalidraw-compiler.js";
+
+const LazyWireframeArchitectCanvas = React.lazy(() =>
+  import("../components/WireframeArchitectCanvas.js").then((mod) => ({
+    default: mod.WireframeArchitectCanvas,
+  })),
+);
 
 export interface PreviewPageProps {
   readonly slug: string;
@@ -29,6 +43,7 @@ export interface PreviewPageProps {
   readonly onToggleFullscreen: () => void;
   readonly onNavigateHome: () => void;
   readonly instantStreamForTest?: boolean;
+  readonly initialWireframeMode?: boolean;
 }
 
 const VIEWPORT_WIDTH_CLASS: Record<ViewportPreset, string> = {
@@ -91,6 +106,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   onToggleFullscreen,
   onNavigateHome,
   instantStreamForTest = false,
+  initialWireframeMode = false,
 }) => {
   const template = useMemo(() => getTemplateBySlug(slug), [slug]);
 
@@ -106,6 +122,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   const [lightModeRestored, setLightModeRestored] = useState(false);
   const wasPointerLockedRef = useRef(false);
   const [isRemixOpen, setIsRemixOpen] = useState(false);
+  const [isWireframeMode, setIsWireframeMode] = useState(initialWireframeMode);
   const [isXRayOpen, setIsXRayOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
@@ -119,8 +136,9 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
         new URLSearchParams(window.location.search).get("hud") === "true",
     );
     setLightModeRestored(false);
+    setIsWireframeMode(initialWireframeMode);
     wasPointerLockedRef.current = false;
-  }, [slug, template, initialSubPath]);
+  }, [slug, template, initialSubPath, initialWireframeMode]);
 
   // Immersion Mode hotkeys ([Alt+G]), Pointer Lock ESC release recovery, and Light Mode reveal
   useEffect(() => {
@@ -334,6 +352,35 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
     streamSpecJsonl(specToJsonlStream(baseSpec));
   };
 
+  const handleWireframeCompiled = useCallback(
+    (result: ExcalidrawCompileResult) => {
+      const next = { ...result.spec };
+      setCurrentSpec(next);
+      setHealedDiagnostics({});
+      setSpecHistory((prev) => [...prev.slice(-24), next]);
+      if (result.spec.state?.wireframeBindings) {
+        timeTravelStore.set(
+          "/wireframeBindings",
+          result.spec.state.wireframeBindings,
+        );
+      }
+      setPatchLog((prev) => [
+        {
+          id: ++patchIdRef.current,
+          rawLine: JSON.stringify({
+            op: "wireframe_compile",
+            nodes: result.compiledNodeCount,
+            stateBindings: result.stateBindings.length,
+            root: result.spec.root,
+          }),
+          timestamp: new Date().toISOString().slice(11, 23),
+        },
+        ...prev.slice(0, 60),
+      ]);
+    },
+    [timeTravelStore],
+  );
+
   const handleInjectChaosPacket = useCallback(() => {
     if (!template) return;
     const rootKey = currentSpec?.root ?? "site-shell";
@@ -402,9 +449,19 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
     );
   }
 
+  const templateBaseSpec =
+    template.pageSpecs[activePageId] ??
+    Object.values(template.pageSpecs)[0] ??
+    null;
+
   const isImmersedHidden =
-    isImmersiveTemplate && !immersionHudOpen && !lightModeRestored && !isFullscreen;
-  const isFullBleedViewport = isFullscreen || isImmersedHidden;
+    isImmersiveTemplate &&
+    !immersionHudOpen &&
+    !lightModeRestored &&
+    !isFullscreen &&
+    !isWireframeMode;
+  const isFullBleedViewport =
+    (isFullscreen || isImmersedHidden) && !isWireframeMode;
 
   return (
     <div
@@ -429,6 +486,8 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           onToggleCollapsed={() => setIsHudCollapsed((v) => !v)}
           isRemixOpen={isRemixOpen}
           onToggleRemix={() => setIsRemixOpen((v) => !v)}
+          isWireframeMode={isWireframeMode}
+          onToggleWireframe={() => setIsWireframeMode((v) => !v)}
           onOpenXRay={() => setIsXRayOpen(true)}
           onOpenExport={() => setIsExportOpen(true)}
           onNavigateHome={onNavigateHome}
@@ -508,37 +567,71 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
         }`}
       >
         <div
-          data-testid="viewport-stage"
-          data-viewport={
-            isFullscreen
-              ? "fullscreen"
-              : isImmersedHidden
-                ? "immersion"
-                : viewport
+          className={
+            isWireframeMode
+              ? "grid w-full max-w-[1800px] grid-cols-1 xl:grid-cols-2 gap-4 items-start"
+              : "contents"
           }
-          className={`studio-viewport-stage min-w-0 overflow-hidden ${
-            isFullBleedViewport
-              ? "w-full min-h-dvh"
-              : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-2xl border border-slate-800 shadow-2xl`
-          }`}
         >
-          <ScopedTemplateContainer
-            slug={template.manifest.slug}
-            themeCss={template.themeCss}
-            theme={template.manifest.theme}
-            colorSchemeOverride={lightModeRestored ? "light" : undefined}
-          >
-            <JSONUIProvider registry={safeRegistry} store={timeTravelStore}>
-              <SafeGenUIRenderer
-                spec={currentSpec}
-                registry={safeRegistry}
+          {isWireframeMode && (
+            <Suspense
+              fallback={
+                <div
+                  data-testid="wireframe-architect-loading"
+                  className="flex min-h-[640px] items-center justify-center rounded-2xl border border-slate-800 bg-slate-950 font-mono text-xs text-cyan-300"
+                >
+                  Loading Wireframe Architect (@excalidraw/excalidraw)...
+                </div>
+              }
+            >
+              <LazyWireframeArchitectCanvas
+                slug={template.manifest.slug}
+                templateTitle={template.manifest.title}
                 catalog={template.catalog}
-                loading={isStreaming}
-                telemetryTracker={telemetryTracker}
-                healedDiagnostics={healedDiagnostics}
+                baseSpec={templateBaseSpec}
+                colorScheme={
+                  lightModeRestored
+                    ? "light"
+                    : template.manifest.theme.defaultColorScheme
+                }
+                onCompiledSpec={handleWireframeCompiled}
               />
-            </JSONUIProvider>
-          </ScopedTemplateContainer>
+            </Suspense>
+          )}
+
+          <div
+            data-testid="viewport-stage"
+            data-viewport={
+              isFullscreen
+                ? "fullscreen"
+                : isImmersedHidden
+                  ? "immersion"
+                  : viewport
+            }
+            className={`studio-viewport-stage min-w-0 overflow-hidden ${
+              isFullBleedViewport
+                ? "w-full min-h-dvh"
+                : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-2xl border border-slate-800 shadow-2xl`
+            }`}
+          >
+            <ScopedTemplateContainer
+              slug={template.manifest.slug}
+              themeCss={template.themeCss}
+              theme={template.manifest.theme}
+              colorSchemeOverride={lightModeRestored ? "light" : undefined}
+            >
+              <JSONUIProvider registry={safeRegistry} store={timeTravelStore}>
+                <SafeGenUIRenderer
+                  spec={currentSpec}
+                  registry={safeRegistry}
+                  catalog={template.catalog}
+                  loading={isStreaming}
+                  telemetryTracker={telemetryTracker}
+                  healedDiagnostics={healedDiagnostics}
+                />
+              </JSONUIProvider>
+            </ScopedTemplateContainer>
+          </div>
         </div>
       </main>
 
