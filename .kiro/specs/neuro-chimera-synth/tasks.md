@@ -19,7 +19,7 @@
   - [x] Seven sample statements and 2,000 random ASTs round-trip through `printSql` / `parseSql`.
   - [x] All six scenarios settle without NaN, and the optimizer agent raises health in each. Severing every sink fails queries cleanly.
   - [x] The bounded worst case (64 nodes, 32 queries) steps in about 8 ms.
-  - [x] `kirocrew app install` and `enable` were not run, because Kiro Crew is not installed in this workspace.
+  - [ ] Install and enable the app in a running Kiro Crew gateway (`kirocrew app install` / `enable`). Not run yet: Kiro Crew is not installed in this workspace.
 
 ## Interactive lab: canvas, catalog, tests, marketplace
 - [ ] 8. 60 FPS network canvas, HUD panels, scenario picker and intervention controls. _Req 9.1_
