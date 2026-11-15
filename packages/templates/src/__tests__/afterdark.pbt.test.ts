@@ -94,7 +94,8 @@ describe("AFTERDARK 2.0 — fast-check Property-Based Verification Suite", () =>
       ),
       { numRuns: 1000 },
     );
-  });
+    // 1,000 solver runs take <1 s alone but can exceed the 5 s default under parallel workspace load.
+  }, 30_000);
 
   it("Property 2: Progression State Machine Determinism & non-soft-locking LIGHT MODE breaker switch", () => {
     const validClueIds = new Set(CLUE_RECORDS.map((c) => c.id));

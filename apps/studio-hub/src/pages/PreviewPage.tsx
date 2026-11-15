@@ -96,6 +96,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
 
   const isImmersiveTemplate = Boolean(template?.manifest.immersiveExperience);
   const isMonochromeArchive = slug === "ninety9-archive";
+  const isCmosBios = slug === "cmos-cloud-bios";
   const [viewport, setViewport] = useState<ViewportPreset>("desktop");
   const [isHudCollapsed, setIsHudCollapsed] = useState(false);
   const [immersionHudOpen, setImmersionHudOpen] = useState<boolean>(() => {
@@ -438,6 +439,24 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           onResetSpec={handleResetSpec}
           onSubmitRemixPrompt={handleSubmitRemixPrompt}
         />
+      ) : isCmosBios ? (
+        <div
+          data-testid="immersion-hud-indicator"
+          className="fixed top-2 right-2 z-40 flex max-w-[calc(100vw-1rem)] items-center border-4 border-double border-[#FFFFFF] bg-[#0000AA] px-2 py-0.5 font-mono text-[11px] uppercase text-[#FFFF55] shadow-[4px_4px_0px_#000000]"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setImmersionHudOpen(true);
+              setIsRemixOpen(true);
+            }}
+            data-testid="open-immersion-hud-btn"
+            aria-label="Open GenUI Studio HUD and export (Alt+G)"
+            className="truncate text-left hover:bg-[#AA0000] cursor-pointer"
+          >
+            [ALT+G] GENUI STUDIO // EXPORT CMOS
+          </button>
+        </div>
       ) : isMonochromeArchive ? (
         <div
           data-testid="immersion-hud-indicator"

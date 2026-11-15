@@ -306,6 +306,53 @@ export const BIOS_DEFAULTS: CmosConfig = deepFreeze({
   workload: { averageRps: 40, peakFactor: 3 },
 });
 
+/** High-traffic AI agent cluster: 4 vCPU, NVMe RAID 10 + pgvector, 6 GB cache, dual gateways. */
+export const OVERCLOCK_PRESET: CmosConfig = deepFreeze({
+  standard: { timeZone: "UTC-05:00" },
+  cpu: { fsbMhz: 100, multiplier: 4.5, coreVoltageMv: 3450 },
+  memory: { systemRamMb: 128, ecc: "ecc-scrub" },
+  storage: { primaryMaster: "nvme", capacityGb: 500, raid: "raid10", primarySlave: "pgvector", secondaryMaster: "6gb" },
+  bus: {
+    pciClockMhz: 41,
+    slots: [
+      { device: "api-gateway", irq: "auto" },
+      { device: "api-gateway", irq: "auto" },
+      { device: "edge-middleware", irq: "auto" },
+      { device: "webhook-queue", irq: "auto" },
+    ],
+  },
+  power: { mode: "disabled", standbyMin: 30, watchdogSec: 120, budgetCapUsd: 30000 },
+  health: { fanRpm: 6000, throttleC: 85 },
+  workload: { averageRps: 3000, peakFactor: 3 },
+});
+
+/** Zero-cost indie profile: stateless, scale-to-zero, single gateway, strict spend cap. */
+export const UNDERVOLT_PRESET: CmosConfig = deepFreeze({
+  standard: { timeZone: "UTC-05:00" },
+  cpu: { fsbMhz: 50, multiplier: 1.5, coreVoltageMv: 2800 },
+  memory: { systemRamMb: 8, ecc: "ecc" },
+  storage: { primaryMaster: "none", capacityGb: 20, raid: "none", primarySlave: "none", secondaryMaster: "none" },
+  bus: {
+    pciClockMhz: 33,
+    slots: [
+      { device: "api-gateway", irq: "auto" },
+      { device: "empty", irq: "auto" },
+      { device: "empty", irq: "auto" },
+      { device: "empty", irq: "auto" },
+    ],
+  },
+  power: { mode: "max-saving", standbyMin: 1, watchdogSec: 10, budgetCapUsd: 25 },
+  health: { fanRpm: 1200, throttleC: 70 },
+  workload: { averageRps: 2, peakFactor: 2 },
+});
+
+export const CMOS_PRESETS: Readonly<Record<"bios" | "setup" | "overclock" | "undervolt", CmosConfig>> = {
+  bios: BIOS_DEFAULTS,
+  setup: SETUP_DEFAULTS,
+  overclock: OVERCLOCK_PRESET,
+  undervolt: UNDERVOLT_PRESET,
+};
+
 /* ═══════════════════════════ 5. Hardware -> cloud mapping tables ═══════════════════════════ */
 
 export interface DriveSpec {
@@ -480,6 +527,8 @@ export interface ComputeTopology {
   readonly scaleInCooldownSec: number;
   readonly reservedConcurrency: number;
   readonly provisionedConcurrency: number;
+  /** List price of one instance-hour (vCPU + memory) before the region multiplier. */
+  readonly instanceHourlyUsd: number;
 }
 
 export interface DatabaseTopology {
@@ -619,6 +668,7 @@ export function deriveCloudTopology(config: CmosConfig): CloudTopology {
       scaleInCooldownSec: config.power.standbyMin * 60,
       reservedConcurrency: maxInstances * concurrencyPerInstance,
       provisionedConcurrency: minWarmInstances * concurrencyPerInstance,
+      instanceHourlyUsd: round(vcpu * PRICING.computeVcpuHour + (memoryMb / 1024) * PRICING.computeGbHour, 6),
     },
     database: driveSpec && drive !== "none"
       ? {
@@ -720,7 +770,7 @@ export interface CmosTelemetry {
   readonly rejectedShare: number;
   /** CPU die temperature the peak demand would produce. */
   readonly thermalC: number;
-  /** Package power at peak demand (watts); grows with clock and Vcore squared. */
+  /** Rated full-load package power (watts): 16 W x (V/3.3)^2 x (MHz/200). Never drops when clock or Vcore rises. */
   readonly powerDrawW: number;
   readonly thermalThrottled: boolean;
   readonly stabilityPct: number;
@@ -967,7 +1017,7 @@ export function simulateCmos(config: CmosConfig, topology: CloudTopology = deriv
     peakUtilization: round(demandUtil, 3),
     rejectedShare: round(rejectedShare, 4),
     thermalC: round(thermalC, 1),
-    powerDrawW: round(powerAt(demandUtil), 2),
+    powerDrawW: round(powerAt(1), 2),
     thermalThrottled: thermalCap < Infinity && peak > thermalCap,
     stabilityPct,
     coldStartShare: round(coldStartShare, 5),
@@ -1103,7 +1153,8 @@ export function applyCloudPatch(config: CmosConfig, patchInput: unknown): CloudP
 /* ═══════════════════════════ 10. BIOS setup state machine ═══════════════════════════ */
 
 export type CmosPhase = "post" | "setup" | "confirm-save" | "confirm-exit" | "rebooting";
-export type DefaultsPreset = "bios" | "setup";
+export const DEFAULTS_PRESETS = ["bios", "setup", "overclock", "undervolt"] as const;
+export type DefaultsPreset = (typeof DEFAULTS_PRESETS)[number];
 
 export interface CmosMachineState {
   readonly phase: CmosPhase;
@@ -1203,7 +1254,7 @@ export function cmosReducer<S extends CmosMachineState>(state: S, event: CmosEve
     }
     case "LOAD_DEFAULTS":
       if (!editable) return withIssues(state, NOT_IN_SETUP) as S;
-      return withDraft(state, event.preset === "bios" ? BIOS_DEFAULTS : SETUP_DEFAULTS) as S;
+      return withDraft(state, CMOS_PRESETS[event.preset]) as S;
     case "RESTORE_SAVED":
       if (!editable) return withIssues(state, NOT_IN_SETUP) as S;
       return withDraft(state, state.saved) as S;

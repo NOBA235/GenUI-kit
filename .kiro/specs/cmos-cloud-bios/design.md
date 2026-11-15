@@ -63,6 +63,8 @@ IRQ resolver: IRQ 14 is reserved by the Primary IDE channel (when a DB exists) a
   - Power P = 16 W × (V/3.3)² × (MHz/200) × (0.3 + 0.7u).
   - Temperature T = 25 + Rth(fan) × P (+2 °C for patrol scrub).
   - If T(1) exceeds the warning temperature, capacity is capped where T equals that threshold.
+- **Power:** `powerDrawW` is the rated full-load package power, 16 W × (V/3.3)² × (MHz/200). It never drops when clock or Vcore rises. Temperature still uses live utilization.
+- **Monotonicity:** a higher CPU multiplier never lowers rated power or the per-instance price (`instanceHourlyUsd`). More read replicas never lower the monthly burn. Total burn is allowed to drop with a higher multiplier, because faster cores serve the same traffic with fewer instances. This is the real trade-off the simulator shows.
 - **Cost:** compute instance-hours (Fargate-like vCPU/GB rates) plus invocations, HTTP API, CDN+WAF, RDS instances × nodes + gp3 storage, ElastiCache, SQS + worker, NAT and the secret. The total is multiplied by the region multiplier. Rates are in `PRICING`.
 - **Stability:** starts at 100, with penalties for undervolt and overvolt, thermal excess, IRQ conflicts, ECC level, missing redundancy, unthrottled ingress, ≥90% utilization, rejected traffic and budget overrun.
 

@@ -31,7 +31,7 @@ Applies only to Flagship Website #3 (`packages/templates/src/cmos-cloud-bios/**`
    - `Enter` opens a sub-menu or option list.
    - `Esc` goes back or exits.
    - `PgUp`/`PgDn` and `+`/`-` change values.
-   - `F1` help, `F5` old values, `F6` BIOS (fail-safe) defaults, `F7` setup defaults, `F10` save & exit.
+   - `F1` help, `F5` BIOS (fail-safe) defaults, `F6` setup defaults, `F7` high-traffic overclock preset, `F10` save & compile.
 2. Focus is always visible (yellow-on-red bar plus a 2px outline). Never trap focus. `Esc` always backs out.
 3. Use semantic roles: `menu`/`menuitem` for the main menu, `listbox`/`option` for value pickers, `alertdialog` for Y/N confirms. Alarms and POST results are announced through an `aria-live="polite"` region.
 4. Respect `prefers-reduced-motion`: no blinking cursor animation, no CRT flicker, no oscilloscope persistence trails.

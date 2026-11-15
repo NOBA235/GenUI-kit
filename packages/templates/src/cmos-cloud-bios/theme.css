@@ -1,0 +1,206 @@
+/* BIOS // NECROMANCER: scoped 16-colour VGA theme ([data-template-theme="cmos-cloud-bios"]) */
+[data-template-theme="cmos-cloud-bios"] {
+  color-scheme: only dark;
+  --cmos-blue: #0000aa;
+  --cmos-yellow: #ffff55;
+  --cmos-white: #ffffff;
+  --cmos-cyan: #00aaaa;
+  --cmos-red: #aa0000;
+  --cmos-black: #000000;
+  --cmos-font: "VT323", "Space Mono", ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  --tpl-bg: var(--cmos-blue);
+  --tpl-fg: var(--cmos-white);
+  --tpl-accent: var(--cmos-yellow);
+  --tpl-radius: 0;
+  background-color: var(--cmos-black);
+  color: var(--cmos-white);
+  font-family: var(--cmos-font);
+  isolation: isolate;
+  contain: layout style;
+  container-type: inline-size;
+}
+
+@scope ([data-template-theme="cmos-cloud-bios"]) {
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+  }
+
+  .cmos-workspace {
+    display: grid;
+    gap: 6px;
+    padding: 6px;
+    min-height: 100dvh;
+    background: var(--cmos-black);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "top" "bios" "twin" "telemetry";
+  }
+
+  .cmos-workspace[data-cmos-mode="landing"] {
+    grid-template-areas: "top" "hero" "twin" "telemetry" "widget" "iac" "modem";
+  }
+
+  @container (min-width: 960px) {
+    .cmos-workspace[data-cmos-mode="setup"] {
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "top top"
+        "bios twin"
+        "bios telemetry";
+    }
+
+    .cmos-workspace[data-cmos-mode="landing"] {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas:
+        "top top"
+        "hero twin"
+        "telemetry telemetry"
+        "widget widget"
+        "iac modem";
+    }
+  }
+
+  [data-cmos-area="top"] { grid-area: top; }
+  [data-cmos-area="bios"] { grid-area: bios; }
+  [data-cmos-area="twin"] { grid-area: twin; }
+  [data-cmos-area="telemetry"] { grid-area: telemetry; }
+  [data-cmos-area="hero"] { grid-area: hero; }
+  [data-cmos-area="widget"] { grid-area: widget; }
+  [data-cmos-area="iac"] { grid-area: iac; }
+  [data-cmos-area="modem"] { grid-area: modem; }
+
+  /* Double-line BIOS frame with VGA drop shadow */
+  .cmos-frame {
+    position: relative;
+    background: var(--cmos-blue);
+    color: var(--cmos-white);
+    border: 4px double var(--cmos-white);
+    box-shadow: 8px 8px 0 var(--cmos-black);
+  }
+
+  .cmos-frame-title {
+    position: absolute;
+    top: -0.75em;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 0.5ch;
+    background: var(--cmos-blue);
+    color: var(--cmos-yellow);
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .cmos-text { font-size: 1.15rem; line-height: 1.35; }
+  .cmos-small { font-size: 0.95rem; line-height: 1.3; }
+  .cmos-help { color: var(--cmos-cyan); }
+  .cmos-value { color: var(--cmos-yellow); }
+
+  /* Instant inversion: selection bar, no transitions anywhere */
+  .cmos-item {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    gap: 1ch;
+    padding: 0 0.6ch;
+    background: transparent;
+    color: var(--cmos-white);
+    text-align: left;
+    font: inherit;
+    border: 0;
+    cursor: pointer;
+    transition: none;
+  }
+
+  .cmos-item[aria-selected="true"],
+  .cmos-item[data-selected="true"] {
+    background: var(--cmos-red);
+    color: var(--cmos-yellow);
+  }
+
+  .cmos-item:focus-visible,
+  .cmos-button:focus-visible,
+  .cmos-tab:focus-visible {
+    outline: 2px solid var(--cmos-yellow);
+    outline-offset: 1px;
+  }
+
+  .cmos-button,
+  .cmos-tab {
+    font: inherit;
+    padding: 0 1ch;
+    border: 2px solid var(--cmos-white);
+    background: var(--cmos-blue);
+    color: var(--cmos-white);
+    cursor: pointer;
+    transition: none;
+  }
+
+  .cmos-button:hover,
+  .cmos-tab[aria-selected="true"] {
+    background: var(--cmos-white);
+    color: var(--cmos-blue);
+  }
+
+  .cmos-button[data-variant="danger"] {
+    background: var(--cmos-red);
+    color: var(--cmos-yellow);
+    border-color: var(--cmos-yellow);
+  }
+
+  .cmos-dialog {
+    background: var(--cmos-red);
+    color: var(--cmos-white);
+    border: 4px double var(--cmos-yellow);
+    box-shadow: 10px 10px 0 var(--cmos-black);
+  }
+
+  .cmos-code {
+    margin: 0;
+    padding: 0.75ch 1ch;
+    max-height: 26rem;
+    overflow: auto;
+    background: var(--cmos-black);
+    color: var(--cmos-white);
+    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .cmos-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+  .cmos-scroll::-webkit-scrollbar-track { background: var(--cmos-blue); }
+  .cmos-scroll::-webkit-scrollbar-thumb { background: var(--cmos-cyan); border: 2px solid var(--cmos-blue); }
+
+  .cmos-post {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: var(--cmos-black);
+    color: #aaaaaa;
+    padding: 2rem 2.5rem;
+    overflow: auto;
+  }
+
+  .cmos-cursor { display: inline-block; width: 1ch; background: #aaaaaa; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cmos-cursor { animation: cmos-blink 1s steps(1) infinite; }
+    /* Alarm strobe stays at 1 Hz, far below the WCAG 2.3.1 limit of 3 flashes per second */
+    .cmos-alarm { animation: cmos-blink 1s steps(1) infinite; }
+  }
+
+  @keyframes cmos-blink {
+    50% { opacity: 0; }
+  }
+
+  /* Landing page */
+  .cmos-landing-hero h1 {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    line-height: 1;
+    color: var(--cmos-yellow);
+    letter-spacing: 0.02em;
+  }
+}

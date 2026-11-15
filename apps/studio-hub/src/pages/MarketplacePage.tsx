@@ -24,10 +24,17 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
   const counts = getTemplateCounts();
 
-  const featuredFlagships = useMemo(
-    () => listTemplates({}).filter((entry) => entry.manifest.featured === true),
-    [],
-  );
+  // Flagships keep their release numbering regardless of registry order.
+  const featuredFlagships = useMemo(() => {
+    const releaseOrder = ["afterdark-horror", "ninety9-archive", "cmos-cloud-bios"];
+    const rank = (slug: string) => {
+      const index = releaseOrder.indexOf(slug);
+      return index === -1 ? releaseOrder.length : index;
+    };
+    return listTemplates({})
+      .filter((entry) => entry.manifest.featured === true)
+      .sort((a, b) => rank(a.manifest.slug) - rank(b.manifest.slug));
+  }, []);
 
   const filteredTemplates = useMemo(
     () =>
@@ -152,13 +159,17 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
           >
             {featuredFlagships.map((flagship, index) => {
               const isMono = flagship.manifest.slug === "ninety9-archive";
+              const isBios = flagship.manifest.slug === "cmos-cloud-bios";
               return (
                 <div
                   key={`featured-${flagship.manifest.slug}`}
+                  data-testid={`marketplace-flagship-${flagship.manifest.slug}`}
                   className={`flex flex-wrap items-center justify-between gap-6 p-6 md:p-7 shadow-xl ${
                     isMono
                       ? "rounded-none border-2 border-[#FFFFFF] bg-[#FFFFFF] text-[#000000] shadow-[4px_4px_0px_#808080]"
-                      : "rounded-2xl border border-red-900/50 bg-gradient-to-r from-[#090306] via-slate-950 to-zinc-950 text-white"
+                      : isBios
+                        ? "rounded-none border-4 border-double border-[#FFFFFF] bg-[#0000AA] text-[#FFFFFF] shadow-[6px_6px_0px_#000000] font-mono"
+                        : "rounded-2xl border border-red-900/50 bg-gradient-to-r from-[#090306] via-slate-950 to-zinc-950 text-white"
                   }`}
                 >
                   <div className="max-w-2xl space-y-2">
@@ -181,7 +192,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                       >
                         {isMono
                           ? "5-Tone White Mono + 34 Dossiers + CRT Mode"
-                          : "Dual-Mode + 60 FPS WebGL + 3D Audio"}
+                          : isBios
+                            ? "Award BIOS + 3D Twin + IaC Compiler + FSK Modem"
+                            : "Dual-Mode + 60 FPS WebGL + 3D Audio"}
                       </span>
                     </div>
                     <h3 className="text-xl md:text-2xl font-bold tracking-tight">
@@ -213,7 +226,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                           : "rounded-lg bg-red-600 text-white hover:bg-red-500"
                       }`}
                     >
-                      {isMono ? "Enter NINETY9 Archive →" : "Enter 2:17 AM Preview →"}
+                      {isMono ? "Enter NINETY9 Archive →" : isBios ? "Enter CMOS SETUP →" : "Enter 2:17 AM Preview →"}
                     </button>
                     <button
                       type="button"

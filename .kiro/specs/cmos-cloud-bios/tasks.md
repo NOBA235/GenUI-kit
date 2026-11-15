@@ -20,12 +20,12 @@
   - [x] FSK manifest round-trips through a Goertzel demodulator (CRC valid) at 300/600 baud.
 
 ## Interactive experience: UI, 3D twin, catalog, tests, marketplace
-- [ ] 7. POST boot view: Energy Star emblem, RAM count-up, drive detection, DEL/click/SPACE handling, POST beep. _Req 13_
-- [ ] 8. Award BIOS left pane with 6 menus, keyboard and mouse, Y/N dialogs, live telemetry footer. _Req 2, 3, 14_
-- [ ] 9. 3D motherboard twin: instanced PCB parts, CPU fan speed tied to clock, heat tint tied to temperature, NVMe LED, PCIe cards, CMOS battery, camera focus per menu. _Req 14_
-- [ ] 10. Mode switch: CMOS SETUP vs HARDWARE LANDING PAGE. _Req 15_
-- [ ] 11. `manifest.json`, `theme.css`, `catalog.ts` (7 components, strict props), `components/index.ts`, `index.ts`, three remix presets incl. the corrupted-packet fail-safe. _Req 16.1–16.2_
-- [ ] 12. Studio Hub jumper pin for this template. _Req 1.3_
-- [ ] 13. `__tests__/cmos-bios.pbt.test.ts`: compile validity (500 runs), cost/power monotonicity, catalog fuzzing. _Req 16.3_
-- [ ] 14. Marketplace registration, `SKILL.md`, `POWER.md`, sync bundle, export `.zip`. _Req 16.4_
-- [ ] 15. Full workspace build, typecheck and tests.
+- [x] 7. `PostBootSequence`: Energy Star emblem, RAM count-up, IDE detection from live registers, DEL/Enter/click/SPACE, Award beep code. _Req 13_
+- [x] 8. `AwardBiosMenuGrid`: 6 menus (`components/bios-menus.ts`), keyboard (Arrows, Enter, Esc, +/-, PgUp/PgDn, F1, F5, F6, F7, F10, Y/N) and mouse, option listbox, Y/N dialogs, status line, help. _Req 2, 3, 14_
+- [x] 9. `Motherboard3DTwin` + `MotherboardScene`: instanced capacitors, chokes, heatsink fins, DIMM chips and traces; fan speed from clock and fan RPM; heatsink tint from temperature; NVMe LED; PCIe cards per slot; CMOS battery; camera follows menu focus and hover; client-only canvas with WebGL and context-loss fallbacks. _Req 14_
+- [x] 10. `CmosWorkstationShell`: CMOS SETUP vs HARDWARE LANDING PAGE switch, grid layout via `data-cmos-area`, audio unlock, alarm driver, speaker toggle; `DevToolsHeroSection` for landing mode. _Req 15_
+- [x] 11. `manifest.json` (MIT, free), `theme.css`, `catalog.ts` (9 components with strict props), registry, `index.ts`, presets `overclock` / `undervolt`, and the corrupted register packet handled by `CmosRegisterPacket` with fail-safe recovery. _Req 16.1–16.2_
+- [x] 12. Studio Hub: `[ALT+G] GENUI STUDIO // EXPORT CMOS` jumper pin in `PreviewPage.tsx`; flagship banner in `MarketplacePage.tsx`. _Req 1.3_
+- [x] 13. `__tests__/cmos-bios.pbt.test.ts`: compile validity over 500 random configs (strict YAML-subset reader, JSON parse, HCL balance, no inline secrets), power/price/cost monotonicity, adversarial catalog props (direct and streamed), preset streaming, fail-safe recovery, SSR in both modes, `.zip` export. _Req 16.3_
+- [x] 14. Marketplace registration via `pnpm sync:templates`, `SKILL.md`, `POWER.md`, template `steering.md`. _Req 16.4_
+- [x] 15. Workspace typecheck, build and tests run. `apps/spatial-ops` currently fails typecheck/build from a stray edit outside this template (`SpatialSceneCanvas.tsx` line 104).

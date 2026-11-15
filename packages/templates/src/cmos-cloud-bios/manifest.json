@@ -1,0 +1,77 @@
+{
+  "slug": "cmos-cloud-bios",
+  "id": "cmos-cloud-bios",
+  "name": "cmos-cloud-bios",
+  "title": "BIOS // NECROMANCER — 1994 CMOS Utility & 3D Motherboard Cloud Compiler",
+  "description": "Flagship Website #3: an Award Modular BIOS setup utility that configures real cloud infrastructure. Tune clock multipliers, RAID, IRQ lines and power budgets, watch simulated cost, P99 latency and thermals react on a 3D motherboard twin, then compile docker-compose.yml, vercel.json and main.tf or transmit the config as FSK modem audio.",
+  "mode": "native",
+  "version": "1.0.0",
+  "author": "GenUI Studio",
+  "license": "MIT",
+  "tier": "free",
+  "priceUsd": 0,
+  "category": "DevTools / Infrastructure",
+  "tags": ["3D / WebGL", "B2B SaaS", "GenUI Verified"],
+  "verified": true,
+  "featured": true,
+  "immersiveExperience": true,
+  "theme": {
+    "defaultColorScheme": "dark",
+    "accentColor": "#FFFF55",
+    "surfaceBg": "#0000AA",
+    "surfaceElevated": "#000000",
+    "textColor": "#FFFFFF",
+    "mutedColor": "#00AAAA",
+    "displayFont": "\"VT323\", \"Space Mono\", ui-monospace, monospace",
+    "bodyFont": "\"VT323\", \"Space Mono\", ui-monospace, monospace",
+    "borderRadius": "0"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "slug": "home",
+      "title": "BIOS // NECROMANCER · CMOS Setup",
+      "route": "/",
+      "description": "POST boot, split-screen Award BIOS with 3D motherboard twin, and a hardware landing-page mode.",
+      "sections": [
+        "CmosWorkstationShell",
+        "PostBootSequence",
+        "AwardBiosMenuGrid",
+        "Motherboard3DTwin",
+        "HardwareTelemetryMonitor",
+        "IaCCodeCompilerOutput",
+        "AcousticModemOscilloscope",
+        "DevToolsHeroSection"
+      ]
+    }
+  ],
+  "remixPresets": [
+    {
+      "id": "ai-agent-overclock",
+      "label": "Stream Preset: AI Agent Cluster Overclock (Max GPU PCIe + High Memory Bus)",
+      "description": "Loads 4 vCPU, 128 MB RAM bus, NVMe RAID 10 with pgvector, a 6 GB cache and dual API gateways.",
+      "prompt": "Stream Preset: AI Agent Cluster Overclock (Max GPU PCIe + High Memory Bus)"
+    },
+    {
+      "id": "indie-undervolt",
+      "label": "Stream Preset: Zero-Cost Indie Hacker Undervolt (Strict FinOps Spend Cap)",
+      "description": "Loads a stateless scale-to-zero profile with a single gateway and a $25 spend cap.",
+      "prompt": "Stream Preset: Zero-Cost Indie Hacker Undervolt (Strict FinOps Spend Cap)"
+    },
+    {
+      "id": "corrupted-register-packet",
+      "label": "Inject Corrupted Voltage / Negative IRQ Packet",
+      "description": "Streams a register packet with negative Vcore and invalid IRQs. The catalog clamps it, the CMOS engine rejects it, and the BIOS loads fail-safe defaults without crashing.",
+      "prompt": "Inject Corrupted Voltage / Negative IRQ Packet"
+    }
+  ],
+  "dependencies": {
+    "@react-three/fiber": "^9.0.0",
+    "three": "^0.173.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.173.0"
+  }
+}
