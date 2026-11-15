@@ -1,0 +1,202 @@
+/* CHIMERA // LAB: scoped bioluminescent laboratory theme ([data-template-theme="neuro-chimera-synth"]) */
+[data-template-theme="neuro-chimera-synth"] {
+  color-scheme: only dark;
+  --chimera-void: #020a0e;
+  --chimera-flux: #00f5b8;
+  --chimera-synapse: #ffb000;
+  --chimera-mutation: #ff2a6d;
+  --chimera-quartz: rgba(2, 18, 24, 0.78);
+  --chimera-line: rgba(0, 245, 184, 0.25);
+  --chimera-text: #d9fff4;
+  --chimera-muted: rgba(217, 255, 244, 0.62);
+  --chimera-font: "Inter", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --chimera-mono: "JetBrains Mono", "Geist Mono", ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  --tpl-bg: var(--chimera-void);
+  --tpl-fg: var(--chimera-text);
+  --tpl-accent: var(--chimera-flux);
+  background-color: var(--chimera-void);
+  color: var(--chimera-text);
+  font-family: var(--chimera-font);
+  isolation: isolate;
+  contain: layout style;
+  container-type: inline-size;
+}
+
+@scope ([data-template-theme="neuro-chimera-synth"]) {
+  .chimera-workspace {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+    min-height: 100dvh;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(0, 245, 184, 0.08), transparent 42%),
+      radial-gradient(circle at 82% 88%, rgba(255, 176, 0, 0.05), transparent 40%),
+      var(--chimera-void);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "top" "canvas" "sql" "crew" "spectrum";
+  }
+
+  .chimera-workspace[data-chimera-mode="landing"] {
+    grid-template-areas: "top" "hero" "canvas" "bench" "pricing";
+  }
+
+  @container (min-width: 1080px) {
+    .chimera-workspace[data-chimera-mode="workbench"] {
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      grid-template-areas:
+        "top top"
+        "canvas sql"
+        "crew spectrum";
+    }
+
+    .chimera-workspace[data-chimera-mode="landing"] {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      grid-template-areas:
+        "top top"
+        "hero canvas"
+        "bench bench"
+        "pricing pricing";
+    }
+  }
+
+  [data-chimera-area="top"] { grid-area: top; }
+  [data-chimera-area="canvas"] { grid-area: canvas; }
+  [data-chimera-area="sql"] { grid-area: sql; }
+  [data-chimera-area="crew"] { grid-area: crew; }
+  [data-chimera-area="spectrum"] { grid-area: spectrum; }
+  [data-chimera-area="hero"] { grid-area: hero; }
+  [data-chimera-area="bench"] { grid-area: bench; }
+  [data-chimera-area="pricing"] { grid-area: pricing; }
+
+  .chimera-panel {
+    position: relative;
+    min-width: 0;
+    background: var(--chimera-quartz);
+    border: 1px solid var(--chimera-line);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+  }
+
+  .chimera-heading {
+    font-family: var(--chimera-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--chimera-flux);
+  }
+
+  .chimera-mono { font-family: var(--chimera-mono); }
+  .chimera-muted { color: var(--chimera-muted); }
+  .chimera-flux { color: var(--chimera-flux); }
+  .chimera-synapse { color: var(--chimera-synapse); }
+  .chimera-mutation { color: var(--chimera-mutation); }
+
+  .chimera-button {
+    font: 500 12px/1.2 var(--chimera-mono);
+    padding: 7px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--chimera-line);
+    background: rgba(0, 245, 184, 0.06);
+    color: var(--chimera-text);
+    cursor: pointer;
+  }
+
+  .chimera-button:hover { border-color: var(--chimera-flux); background: rgba(0, 245, 184, 0.14); }
+  .chimera-button[data-variant="primary"] { background: var(--chimera-flux); color: var(--chimera-void); border-color: var(--chimera-flux); }
+  .chimera-button[data-variant="danger"] { border-color: rgba(255, 42, 109, 0.55); color: #ffd2df; background: rgba(255, 42, 109, 0.12); }
+  .chimera-button[aria-pressed="true"] { background: rgba(0, 245, 184, 0.22); border-color: var(--chimera-flux); }
+  .chimera-button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .chimera-button:focus-visible,
+  .chimera-input:focus-visible,
+  .chimera-node-chip:focus-visible {
+    outline: 2px solid var(--chimera-synapse);
+    outline-offset: 2px;
+  }
+
+  .chimera-input {
+    width: 100%;
+    font: 12px/1.5 var(--chimera-mono);
+    color: var(--chimera-text);
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--chimera-line);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .chimera-code {
+    margin: 0;
+    max-height: 18rem;
+    overflow: auto;
+    font: 11px/1.5 var(--chimera-mono);
+    white-space: pre;
+    color: var(--chimera-text);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 245, 184, 0.12);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .chimera-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: 600 10px/1 var(--chimera-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+
+  .chimera-node-chip {
+    font: 11px/1.2 var(--chimera-mono);
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--chimera-line);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--chimera-text);
+    cursor: pointer;
+  }
+
+  .chimera-node-chip[aria-pressed="true"] { border-color: var(--chimera-synapse); color: var(--chimera-synapse); }
+
+  .chimera-canvas-wrap {
+    position: relative;
+    min-height: 26rem;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 50%, rgba(0, 245, 184, 0.06), rgba(2, 10, 14, 1) 70%);
+  }
+
+  .chimera-hero h1 {
+    font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  .chimera-gradient-text {
+    background: linear-gradient(90deg, var(--chimera-flux), var(--chimera-synapse));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .chimera-table { width: 100%; border-collapse: collapse; font: 12px/1.4 var(--chimera-mono); }
+  .chimera-table th, .chimera-table td { padding: 8px 10px; border-bottom: 1px solid rgba(0, 245, 184, 0.12); text-align: left; }
+  .chimera-table th { color: var(--chimera-muted); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+  .chimera-table tr[data-active="true"] td { background: rgba(0, 245, 184, 0.06); }
+
+  .chimera-bento { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .chimera-pulse { animation: chimera-pulse 1.6s ease-in-out infinite; }
+  }
+
+  @keyframes chimera-pulse {
+    50% { opacity: 0.45; }
+  }
+}
