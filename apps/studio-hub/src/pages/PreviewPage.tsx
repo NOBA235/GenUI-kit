@@ -113,6 +113,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   const isImmersiveTemplate = Boolean(template?.manifest.immersiveExperience);
   const isMonochromeArchive = slug === "ninety9-archive";
   const isCmosBios = slug === "cmos-cloud-bios";
+  const isChimeraLab = slug === "neuro-chimera-synth";
   const [viewport, setViewport] = useState<ViewportPreset>("desktop");
   const [isHudCollapsed, setIsHudCollapsed] = useState(false);
   const [immersionHudOpen, setImmersionHudOpen] = useState<boolean>(() => {
@@ -514,6 +515,24 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
             className="truncate text-left hover:bg-[#AA0000] cursor-pointer"
           >
             [ALT+G] GENUI STUDIO // EXPORT CMOS
+          </button>
+        </div>
+      ) : isChimeraLab ? (
+        <div
+          data-testid="immersion-hud-indicator"
+          className="fixed bottom-3 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-center rounded-full border border-[rgba(0,245,184,0.25)] bg-[rgba(2,18,24,0.78)] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#00F5B8] backdrop-blur-md sm:text-[11px]"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setImmersionHudOpen(true);
+              setIsRemixOpen(true);
+            }}
+            data-testid="open-immersion-hud-btn"
+            aria-label="Open GenUI Studio HUD and export (Alt+G)"
+            className="truncate text-left hover:text-[#FFB000] cursor-pointer"
+          >
+            [ALT+G] GENUI STUDIO // EXPORT CHIMERA + KIRO CREW APP
           </button>
         </div>
       ) : isMonochromeArchive ? (
