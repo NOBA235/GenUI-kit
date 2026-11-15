@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { createStore, type StoreApi } from "zustand/vanilla";
-import { indexDdl } from "../lib/chimera/query-planner.js";
+import { indexDdl, type IndexDef } from "../lib/chimera/query-planner.js";
 import type { InterventionResult, NetworkTelemetry, PhysarumNetwork } from "../lib/chimera/bio-solver.js";
 import { CHIMERA_SCENARIOS, createScenarioNetwork } from "../lib/chimera/scenarios.js";
 
@@ -146,10 +146,11 @@ function record(author: ActivityAuthor, result: InterventionResult, title?: stri
   return entry;
 }
 
-export function loadScenario(scenarioId: string): boolean {
+/** Load a scenario. Loading the current one is a no-op unless `force` resets it. */
+export function loadScenario(scenarioId: string, force = false): boolean {
   if (!CHIMERA_SCENARIOS.some((sc) => sc.id === scenarioId)) return false;
   const s = getLabStore();
-  if (s.getState().scenarioId === scenarioId) return true;
+  if (s.getState().scenarioId === scenarioId && !force) return true;
   network = createScenarioNetwork(scenarioId);
   publish({
     scenarioId,
@@ -193,6 +194,15 @@ export function injectBestIndex(nodeId: string, author: ActivityAuthor = "operat
     return false;
   }
   record(author, net.injectIndex(best.datasetId, best.index), `${indexDdl(best.index)}`);
+  publish({ notice: null });
+  return true;
+}
+
+/** Apply one index migration (e.g. from the SQL deck's recommendations). */
+export function injectIndex(datasetId: string, index: IndexDef, author: ActivityAuthor = "operator"): boolean {
+  const net = getLabNetwork();
+  if (!net.getDataset(datasetId)) return false;
+  record(author, net.injectIndex(datasetId, index), indexDdl(index));
   publish({ notice: null });
   return true;
 }
@@ -276,14 +286,55 @@ export function dispatchAgent(agent: CrewAgentName, targetNodeId?: string | null
   return changes;
 }
 
-/** Apply a chemotaxis packet; invalid packets are quarantined and leave the network unchanged. */
-export function applyChemotaxisPacket(packetId: string, nodeId: string, strength: number): boolean {
-  const result = getLabNetwork().applyChemotaxisPulse(nodeId, strength);
-  if (!result) {
-    setLab({ notice: `CHEMOTAXIS PACKET ${packetId} QUARANTINED: node "${nodeId}" or strength ${String(strength)} is not valid for this network` });
-    return false;
+export interface ChemotaxisPacketInput {
+  readonly packetId: string;
+  readonly nodeId: string;
+  readonly strength: number;
+  /** Query to replace with `sql`; null targets the selected query. */
+  readonly queryId: string | null;
+  /** Optional SQL payload. It must parse and plan, or the packet is quarantined. */
+  readonly sql: string | null;
+}
+
+export interface ChemotaxisOutcome {
+  readonly pulseApplied: boolean;
+  readonly sqlApplied: boolean;
+  readonly quarantined: readonly string[];
+  readonly notice: string;
+}
+
+/**
+ * Apply a streamed chemotaxis packet. Each part is checked on its own: the pulse needs a live
+ * node and a finite strength in [0, 1]; the SQL payload must parse and plan on every sink. Any
+ * invalid part is quarantined and leaves the network unchanged.
+ */
+export function applyChemotaxisPacket(packet: ChemotaxisPacketInput): ChemotaxisOutcome {
+  const net = getLabNetwork();
+  const quarantined: string[] = [];
+  let pulseApplied = false;
+  let sqlApplied = false;
+
+  const pulse = net.applyChemotaxisPulse(packet.nodeId, packet.strength);
+  if (pulse) {
+    record("operator", pulse);
+    pulseApplied = true;
+  } else {
+    quarantined.push(`pulse (node "${packet.nodeId}", strength ${String(packet.strength)})`);
   }
-  record("operator", result);
-  publish({ notice: `Chemotaxis packet ${packetId} applied at ${nodeId}` });
-  return true;
+
+  if (packet.sql !== null) {
+    const queryId = packet.queryId ?? getLabStore().getState().selectedQueryId;
+    const error = queryId ? applyQuerySql(queryId, packet.sql) : "no query selected";
+    if (error === null) sqlApplied = true;
+    else quarantined.push(`SQL payload (${error})`);
+  }
+
+  const notice =
+    quarantined.length === 0
+      ? `Chemotaxis packet ${packet.packetId} applied`
+      : `CHEMOTAXIS PACKET ${packet.packetId} QUARANTINED: ${quarantined.join("; ")}. ${
+          pulseApplied || sqlApplied ? "The valid parts were applied." : "Network unchanged."
+        }`;
+  publish({ notice });
+  return { pulseApplied, sqlApplied, quarantined, notice };
 }

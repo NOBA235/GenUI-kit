@@ -81,6 +81,47 @@ export function mapTelemetryToSound(t: SonificationInput, controls: SoundControl
   };
 }
 
+/** Bessel function of the first kind J_n(x) for integer n, by its power series (|x| ≤ ~20). */
+export function besselJ(n: number, x: number): number {
+  const order = Math.abs(Math.trunc(n));
+  let term = 1;
+  for (let k = 1; k <= order; k++) term *= x / 2 / k;
+  let sum = term;
+  const q = -(x * x) / 4;
+  for (let m = 1; m <= 40; m++) {
+    term *= q / (m * (m + order));
+    sum += term;
+    if (Math.abs(term) < 1e-14 * Math.max(1, Math.abs(sum))) break;
+  }
+  return n < 0 && order % 2 === 1 ? -sum : sum;
+}
+
+export const DRONE_LEVELS = [0.16, 0.09, 0.06] as const;
+export const PARTIAL_SIDEBANDS = 4;
+export const MAX_PARTIALS = DRONE_LEVELS.length * (2 * PARTIAL_SIDEBANDS + 1);
+
+/**
+ * Predicted drone spectrum for a parameter set: each FM voice puts energy at carrier ± n·modulator
+ * with amplitude level·|J_n(index)| (negative frequencies fold back). Writes into the given
+ * arrays and returns the count, so render loops can reuse buffers.
+ */
+export function predictPartials(p: SoundParams, freqOut: Float32Array, levelOut: Float32Array): number {
+  const root = p.rootHz * 2 ** (p.pitchBendSemitones / 12);
+  const detune = [-p.detuneCents, p.detuneCents * 0.6, p.detuneCents];
+  let count = 0;
+  for (let v = 0; v < DRONE_LEVELS.length; v++) {
+    const carrier = root * p.voiceRatios[v]! * 2 ** (detune[v]! / 1200);
+    const modulator = carrier * p.fmRatio;
+    for (let n = -PARTIAL_SIDEBANDS; n <= PARTIAL_SIDEBANDS; n++) {
+      if (count >= freqOut.length || count >= levelOut.length) return count;
+      freqOut[count] = Math.abs(carrier + n * modulator);
+      levelOut[count] = DRONE_LEVELS[v]! * Math.abs(besselJ(n, p.fmIndex));
+      count++;
+    }
+  }
+  return count;
+}
+
 /** Seeded mulberry32 PRNG: grain pitches and click timing repeat exactly for a given seed. */
 export function createSonifierRng(seed: number): () => number {
   let state = seed >>> 0;
@@ -258,7 +299,7 @@ class WebAudioChimeraSonifier implements ChimeraSonifier {
     const now = ctx.currentTime;
     const p = this.params;
     const root = this.rootState * 2 ** (p.pitchBendSemitones / 12);
-    const levels = [0.16, 0.09, 0.06];
+    const levels = DRONE_LEVELS;
     const detune = [-p.detuneCents, p.detuneCents * 0.6, p.detuneCents];
     this.voices.forEach((voice, i) => {
       const freq = root * p.voiceRatios[i]!;
