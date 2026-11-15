@@ -1,0 +1,67 @@
+{
+  "name": "chimera-lab",
+  "version": "1.0.0",
+  "displayName": "CHIMERA // LAB",
+  "description": "Audits slow SQL and repository bottlenecks every six hours, explains query plans, and proposes N+1 batching and composite indexes.",
+  "author": "GenUI Studio",
+  "license": "MIT",
+  "minKiroCrewVersion": "0.1.0",
+  "tags": ["database", "postgres", "performance", "sql", "code-review"],
+  "highlights": [
+    "Reads EXPLAIN plans and flags sequential scans on large tables",
+    "Detects N+1 query loops in application code and proposes batched rewrites",
+    "Designs composite indexes (equality, sort, range) with CREATE INDEX CONCURRENTLY",
+    "Scheduled bottleneck audit every six hours, paused until configured",
+    "Proposes changes only; never runs DDL without approval"
+  ],
+  "agents": ["agents/chimera-architect.json"],
+  "skills": ["skills/bio-query-optimizer"],
+  "crons": [
+    {
+      "name": "chimera-bottleneck-audit",
+      "cron_expr": "0 */6 * * *",
+      "message": "Run a CHIMERA bottleneck audit with the bio-query-optimizer skill. Use the repository in $CHIMERA_PROJECT_DIR and, if set, the read-only database URL in $CHIMERA_DATABASE_URL. Review git commits from the last six hours for new queries and loops that issue queries, run EXPLAIN (no ANALYZE) on the slowest statements, and report sequential scans, N+1 patterns and missing composite indexes with proposed SQL. Do not run DDL or modify files.",
+      "agent": "chimera-architect",
+      "enabled": false
+    }
+  ],
+  "ui": {
+    "entry": "dist/index.mjs",
+    "pages": [
+      {
+        "route": "/apps/chimera-lab",
+        "label": "Chimera Lab",
+        "icon": "Dna"
+      }
+    ],
+    "sidebar": {
+      "section": "Apps",
+      "order": 20
+    }
+  },
+  "backend": {
+    "hooks": {
+      "on_startup": "backend.hooks:on_startup",
+      "on_shutdown": "backend.hooks:on_shutdown"
+    }
+  },
+  "permissions": {
+    "api": ["/api/crons", "/api/status"],
+    "events": ["notification"],
+    "cron": true,
+    "storage": false,
+    "network": false
+  },
+  "dependencies": {
+    "managedBy": "gateway",
+    "commands": ["git", "node", "npm"],
+    "optionalCommands": ["psql"]
+  },
+  "setup": {
+    "onInstall": "cd ui && npm install && npm run build",
+    "onUpdate": "cd ui && npm install && npm run build"
+  },
+  "platform": {
+    "os": ["macos", "linux"]
+  }
+}
