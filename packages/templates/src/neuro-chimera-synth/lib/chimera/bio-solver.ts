@@ -131,11 +131,16 @@ export interface LinkTelemetry {
   readonly conductivity: number;
   /** Call-weighted flux share through the link (0..1). */
   readonly flux: number;
+  /** Part of `flux` carried by statements that hit a full scan or time out (0..flux). */
+  readonly faultFlux: number;
   readonly active: boolean;
 }
 
 export interface NodeTelemetry {
   readonly id: string;
+  /** Current layout position in the unit square (moves with `moveNode`). */
+  readonly x: number;
+  readonly y: number;
   readonly alive: boolean;
   /** Utilisation ρ of a database node (raw, may exceed 1). */
   readonly load: number;
@@ -172,7 +177,7 @@ export interface NetworkTelemetry {
 }
 
 export interface InterventionResult {
-  readonly kind: "index" | "rewrite" | "sever" | "revive";
+  readonly kind: "index" | "rewrite" | "sever" | "revive" | "sql" | "chemotaxis";
   readonly target: string;
   readonly sql: string | null;
   readonly detail: string;
@@ -300,8 +305,24 @@ interface LinkState {
   readonly id: string;
   readonly a: number;
   readonly b: number;
-  readonly latencyMs: number;
+  /** Latency from the scenario at the original layout. */
+  readonly baseLatencyMs: number;
+  /** Euclidean link length at the original layout. */
+  readonly baseLength: number;
+  latencyMs: number;
   conductivity: number;
+}
+
+/** Dragging a node scales its link latencies by length ratio, within these bounds. */
+export const MIN_LATENCY_SCALE = 0.25;
+export const MAX_LATENCY_SCALE = 4;
+
+export interface IndexCandidate {
+  readonly datasetId: string;
+  readonly index: IndexDef;
+  readonly ddl: string;
+  /** Call-weighted cost units per second saved: Σ (before − after) × statements/s × share. */
+  readonly score: number;
 }
 
 interface SolveResult {
@@ -316,6 +337,10 @@ function finite(value: number, fallback = 0): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
+
 function inc(array: Float64Array, index: number, delta: number): void {
   array[index] = (array[index] ?? 0) + delta;
 }
@@ -325,6 +350,7 @@ export class PhysarumNetwork {
   readonly nodes: readonly BioNodeSpec[];
   private readonly nodeIndex = new Map<string, number>();
   private readonly links: LinkState[];
+  private readonly positions: Array<{ x: number; y: number }>;
   private readonly alive: boolean[];
   private readonly queries: QueryState[];
   private datasets: Map<string, Dataset>;
@@ -344,8 +370,10 @@ export class PhysarumNetwork {
     scenario.nodes.forEach((node, i) => {
       if (this.nodeIndex.has(node.id)) throw new ScenarioError(`Duplicate node id ${node.id}`);
       if (node.datasetId !== undefined && !scenario.datasets[node.datasetId]) throw new ScenarioError(`Node ${node.id} references unknown dataset ${node.datasetId}`);
+      if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) throw new ScenarioError(`Node ${node.id} needs a finite position`);
       this.nodeIndex.set(node.id, i);
     });
+    this.positions = scenario.nodes.map((node) => ({ x: clamp01(node.x), y: clamp01(node.y) }));
     const seen = new Set<string>();
     this.links = scenario.links.map((link) => {
       const a = this.nodeIndex.get(link.a);
@@ -355,7 +383,17 @@ export class PhysarumNetwork {
       const id = a < b ? `${link.a}~${link.b}` : `${link.b}~${link.a}`;
       if (seen.has(id)) throw new ScenarioError(`Duplicate link ${id}`);
       seen.add(id);
-      return { id, a, b, latencyMs: link.latencyMs, conductivity: INITIAL_CONDUCTIVITY };
+      const pa = this.positions[a]!;
+      const pb = this.positions[b]!;
+      return {
+        id,
+        a,
+        b,
+        baseLatencyMs: link.latencyMs,
+        baseLength: Math.hypot(pa.x - pb.x, pa.y - pb.y),
+        latencyMs: link.latencyMs,
+        conductivity: INITIAL_CONDUCTIVITY,
+      };
     });
     const queryIds = new Set<string>();
     this.queries = scenario.queries.map((q) => {
@@ -499,19 +537,18 @@ export class PhysarumNetwork {
   }
 
   /**
-   * The Kiro Crew Optimizer Agent, deterministic edition: apply the index recommendations with
-   * the largest call-weighted savings (up to `maxIndexes`), then batch every N+1 query.
+   * Index recommendations across all live sinks, ranked by call-weighted savings.
+   * Pass `datasetId` to rank only one dataset (the canvas "inject index" action).
    */
-  runOptimizerAgent(maxIndexes = 3): OptimizerReport {
-    const before = this.summary();
-    const actions: InterventionResult[] = [];
+  indexCandidates(datasetId?: string): IndexCandidate[] {
     const candidates = new Map<string, { datasetId: string; index: IndexDef; score: number }>();
     for (const qt of this.current.queries) {
       if (qt.status !== "ok") continue;
       const q = this.queries.find((x) => x.spec.id === qt.id)!;
       for (const sink of qt.sinks) {
-        const datasetId = this.nodes[this.nodeIndex.get(sink.nodeId)!]!.datasetId!;
-        const dataset = this.datasets.get(datasetId)!;
+        const sinkDataset = this.nodes[this.nodeIndex.get(sink.nodeId)!]!.datasetId!;
+        if (datasetId !== undefined && sinkDataset !== datasetId) continue;
+        const dataset = this.datasets.get(sinkDataset)!;
         let recs;
         try {
           recs = recommendIndexes(q.stmt, dataset, this.planOptions(q));
@@ -519,15 +556,86 @@ export class PhysarumNetwork {
           continue;
         }
         for (const rec of recs) {
-          const key = `${datasetId}/${rec.index.name}`;
+          const key = `${sinkDataset}/${rec.index.name}`;
           const score = (rec.costBefore - rec.costAfter) * qt.statementsPerSecond * sink.share;
           const prev = candidates.get(key);
-          candidates.set(key, { datasetId, index: rec.index, score: (prev?.score ?? 0) + score });
+          candidates.set(key, { datasetId: sinkDataset, index: rec.index, score: (prev?.score ?? 0) + score });
         }
       }
     }
-    const ranked = [...candidates.entries()].sort((a, b) => b[1].score - a[1].score || a[0].localeCompare(b[0]));
-    for (const [, { datasetId, index }] of ranked.slice(0, Math.max(0, maxIndexes))) {
+    return [...candidates.entries()]
+      .sort((a, b) => b[1].score - a[1].score || a[0].localeCompare(b[0]))
+      .map(([, c]) => ({ ...c, ddl: indexDdl(c.index) }));
+  }
+
+  /**
+   * Drag a node to a new layout position. Incident link latencies scale with link length
+   * relative to the original layout, clamped to [MIN_LATENCY_SCALE, MAX_LATENCY_SCALE].
+   */
+  moveNode(nodeId: string, x: number, y: number): NetworkTelemetry {
+    const i = this.nodeIndex.get(nodeId);
+    if (i === undefined) throw new ScenarioError(`Unknown node ${nodeId}`);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return this.current;
+    this.positions[i] = { x: clamp01(x), y: clamp01(y) };
+    for (const link of this.links) {
+      if (link.a !== i && link.b !== i) continue;
+      const pa = this.positions[link.a]!;
+      const pb = this.positions[link.b]!;
+      const length = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+      const ratio = link.baseLength > 1e-9 ? length / link.baseLength : 1;
+      const scale = Math.min(MAX_LATENCY_SCALE, Math.max(MIN_LATENCY_SCALE, Number.isFinite(ratio) ? ratio : 1));
+      link.latencyMs = link.baseLatencyMs * scale;
+    }
+    this.current = this.solve().telemetry;
+    return this.current;
+  }
+
+  /**
+   * Replace a query's SQL (from the SQL editor). The new statement must parse and plan on
+   * every sink dataset; otherwise nothing changes and the error is thrown.
+   */
+  setQuerySql(queryId: string, sql: string): InterventionResult {
+    const q = this.queries.find((x) => x.spec.id === queryId);
+    if (!q) throw new ScenarioError(`Unknown query ${queryId}`);
+    const stmt = parseSql(sql);
+    for (const sinkId of q.spec.sinks) {
+      const datasetId = this.nodes[this.nodeIndex.get(sinkId)!]!.datasetId!;
+      planQuery(stmt, this.datasets.get(datasetId)!, this.planOptions(q));
+    }
+    const before = this.summary();
+    q.stmt = stmt;
+    q.sql = printSql(stmt);
+    this.invalidateQuery(queryId);
+    this.current = this.solve().telemetry;
+    return { kind: "sql", target: queryId, sql: q.sql, detail: `Replaced SQL for ${queryId}`, before, after: this.summary() };
+  }
+
+  /**
+   * Chemotaxis attractant pulse: thicken every live tube touching `nodeId` by `strength`
+   * (0..1 of the gap to conductivity 1). Non-finite or out-of-range input is rejected and
+   * nothing changes, so a corrupted packet can never poison the network state.
+   */
+  applyChemotaxisPulse(nodeId: string, strength: number): InterventionResult | null {
+    const i = this.nodeIndex.get(nodeId);
+    if (i === undefined || !this.alive[i] || !Number.isFinite(strength) || strength < 0 || strength > 1) return null;
+    const before = this.summary();
+    for (const link of this.links) {
+      if ((link.a === i || link.b === i) && this.alive[link.a] && this.alive[link.b]) {
+        link.conductivity = Math.max(MIN_CONDUCTIVITY, link.conductivity + (1 - link.conductivity) * strength);
+      }
+    }
+    this.current = this.solve().telemetry;
+    return { kind: "chemotaxis", target: nodeId, sql: null, detail: `Attractant pulse ${strength.toFixed(2)} at ${nodeId}`, before, after: this.summary() };
+  }
+
+  /**
+   * The Kiro Crew Optimizer Agent, deterministic edition: apply the index recommendations with
+   * the largest call-weighted savings (up to `maxIndexes`), then batch every N+1 query.
+   */
+  runOptimizerAgent(maxIndexes = 3): OptimizerReport {
+    const before = this.summary();
+    const actions: InterventionResult[] = [];
+    for (const { datasetId, index } of this.indexCandidates().slice(0, Math.max(0, maxIndexes))) {
       actions.push(this.injectIndex(datasetId, index));
     }
     for (const q of [...this.queries].sort((a, b) => a.spec.id.localeCompare(b.spec.id))) {
@@ -590,6 +698,7 @@ export class PhysarumNetwork {
   private solve(): SolveResult {
     const nodeCount = this.nodes.length;
     const linkFlux = new Float64Array(this.links.length);
+    const linkFaultFlux = new Float64Array(this.links.length);
     const demandMs = new Float64Array(nodeCount);
     const servedPerSecond = new Float64Array(nodeCount);
     const activeLink = this.links.map((l) => this.alive[l.a]! && this.alive[l.b]!);
@@ -685,11 +794,13 @@ export class PhysarumNetwork {
         return share;
       });
       let pathMs = 0;
+      const queryLinkFlux: Array<readonly [number, number]> = [];
       for (const li of touched) {
         const l = this.links[li]!;
         const flux = Math.abs((l.conductivity / l.latencyMs) * (p[local.get(l.a)!]! - p[local.get(l.b)!]!)) / (shareSum || 1);
         pathMs += flux * l.latencyMs;
         inc(linkFlux, li, weight * flux);
+        queryLinkFlux.push([li, flux]);
       }
       const sinks: SinkTelemetry[] = reachableSinks.map((s, k) => {
         const info = sinkInfo.get(s)!;
@@ -712,6 +823,9 @@ export class PhysarumNetwork {
       const rawStatementMs = finite(pathMs + sinkMs, STATEMENT_TIMEOUT_MS);
       const timedOut = rawStatementMs >= STATEMENT_TIMEOUT_MS;
       const statementLatencyMs = Math.min(rawStatementMs, STATEMENT_TIMEOUT_MS);
+      // Fault flux: the query's share of traffic on full-scan plans (all of it when timed out).
+      const faultFraction = timedOut ? 1 : fullScanShare;
+      if (faultFraction > 0) for (const [li, flux] of queryLinkFlux) inc(linkFaultFlux, li, weight * flux * faultFraction);
       queryTelemetry.push({
         id: q.spec.id, label: q.spec.label, sql: q.sql, status: "ok", failureReason: null,
         requestsPerSecond: q.spec.requestsPerSecond, perRequestCalls: q.perRequestCalls, statementsPerSecond,
@@ -721,12 +835,17 @@ export class PhysarumNetwork {
       });
     }
 
-    return { telemetry: this.buildTelemetry(queryTelemetry, linkFlux, servedPerSecond, saturatedCallShare, activeLink), linkFlux, demandMs };
+    return {
+      telemetry: this.buildTelemetry(queryTelemetry, linkFlux, linkFaultFlux, servedPerSecond, saturatedCallShare, activeLink),
+      linkFlux,
+      demandMs,
+    };
   }
 
   private buildTelemetry(
     queries: QueryTelemetry[],
     linkFlux: Float64Array,
+    linkFaultFlux: Float64Array,
     servedPerSecond: Float64Array,
     saturatedCallShare: number,
     activeLink: readonly boolean[],
@@ -769,10 +888,11 @@ export class PhysarumNetwork {
       queries,
       links: this.links.map((l, i) => ({
         id: l.id, a: this.nodes[l.a]!.id, b: this.nodes[l.b]!.id, latencyMs: l.latencyMs,
-        conductivity: l.conductivity, flux: linkFlux[i]!, active: activeLink[i]!,
+        conductivity: l.conductivity, flux: linkFlux[i]!, faultFlux: Math.min(linkFlux[i]!, linkFaultFlux[i]!), active: activeLink[i]!,
       })),
       nodes: this.nodes.map((nd, i) => ({
-        id: nd.id, alive: this.alive[i]!, load: this.load[i]!, saturated: this.load[i]! > LOAD_CAP,
+        id: nd.id, x: this.positions[i]!.x, y: this.positions[i]!.y,
+        alive: this.alive[i]!, load: this.load[i]!, saturated: this.load[i]! > LOAD_CAP,
         servedPerSecond: servedPerSecond[i]!, flux: nodeFlux[i]!,
       })),
       totalFlux: linkFlux.reduce((s, f) => s + f, 0),

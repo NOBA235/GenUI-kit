@@ -5,9 +5,9 @@ A [Kiro Crew](https://github.com/kirodotdev/KiroCrew) app that audits slow SQL, 
 | Resource | File |
 | --- | --- |
 | Manifest | `app.json` |
-| Agent | `agents/chimera-architect.json` (`model: auto`, `tools: ["@kirocrew-core"]`) |
+| Agents | `agents/chimera-architect.json`, `agents/index-surgeon.json`, `agents/deadlock-hunter.json` (`model: auto`, `tools: ["@kirocrew-core"]`) |
 | Skill | `skills/bio-query-optimizer/SKILL.md` |
-| Cron | `chimera-bottleneck-audit`, `0 */6 * * *`, ships paused |
+| Crons (all ship paused) | `chimera-bottleneck-audit` `0 */6 * * *` (architect), `chimera-nightly-index-review` `0 3 * * *` (index surgeon), `chimera-lock-watch` `*/30 * * * *` (deadlock hunter) |
 | Dashboard page | `ui/src/App.tsx`, built to `dist/index.mjs` |
 | Lifecycle hooks | `backend/hooks.py` (prerequisite checks only) |
 
@@ -26,13 +26,13 @@ kirocrew app enable chimera-lab
 
 "Chimera Lab" appears in the dashboard sidebar.
 
-## Configure the audit cron
-The cron is registered paused because it needs a target repository first.
+## Configure the crons
+All three crons are registered paused because they need a target repository and database first.
 
 1. In the environment that runs `kirocrew gateway`, set:
    - `CHIMERA_PROJECT_DIR`: the repository to audit.
    - `CHIMERA_DATABASE_URL` (optional): a **read-only** PostgreSQL URL. EXPLAIN checks need `psql`.
-2. Restart the gateway, then resume `chimera-bottleneck-audit` from the dashboard's cron list.
+2. Restart the gateway, then resume the crons you want from the dashboard's cron list. The index review and lock watch need `CHIMERA_DATABASE_URL`.
 
 The lifecycle hooks report a degraded status while `CHIMERA_PROJECT_DIR` is missing or the UI bundle has not been built.
 
@@ -42,7 +42,7 @@ From the Chimera Lab page, press **Draft audit in chat**. Or ask in any chat:
 > Use the chimera-architect agent to audit ~/projects/shop-api for slow queries and N+1 loops.
 
 ## Safety
-- The agent proposes `CREATE INDEX CONCURRENTLY` statements and batched rewrites. It does not run DDL, migrations or file edits unless you approve that exact change.
+- The agents propose `CREATE INDEX CONCURRENTLY` / `DROP INDEX` statements and batched rewrites. They do not run DDL, migrations, file edits or `pg_cancel_backend` unless you approve that exact change.
 - It runs `EXPLAIN` without `ANALYZE` unless it is on a replica or inside `BEGIN; ... ROLLBACK;`.
 - `permissions.network` is `false`. The page only reads `/api/crons` and `/api/status` and listens for `notification` events.
 

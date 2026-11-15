@@ -1,8 +1,8 @@
 {
   "name": "chimera-lab",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "displayName": "CHIMERA // LAB",
-  "description": "Audits slow SQL and repository bottlenecks every six hours, explains query plans, and proposes N+1 batching and composite indexes.",
+  "description": "Three database agents that audit slow SQL, review indexes nightly and hunt lock contention, proposing fixes without running them.",
   "author": "GenUI Studio",
   "license": "MIT",
   "minKiroCrewVersion": "0.1.0",
@@ -11,10 +11,11 @@
     "Reads EXPLAIN plans and flags sequential scans on large tables",
     "Detects N+1 query loops in application code and proposes batched rewrites",
     "Designs composite indexes (equality, sort, range) with CREATE INDEX CONCURRENTLY",
-    "Scheduled bottleneck audit every six hours, paused until configured",
-    "Proposes changes only; never runs DDL without approval"
+    "Nightly review of unused and redundant indexes",
+    "Finds blocking chains, long transactions and lock waits",
+    "Proposes changes only; never runs DDL or cancels backends"
   ],
-  "agents": ["agents/chimera-architect.json"],
+  "agents": ["agents/chimera-architect.json", "agents/index-surgeon.json", "agents/deadlock-hunter.json"],
   "skills": ["skills/bio-query-optimizer"],
   "crons": [
     {
@@ -22,6 +23,20 @@
       "cron_expr": "0 */6 * * *",
       "message": "Run a CHIMERA bottleneck audit with the bio-query-optimizer skill. Use the repository in $CHIMERA_PROJECT_DIR and, if set, the read-only database URL in $CHIMERA_DATABASE_URL. Review git commits from the last six hours for new queries and loops that issue queries, run EXPLAIN (no ANALYZE) on the slowest statements, and report sequential scans, N+1 patterns and missing composite indexes with proposed SQL. Do not run DDL or modify files.",
       "agent": "chimera-architect",
+      "enabled": false
+    },
+    {
+      "name": "chimera-nightly-index-review",
+      "cron_expr": "0 3 * * *",
+      "message": "Run the nightly CHIMERA index review against the read-only database in $CHIMERA_DATABASE_URL: propose missing composite indexes for the slowest statements and list unused or redundant indexes. Do not run DDL.",
+      "agent": "index-surgeon",
+      "enabled": false
+    },
+    {
+      "name": "chimera-lock-watch",
+      "cron_expr": "*/30 * * * *",
+      "message": "Check the read-only database in $CHIMERA_DATABASE_URL for blocking chains, long or idle-in-transaction sessions and ungranted locks. Report only when something is blocked or a transaction is older than five minutes. Do not cancel or terminate backends.",
+      "agent": "deadlock-hunter",
       "enabled": false
     }
   ],
