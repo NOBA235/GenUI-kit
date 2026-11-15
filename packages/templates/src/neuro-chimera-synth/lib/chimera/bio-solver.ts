@@ -886,10 +886,14 @@ export class PhysarumNetwork {
     return {
       tick: this.tickCount,
       queries,
-      links: this.links.map((l, i) => ({
-        id: l.id, a: this.nodes[l.a]!.id, b: this.nodes[l.b]!.id, latencyMs: l.latencyMs,
-        conductivity: l.conductivity, flux: linkFlux[i]!, faultFlux: Math.min(linkFlux[i]!, linkFaultFlux[i]!), active: activeLink[i]!,
-      })),
+      links: this.links.map((l, i) => {
+        // Shares from the linear solve can overshoot [0, 1] by rounding error (~1e-9); report the documented range.
+        const flux = clamp01(linkFlux[i]!);
+        return {
+          id: l.id, a: this.nodes[l.a]!.id, b: this.nodes[l.b]!.id, latencyMs: l.latencyMs,
+          conductivity: l.conductivity, flux, faultFlux: Math.min(flux, Math.max(0, linkFaultFlux[i]!)), active: activeLink[i]!,
+        };
+      }),
       nodes: this.nodes.map((nd, i) => ({
         id: nd.id, x: this.positions[i]!.x, y: this.positions[i]!.y,
         alive: this.alive[i]!, load: this.load[i]!, saturated: this.load[i]! > LOAD_CAP,
