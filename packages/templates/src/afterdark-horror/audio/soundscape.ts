@@ -28,6 +28,8 @@ export interface AfterdarkAudioEngine {
   setBreakerHumProximity(level: number): void;
   playBreakerSwitchThrow(): void;
   playDawnRevealChord(): void;
+  /** Ambient haunting cues: "face" = close jump-scare shriek, "figure" = distant spectral moan. */
+  playApparitionStinger(kind: "face" | "figure", pan?: number): void;
   dispose(): void;
 }
 
@@ -837,6 +839,115 @@ class ProceduralWebAudioSoundscape implements AfterdarkAudioEngine {
       osc.start(now);
       osc.stop(now + 3.45);
     }
+  }
+
+  playApparitionStinger(kind: "face" | "figure", pan = 0): void {
+    if (!this.isActive || !this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) {
+      return;
+    }
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Optional stereo placement toward the apparition
+    let out: AudioNode = this.masterGain;
+    if (typeof ctx.createStereoPanner === "function") {
+      const panner = ctx.createStereoPanner();
+      panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), now);
+      panner.connect(this.masterGain);
+      out = panner;
+    }
+
+    if (kind === "face") {
+      // Dissonant shrieking cluster (minor-second beating) sliding upward
+      for (const freq of [1180, 1247, 1661]) {
+        const osc = ctx.createOscillator();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.09, now + 0.7);
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.setValueAtTime(1500, now);
+        bp.Q.setValueAtTime(3, now);
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.001, now);
+        env.gain.linearRampToValueAtTime(0.085, now + 0.03);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+        osc.connect(bp);
+        bp.connect(env);
+        env.connect(out);
+        osc.start(now);
+        osc.stop(now + 1.35);
+      }
+
+      // Breathy hiss burst
+      const hiss = ctx.createBufferSource();
+      hiss.buffer = this.noiseBuffer;
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.setValueAtTime(2200, now);
+      const hissEnv = ctx.createGain();
+      hissEnv.gain.setValueAtTime(0.001, now);
+      hissEnv.gain.linearRampToValueAtTime(0.24, now + 0.015);
+      hissEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      hiss.connect(hp);
+      hp.connect(hissEnv);
+      hissEnv.connect(out);
+      hiss.start(now);
+      hiss.stop(now + 0.6);
+
+      // Sub-bass body hit
+      const sub = ctx.createOscillator();
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(72, now);
+      sub.frequency.exponentialRampToValueAtTime(36, now + 0.8);
+      const subEnv = ctx.createGain();
+      subEnv.gain.setValueAtTime(0.36, now);
+      subEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      sub.connect(subEnv);
+      subEnv.connect(out);
+      sub.start(now);
+      sub.stop(now + 0.95);
+      return;
+    }
+
+    // Distant spectral moan: formant-swept breath over a sinking, trembling voice
+    const breath = ctx.createBufferSource();
+    breath.buffer = this.noiseBuffer;
+    const formant = ctx.createBiquadFilter();
+    formant.type = "bandpass";
+    formant.frequency.setValueAtTime(640, now);
+    formant.frequency.exponentialRampToValueAtTime(330, now + 2.4);
+    formant.Q.setValueAtTime(9, now);
+    const breathEnv = ctx.createGain();
+    breathEnv.gain.setValueAtTime(0.001, now);
+    breathEnv.gain.linearRampToValueAtTime(0.22, now + 0.6);
+    breathEnv.gain.exponentialRampToValueAtTime(0.001, now + 2.7);
+    breath.connect(formant);
+    formant.connect(breathEnv);
+    breathEnv.connect(out);
+    breath.start(now);
+    breath.stop(now + 2.8);
+
+    const voice = ctx.createOscillator();
+    voice.type = "sine";
+    voice.frequency.setValueAtTime(196, now);
+    voice.frequency.exponentialRampToValueAtTime(147, now + 2.4);
+    const vibrato = ctx.createOscillator();
+    vibrato.frequency.setValueAtTime(5.5, now);
+    const vibratoDepth = ctx.createGain();
+    vibratoDepth.gain.setValueAtTime(4, now);
+    vibrato.connect(vibratoDepth);
+    vibratoDepth.connect(voice.frequency);
+    const voiceEnv = ctx.createGain();
+    voiceEnv.gain.setValueAtTime(0.001, now);
+    voiceEnv.gain.linearRampToValueAtTime(0.045, now + 0.8);
+    voiceEnv.gain.exponentialRampToValueAtTime(0.001, now + 2.6);
+    voice.connect(voiceEnv);
+    voiceEnv.connect(out);
+    voice.start(now);
+    vibrato.start(now);
+    voice.stop(now + 2.7);
+    vibrato.stop(now + 2.7);
   }
 }
 

@@ -63,6 +63,28 @@
     }
   }
 
+  /* Ghostly gate warning: blurred materialise, slow unsteady glow, fade away (no strobing) */
+  @keyframes afterdarkGhostWarning {
+    0% { opacity: 0; filter: blur(8px); transform: translate3d(0, 10px, 0); }
+    12% { opacity: 1; filter: blur(0); transform: translate3d(0, 0, 0); }
+    30% { opacity: 0.78; }
+    44% { opacity: 1; }
+    62% { opacity: 0.85; }
+    85% { opacity: 1; filter: blur(0); }
+    100% { opacity: 0; filter: blur(6px); }
+  }
+
+  .afterdark-ghost-warning {
+    text-shadow: 0 0 18px rgba(200, 235, 220, 0.45), 0 0 42px rgba(185, 28, 28, 0.35);
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .afterdark-ghost-warning {
+      animation: afterdarkGhostWarning 7.5s ease-in-out forwards;
+    }
+  }
+
   .afterdark-touch-surface {
     touch-action: none;
     user-select: none;

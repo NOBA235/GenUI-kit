@@ -540,6 +540,32 @@ export const LANTERN_SPECS: readonly LanternSpec[] = [
   { id: "lantern-chapel-e", x: 3.6, z: -31.8, baseIntensity: 1.85, flickerSeed: 9.3 },
 ];
 
+/**
+ * Ghostly warning signpost just inside the gate (east verge of the avenue), facing players
+ * who arrive at z = 24.8 after the gates lock. Board is 1.9m wide on two posts at local x = ±0.82.
+ */
+export const WARNING_SIGN_SPEC = {
+  id: "warning-sign",
+  x: 3.35,
+  z: 21.2,
+  rotY: -0.38,
+  postOffset: 0.82,
+  postRadius: 0.2,
+} as const;
+
+/** World XZ positions of the two signpost legs (local X axis rotated by rotY about +Y). */
+export const WARNING_SIGN_POSTS: readonly (readonly [number, number])[] = [-1, 1].map(
+  (side) =>
+    [
+      Number(
+        (WARNING_SIGN_SPEC.x + Math.cos(WARNING_SIGN_SPEC.rotY) * WARNING_SIGN_SPEC.postOffset * side).toFixed(3),
+      ),
+      Number(
+        (WARNING_SIGN_SPEC.z - Math.sin(WARNING_SIGN_SPEC.rotY) * WARNING_SIGN_SPEC.postOffset * side).toFixed(3),
+      ),
+    ] as const,
+);
+
 /** Crumbling Stone Fountain centerpiece in Zone C */
 export const DEAD_GARDEN_FOUNTAIN = {
   id: "dead-garden-fountain",
@@ -681,6 +707,19 @@ export function buildCircleColliders(
       maxY: 4.0,
     },
   );
+
+  WARNING_SIGN_POSTS.forEach(([x, z], i) => {
+    colliders.push({
+      id: `${WARNING_SIGN_SPEC.id}-post-${i + 1}`,
+      kind: "monument",
+      x,
+      z,
+      radius: WARNING_SIGN_SPEC.postRadius,
+      height: 2.6,
+      minY: -0.5,
+      maxY: 5.0,
+    });
+  });
 
   for (const lantern of LANTERN_SPECS) {
     colliders.push({

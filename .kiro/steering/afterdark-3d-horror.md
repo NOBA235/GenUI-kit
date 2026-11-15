@@ -40,7 +40,7 @@ This conditional steering file applies strictly to Flagship Website #1 (`package
    - All horizontal movement MUST pass through the pure TypeScript `resolvePlayerMovement()` AABB + circle push-out sliding solver before updating `camera.position`. Players must never clip through walls, pillars, trees, tombstones, closed gates, or exit perimeter bounds.
 2. **Playable Contrast + Seizure-Safe Lightning:**
    - Pure darkness must still afford environmental navigation via cool moonlight rim-light, distant glowing chapel stained glass, flickering amber path lanterns, and temporary lightning reveals.
-   - Lightning reveals MUST obey WCAG 2.3.1 flash-frequency safety (< 3 flashes/sec: minimum 4.5s cooldown between pulses and smooth exponential decay, honoring `prefers-reduced-motion`).
+   - Lightning reveals MUST obey WCAG 2.3.1 flash-frequency safety (< 3 flashes/sec: minimum 3s cooldown between pulses and smooth exponential decay; under `prefers-reduced-motion` the cadence slows to a 7.5s minimum).
 3. **100% Procedural Web Audio Synthesis:**
    - All wind, sub-bass rumble, creaking wood/iron, owl/wolf distant cues, thunder, and gravel/stone footsteps MUST be synthesized via Web Audio API nodes—zero external `.mp3`/`.wav` HTTP requests that could 404 or stall offline demos.
    - All audio calls MUST gracefully no-op in headless/SSR or suspended `AudioContext` environments until user gesture unlocks playback.

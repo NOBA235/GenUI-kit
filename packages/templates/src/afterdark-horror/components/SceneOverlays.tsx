@@ -10,6 +10,15 @@ import {
 } from "../engine/world-data.js";
 import { useAfterdarkStore } from "../store.js";
 import type { QualityPreset } from "../types.js";
+import { SUMMON_HAUNTING_EVENT, type HauntingKind } from "./AmbientHauntings.js";
+import { CursorLampGlow } from "./CursorLamp.js";
+
+const GATE_WARNING_MS = 7500;
+
+function summonHaunting(kind: HauntingKind): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SUMMON_HAUNTING_EVENT, { detail: { kind } }));
+}
 
 const ZONE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   gatehouse: "ZONE A · WROUGHT-IRON GATEHOUSE",
@@ -73,6 +82,20 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
     id: -1,
   });
   const [knobOffset, setKnobOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [gateWarningVisible, setGateWarningVisible] = useState(false);
+  const prevPhaseRef = useRef(phase);
+
+  // Ghostly warning the moment the gate locks behind the player
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (phase === "exploration" && prev === "gate_transition") {
+      setGateWarningVisible(true);
+      const timer = window.setTimeout(() => setGateWarningVisible(false), GATE_WARNING_MS);
+      return () => window.clearTimeout(timer);
+    }
+    if (phase !== "exploration") setGateWarningVisible(false);
+  }, [phase]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -231,6 +254,9 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
         </div>
       )}
 
+      {/* Cursor lamp halo over the pitch-black opening (the 3D spot light takes over in-world) */}
+      {(phase === "shutdown" || phase === "typography") && <CursorLampGlow />}
+
       {/* Scene 02 Transition Whisper */}
       {phase === "gate_transition" && (
         <div className="absolute inset-0 flex items-end justify-center pb-14">
@@ -240,6 +266,30 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
           >
             Entering Ravenshollow Cemetery...
           </p>
+        </div>
+      )}
+
+      {/* Ghostly "you cannot leave" warning after the gates slam shut */}
+      {phase === "exploration" && gateWarningVisible && !activeReaderClueId && (
+        <div
+          role="alert"
+          data-testid="afterdark-gate-warning"
+          className="pointer-events-none fixed inset-x-0 top-[18%] z-30 flex justify-center px-4"
+        >
+          <div className="afterdark-ghost-warning max-w-lg text-center space-y-3">
+            <p className="afterdark-display text-3xl sm:text-5xl font-black text-red-700">
+              WARNING
+            </p>
+            <p className="font-serif text-lg sm:text-xl italic text-zinc-200">
+              The gate has sealed behind you.
+            </p>
+            <p className="font-serif text-base sm:text-lg text-zinc-300">
+              No soul leaves Ravenshollow until the light is restored.
+            </p>
+            <p className="font-mono text-xs sm:text-sm font-bold tracking-[0.4em] text-emerald-300">
+              FIND LIGHT MODE
+            </p>
+          </div>
         </div>
       )}
 
@@ -767,6 +817,23 @@ export const SceneOverlays: React.FC<SceneOverlaysProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Ambient Haunting Summons (random apparitions) */}
+          <div className="space-y-1">
+            <div className="text-[10px] text-zinc-400">SUMMON APPARITION:</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(["figure", "behind", "face"] as const).map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => summonHaunting(kind)}
+                  className="rounded border border-zinc-800 bg-black/60 px-2 py-1 text-[10px] uppercase text-zinc-300 hover:border-red-500 cursor-pointer transition"
+                >
+                  👻 {kind}
+                </button>
+              ))}
             </div>
           </div>
 

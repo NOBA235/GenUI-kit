@@ -55,7 +55,7 @@
 **User Story:** As an explorer on either integrated laptop graphics or a high-end GPU, I want eerie pitch-dark atmosphere that remains navigable at 60 FPS.
 
 #### Acceptance Criteria
-1. **WHILE** exploring the cemetery in darkness, **THE SYSTEM SHALL** illuminate landmarks without making the viewport unplayable using exponential fog, subtle moonlight rim highlights, flickering antique iron lanterns, glowing stained-glass chapel windows in the distance, and periodic seizure-safe lightning flashes (`< 3` flashes/sec, minimum `4.5s` interval).
+1. **WHILE** exploring the cemetery in darkness, **THE SYSTEM SHALL** illuminate landmarks without making the viewport unplayable using exponential fog, subtle moonlight rim highlights, flickering antique iron lanterns, glowing stained-glass chapel windows in the distance, and periodic seizure-safe lightning flashes (`< 3` flashes/sec, minimum `3s` interval, slowing to `7.5s` under `prefers-reduced-motion`).
 2. **WHILE** rendering procedural Three.js geometry (wrought-iron gate pickets, tombstones, dead trees, chapel spire, mausoleum), **THE SYSTEM SHALL** share `BufferGeometry`/`Material` instances via `InstancedMesh`, enforce per-preset active dynamic point light caps (`low: 1`, `medium: 2`, `high: 3`), allocate zero new objects inside `useFrame`, and call `.dispose()` on unmount cleanup.
 
 ---

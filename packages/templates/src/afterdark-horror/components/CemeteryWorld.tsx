@@ -16,6 +16,9 @@ import {
   disposeAfterdarkSharedGeometries,
 } from "../engine/procedural-geometries.js";
 import { getQualityBudget, useAfterdarkStore } from "../store.js";
+import { AmbientHauntings } from "./AmbientHauntings.js";
+import { CursorLampLight } from "./CursorLamp.js";
+import { GhostWarningSign } from "./GhostWarningSign.js";
 import { EncounterEntities } from "./EncounterEntities.js";
 import { FirstPersonController } from "./FirstPersonController.js";
 
@@ -33,6 +36,10 @@ const _breakerActiveColor = new THREE.Color("#10b981");
 const _dawnLightColor = new THREE.Color("#fef3c7");
 const _moonTintColor = new THREE.Color("#8da6d6");
 const _tempMoonColor = new THREE.Color("#8da6d6");
+
+/** Seconds between lightning strikes (min + up to jitter). */
+const LIGHTNING_INTERVAL_MIN_S = 3.0;
+const LIGHTNING_INTERVAL_JITTER_S = 0.6;
 
 const PERIMETER_PICKET_SEGMENTS = (() => {
   const coords: Array<[number, number]> = [];
@@ -252,9 +259,23 @@ const AtmosphereLightningRig: React.FC = () => {
   const fogRef = useRef<THREE.FogExp2>(null);
   const lanternLightRefs = useRef<Array<THREE.PointLight | null>>([]);
 
-  // Deterministic lightning state — capped strictly below 3 flashes/sec (minimum 7.5s cooldown)
-  const cooldownRef = useRef(5.5);
+  // Lightning cadence: a strike every ~3s (≈0.33 flashes/sec, far below the WCAG 2.3.1 limit of 3/sec).
+  // Each flash decays exponentially within ~0.5s so pulses never overlap. Under prefers-reduced-motion
+  // the original slow 7.5-13.5s storm cadence is kept.
+  const cooldownRef = useRef(LIGHTNING_INTERVAL_MIN_S);
   const flashIntensityRef = useRef(0);
+  const reducedMotionRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    reducedMotionRef.current = mq?.matches ?? false;
+    const onChange = (e: MediaQueryListEvent) => {
+      reducedMotionRef.current = e.matches;
+    };
+    mq?.addEventListener("change", onChange);
+    return () => mq?.removeEventListener("change", onChange);
+  }, []);
 
   const quality = useAfterdarkStore((s) => s.quality);
   const lightOverride = useAfterdarkStore((s) => s.lightOverride);
@@ -295,7 +316,10 @@ const AtmosphereLightningRig: React.FC = () => {
     ) {
       cooldownRef.current -= dt;
       if (cooldownRef.current <= 0) {
-        cooldownRef.current = 7.5 + (Math.sin(elapsed * 1.7) * 0.5 + 0.5) * 6.0;
+        const jitter = Math.sin(elapsed * 1.7) * 0.5 + 0.5;
+        cooldownRef.current = reducedMotionRef.current
+          ? 7.5 + jitter * 6.0
+          : LIGHTNING_INTERVAL_MIN_S + jitter * LIGHTNING_INTERVAL_JITTER_S;
         flashIntensityRef.current = inCrypt ? 0.25 : 1.0;
         getAfterdarkSoundscape().playLightningThunder();
       }
@@ -660,6 +684,10 @@ const CemeterySceneContents: React.FC<CemeteryGeometryProps> = ({
     <>
       <AtmosphereLightningRig />
       <FirstPersonController touchLookDeltaRef={touchLookDeltaRef} />
+      {/* Mounted after the controller so its useFrame reads this frame's camera pose */}
+      <CursorLampLight />
+      <AmbientHauntings />
+      <GhostWarningSign />
       <EncounterEntities silhouetteGeometry={sharedGeoms.apparitionSilhouette} />
 
       {/* Ground Terrain & Central Flagstone Path */}
