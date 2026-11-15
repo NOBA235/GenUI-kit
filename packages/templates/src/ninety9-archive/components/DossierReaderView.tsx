@@ -61,9 +61,9 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
   return (
     <article
       data-testid={`ninety9-dossier-reader-${resolvedEntry.slug}`}
-      className="border-b-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] bg-[#FFFFFF] n99-section-pad text-[#000000]"
     >
-      <div className="mx-auto max-w-[1380px] space-y-8">
+      <div className="mx-auto max-w-[1380px] space-y-6 sm:space-y-8">
         {/* Top Breadcrumb Bar */}
         <nav
           aria-label="Dossier Breadcrumb"
@@ -106,8 +106,8 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
         </nav>
 
         {/* ArticleHero Split Block */}
-        <header className="n99-shadow-md grid grid-cols-1 gap-0 border-2 border-[#000000] bg-[#FFFFFF] lg:grid-cols-12">
-          <div className="space-y-4 border-b-2 border-[#000000] p-6 lg:col-span-7 lg:border-b-0 lg:border-r-2">
+        <header className="n99-shadow-md n99-split-12-flush border-2 border-[#000000] bg-[#FFFFFF]">
+          <div className="n99-split-divider n99-lg-span-7 n99-card-pad space-y-4">
             <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] font-bold uppercase">
               <span className="border-2 border-[#000000] bg-[#000000] px-2.5 py-0.5 text-[#FFFFFF]">
                 {resolvedEntry.id}
@@ -120,7 +120,7 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
               </span>
             </div>
 
-            <h1 className="n99-font-mono text-3xl font-bold uppercase leading-[1.08] tracking-tight md:text-4xl">
+            <h1 className="n99-font-mono n99-display-h1 n99-wrap-anywhere font-bold uppercase tracking-tight">
               {resolvedEntry.title}
             </h1>
 
@@ -132,24 +132,24 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
               {resolvedEntry.summary}
             </p>
 
-            <div className="grid grid-cols-1 gap-2 border-t-2 border-[#000000] pt-4 font-mono text-xs sm:grid-cols-2">
+            <div className="n99-card-grid-2 border-t-2 border-[#000000] pt-4 font-mono text-xs">
               <div>
                 <span className="block text-[10px] font-bold uppercase text-[#808080]">
                   CREATOR / PUBLISHER
                 </span>
-                <span className="font-bold">{resolvedEntry.creatorOrPublisher}</span>
+                <span className="n99-wrap-anywhere font-bold">{resolvedEntry.creatorOrPublisher}</span>
               </div>
               <div>
                 <span className="block text-[10px] font-bold uppercase text-[#808080]">
                   PROVENANCE / ORIGIN
                 </span>
-                <span className="font-bold">{resolvedEntry.origin}</span>
+                <span className="n99-wrap-anywhere font-bold">{resolvedEntry.origin}</span>
               </div>
             </div>
           </div>
 
           {/* Interactive Photo & SVG Schematic Switcher */}
-          <div className="n99-ortho-grid flex flex-col justify-between p-5 lg:col-span-5">
+          <div className="n99-ortho-grid n99-card-pad n99-lg-span-5 flex flex-col justify-between">
             {showGallery ? (
               <div className="space-y-3" data-testid="ninety9-dossier-gallery">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -270,8 +270,8 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
           <div className="border-b-2 border-[#000000] bg-[#000000] px-4 py-2 font-mono text-xs font-bold uppercase text-[#FFFFFF]">
             TECHNICAL SPECIFICATION SHEET // {resolvedEntry.serialNumber}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
+          <div className="n99-table-scroll">
+            <table className="w-full min-w-[320px] border-collapse text-left">
               <thead>
                 <tr className="border-b-2 border-[#000000] bg-[#D9D9D9] font-mono text-[11px] font-bold uppercase text-[#000000]">
                   <th scope="col" className="border-r border-[#000000] px-4 py-2.5">
@@ -309,29 +309,29 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
         </section>
 
         {/* Numbered Editorial Essay Sections + Pull Quote */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="space-y-6 lg:col-span-8">
+        <div className="n99-split-12">
+          <div className="n99-lg-span-8 space-y-6">
             {resolvedEntry.sections.map((section) => (
               <section
                 key={section.index}
-                className="border-2 border-[#000000] bg-[#FFFFFF] p-6 space-y-3"
+                className="n99-card-pad border-2 border-[#000000] bg-[#FFFFFF] space-y-3"
               >
                 <div className="border-b border-[#000000] pb-2">
                   <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#808080]">
                     {section.index}
                   </span>
-                  <h2 className="n99-font-mono mt-1 text-xl font-bold uppercase text-[#000000]">
+                  <h2 className="n99-font-mono n99-display-h2 mt-1 font-bold uppercase text-[#000000]">
                     {section.heading}
                   </h2>
                 </div>
-                <p className="text-sm leading-7 text-[#292929] md:text-base md:leading-7">
+                <p className="text-sm leading-7 text-[#292929] sm:text-base sm:leading-7">
                   {section.body}
                 </p>
               </section>
             ))}
           </div>
 
-          <aside className="space-y-6 lg:col-span-4">
+          <aside className="n99-lg-span-4 space-y-6">
             {/* Pull Quote Card */}
             <div className="n99-shadow-md border-2 border-[#000000] bg-[#000000] p-6 text-[#FFFFFF]">
               <div className="border-b border-[#808080] pb-2 font-mono text-[10px] font-bold uppercase tracking-widest text-[#D9D9D9]">
@@ -368,7 +368,7 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
         </div>
 
         {/* Verified Archival Citations */}
-        <section className="border-2 border-[#000000] bg-[#FFFFFF] p-6 space-y-4">
+        <section className="n99-card-pad border-2 border-[#000000] bg-[#FFFFFF] space-y-4">
           <h2 className="border-b-2 border-[#000000] pb-2 font-mono text-sm font-bold uppercase text-[#000000]">
             VERIFIED PRIMARY CITATIONS ({resolvedEntry.citations.length})
           </h2>
@@ -378,13 +378,13 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
                 key={`${cite.source}-${index}`}
                 className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#D9D9D9] pb-2"
               >
-                <div>
+                <div className="min-w-0 n99-wrap-anywhere">
                   <span className="font-bold text-[#000000]">
                     [{String(index + 1).padStart(2, "0")}] {cite.source}
                   </span>
                   <span className="text-[#292929]"> — {cite.detail}</span>
                 </div>
-                <span className="border border-[#000000] bg-[#D9D9D9] px-1.5 py-0.5 font-bold text-[#000000]">
+                <span className="shrink-0 border border-[#000000] bg-[#D9D9D9] px-1.5 py-0.5 font-bold text-[#000000]">
                   {cite.year}
                 </span>
               </li>
@@ -393,17 +393,17 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
         </section>
 
         {/* Prev / Next Dossier Bar */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="n99-card-grid-2">
           <button
             type="button"
             onClick={() => openDossier(prevEntry.slug)}
             data-testid="ninety9-prev-dossier-btn"
-            className="n99-shadow-sm flex flex-col items-start gap-1 border-2 border-[#000000] bg-[#FFFFFF] p-4 text-left hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+            className="n99-shadow-sm n99-touch-btn flex flex-col items-start gap-1 border-2 border-[#000000] bg-[#FFFFFF] p-4 text-left hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
           >
             <span className="font-mono text-[10px] font-bold uppercase opacity-80">
               &lt;- PREV DOSSIER // {prevEntry.serialNumber}
             </span>
-            <span className="n99-font-mono text-sm font-bold uppercase">
+            <span className="n99-font-mono n99-wrap-anywhere text-sm font-bold uppercase">
               {prevEntry.title} ({prevEntry.year})
             </span>
           </button>
@@ -412,12 +412,12 @@ export const DossierReaderView: React.FC<DossierReaderViewProps> = ({
             type="button"
             onClick={() => openDossier(nextEntry.slug)}
             data-testid="ninety9-next-dossier-btn"
-            className="n99-shadow-sm flex flex-col items-end gap-1 border-2 border-[#000000] bg-[#FFFFFF] p-4 text-right hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+            className="n99-shadow-sm n99-touch-btn flex flex-col items-start gap-1 border-2 border-[#000000] bg-[#FFFFFF] p-4 text-left sm:items-end sm:text-right hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
           >
             <span className="font-mono text-[10px] font-bold uppercase opacity-80">
               NEXT DOSSIER // {nextEntry.serialNumber} -&gt;
             </span>
-            <span className="n99-font-mono text-sm font-bold uppercase">
+            <span className="n99-font-mono n99-wrap-anywhere text-sm font-bold uppercase">
               {nextEntry.title} ({nextEntry.year})
             </span>
           </button>

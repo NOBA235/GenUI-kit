@@ -273,11 +273,12 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
     expect(marketHtml).toContain('data-testid="preview-btn-ninety9-archive"');
 
     const routes: readonly [string, string][] = [
-      ["/preview/ninety9-archive", 'data-view="home"'],
+      ["/preview/ninety9-archive", 'id="ninety9-arcade-bay"'],
       ["/preview/ninety9-archive/archive", 'data-testid="ninety9-archive-catalog-view"'],
       ["/preview/ninety9-archive/timeline", 'data-testid="ninety9-timeline-section"'],
       ["/preview/ninety9-archive/categories", 'data-testid="ninety9-categories-view"'],
       ["/preview/ninety9-archive/about", 'data-testid="ninety9-about-view"'],
+      ["/preview/ninety9-archive/arcade", 'data-testid="ninety9-arcade-view"'],
     ];
 
     for (const [routePath, expectedSnippet] of routes) {
@@ -286,6 +287,8 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       );
       expect(html).toContain('data-template-theme="ninety9-archive"');
       expect(html).toContain('data-testid="immersion-hud-indicator"');
+      expect(html).toContain('data-testid="ninety9-cobol-boot-terminal"');
+      expect(html).toContain("IDENTIFICATION DIVISION.");
       expect(html).toContain("[ALT+G] GENUI STUDIO // EXPORT ARCHIVE");
       expect(html).toContain("/images/ninety9/photos/");
       expect(html).toContain(expectedSnippet);

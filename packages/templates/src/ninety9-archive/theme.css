@@ -24,8 +24,9 @@
   font-family: var(--tpl-font-body);
   border-radius: 0px;
   isolation: isolate;
-  contain: layout style;
+  overflow-x: clip;
   container-type: inline-size;
+  container-name: n99-workstation;
 }
 
 @scope ([data-template-theme="ninety9-archive"]) {
@@ -40,7 +41,20 @@
     min-height: 100dvh;
     background-color: #FFFFFF;
     color: #000000;
+    overflow-x: clip;
     container-type: inline-size;
+    container-name: n99-workstation;
+  }
+
+  .n99-grid-cell,
+  article,
+  aside,
+  section {
+    min-width: 0;
+  }
+
+  .n99-wrap-anywhere {
+    overflow-wrap: anywhere;
   }
 
   .n99-font-mono {
@@ -50,6 +64,40 @@
   .n99-font-retro {
     font-family: "VT323", "Space Mono", monospace;
     letter-spacing: 0.04em;
+  }
+
+  /* Fluid Container-Query Typography & Padding (max <= 2.2x min for 200% Zoom) */
+  .n99-display-hero {
+    font-size: clamp(1.55rem, 1.08rem + 2.4cqi, 3rem);
+    line-height: 1.08;
+  }
+
+  .n99-display-h1 {
+    font-size: clamp(1.375rem, 1.05rem + 1.5cqi, 2.25rem);
+    line-height: 1.12;
+  }
+
+  .n99-display-h2 {
+    font-size: clamp(1.125rem, 0.96rem + 0.7cqi, 1.5rem);
+    line-height: 1.2;
+  }
+
+  .n99-section-pad {
+    padding: clamp(1.25rem, 0.9rem + 1.8cqi, 2.75rem) clamp(0.75rem, 0.5rem + 1.2cqi, 1.5rem);
+  }
+
+  .n99-card-pad {
+    padding: clamp(0.875rem, 0.65rem + 1cqi, 1.5rem);
+  }
+
+  /* Accessible Touch Inputs & Controls */
+  .n99-touch-input {
+    font-size: max(1rem, 1em);
+    min-height: 44px;
+  }
+
+  .n99-touch-btn {
+    min-height: 44px;
   }
 
   /* Brutalist 0px Offset Shadows */
@@ -188,41 +236,222 @@
     outline-offset: 2px;
   }
 
-  /* Size-Aware Container Queries for Desktop / Tablet / Mobile Studio Viewports */
+  /* Table Scroll Container for Narrow Phones & Studio Hub Previews */
+  .n99-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile Collapsible Workstation Navigation */
+  .n99-mobile-menu-toggle {
+    display: inline-flex;
+  }
+
+  .n99-nav-links {
+    display: none;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.375rem;
+  }
+
+  .n99-nav-links[data-nav-open="true"] {
+    display: grid;
+  }
+
+  @container n99-workstation (min-width: 360px) {
+    .n99-nav-links[data-nav-open="true"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container n99-workstation (min-width: 860px) {
+    .n99-mobile-menu-toggle {
+      display: none;
+    }
+
+    .n99-nav-links,
+    .n99-nav-links[data-nav-open="false"],
+    .n99-nav-links[data-nav-open="true"] {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.375rem;
+      width: auto;
+    }
+  }
+
+  /* Container-Query Grids for Desktop / Tablet (768px) / Mobile (390px) Viewports */
   .n99-split-hero {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.25rem;
   }
 
-  .n99-card-grid-3 {
+  .n99-split-12,
+  .n99-split-md-12 {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .n99-split-12-flush {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .n99-split-divider {
+    border-bottom: 2px solid #000000;
+  }
+
+  .n99-card-grid-2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .n99-card-grid-3,
+  .n99-catalog-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
 
   .n99-card-grid-4 {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
   }
 
-  @container (min-width: 680px) {
-    .n99-card-grid-3 {
+  .n99-card-grid-5 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .n99-sector-grid-6 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  /* Crisp 2x2 -> 4x1 Arcade Scoreboard without Hairline Artifacts */
+  .n99-scoreboard-4 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    background-color: #000000;
+    border-bottom: 2px solid #000000;
+  }
+
+  @container n99-workstation (min-width: 420px) {
+    .n99-card-grid-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .n99-card-grid-5 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  @container (min-width: 960px) {
+  @container n99-workstation (min-width: 480px) {
+    .n99-sector-grid-6 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .n99-scoreboard-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @container n99-workstation (min-width: 560px) {
+    .n99-card-grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .n99-card-grid-3,
+    .n99-catalog-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container n99-workstation (min-width: 680px) {
+    .n99-split-md-12 {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+    .n99-md-span-2 {
+      grid-column: span 2 / span 2;
+    }
+    .n99-md-span-3 {
+      grid-column: span 3 / span 3;
+    }
+    .n99-md-span-5 {
+      grid-column: span 5 / span 5;
+    }
+    .n99-md-span-7 {
+      grid-column: span 7 / span 7;
+    }
+    .n99-sector-grid-6 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @container n99-workstation (min-width: 900px) {
     .n99-split-hero {
       grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
       align-items: stretch;
     }
-    .n99-card-grid-3 {
+    .n99-split-12,
+    .n99-split-12-flush {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+    .n99-split-divider {
+      border-bottom: 0;
+      border-right: 2px solid #000000;
+    }
+    .n99-lg-span-4 {
+      grid-column: span 4 / span 4;
+    }
+    .n99-lg-span-5 {
+      grid-column: span 5 / span 5;
+    }
+    .n99-lg-span-6 {
+      grid-column: span 6 / span 6;
+    }
+    .n99-lg-span-7 {
+      grid-column: span 7 / span 7;
+    }
+    .n99-lg-span-8 {
+      grid-column: span 8 / span 8;
+    }
+    .n99-card-grid-3,
+    .n99-catalog-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .n99-card-grid-4 {
       grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .n99-card-grid-5 {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .n99-sector-grid-6 {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+
+  /* Pixel-Crisp Monochrome Arcade Canvas */
+  .n99-pixel-canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    touch-action: manipulation;
+  }
+
+  @media (pointer: coarse) {
+    .n99-arcade-btn,
+    .n99-touch-input,
+    .n99-touch-btn {
+      min-height: 48px;
+    }
+    .n99-arcade-btn {
+      min-width: 48px;
     }
   }
 
@@ -235,6 +464,122 @@
     [aria-selected="true"],
     [aria-current="page"] {
       border: 2px solid ButtonText;
+    }
+  }
+}
+
+/* === PRE-ENTRY COBOL BOOT TERMINAL GATE (PHOSPHOR GREEN/RED) === */
+/* Scoped strictly to the pre-login gate before entering the 5-tone monochrome NINETY9 Archive */
+@scope ([data-template-theme="ninety9-archive"]) {
+  @keyframes n99CobolBgBlink {
+    0%,
+    48% {
+      background-color: #020A04;
+      opacity: 0.96;
+    }
+    50%,
+    74% {
+      background-color: #051F0D;
+      opacity: 1;
+    }
+    76%,
+    100% {
+      background-color: #031207;
+      opacity: 0.98;
+    }
+  }
+
+  @keyframes n99CobolCursorBlink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes n99CobolRedBlink {
+    0%,
+    60% {
+      opacity: 1;
+    }
+    65%,
+    100% {
+      opacity: 0.42;
+    }
+  }
+
+  .n99-cobol-screen {
+    position: relative;
+    min-height: 100dvh;
+    width: 100%;
+    background-color: #020A04;
+    color: #22FF66;
+    background-image:
+      linear-gradient(to right, rgba(34, 255, 102, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(34, 255, 102, 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .n99-cobol-screen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-color: #020A04;
+  }
+
+  .n99-cobol-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.42) 0px,
+      rgba(0, 0, 0, 0.42) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  .n99-cobol-chassis {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .n99-cobol-screen::before {
+      animation: n99CobolBgBlink 1.5s steps(2, end) infinite;
+    }
+    .n99-cobol-cursor {
+      animation: n99CobolCursorBlink 1s steps(1, end) infinite;
+    }
+    .n99-cobol-red-led {
+      animation: n99CobolRedBlink 1.3s ease-in-out infinite;
+    }
+  }
+
+  [data-testid="ninety9-cobol-boot-terminal"] button:focus-visible,
+  [data-testid="ninety9-cobol-boot-terminal"] input:focus-visible {
+    outline: 3px solid #22FF66;
+    outline-offset: 2px;
+  }
+
+  .n99-boot-form-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  @container n99-workstation (min-width: 520px) {
+    .n99-boot-form-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: stretch;
     }
   }
 }

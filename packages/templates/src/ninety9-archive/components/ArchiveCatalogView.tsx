@@ -137,17 +137,17 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
   return (
     <section
       data-testid="ninety9-archive-catalog-view"
-      className="border-b-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] bg-[#FFFFFF] n99-section-pad text-[#000000]"
     >
       <div className="mx-auto max-w-[1380px] space-y-6">
         {/* Catalog Terminal Header */}
-        <div className="n99-halftone-light border-2 border-[#000000] p-5 md:p-6">
+        <div className="n99-halftone-light n99-card-pad border-2 border-[#000000]">
           <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-[#000000] pb-4">
-            <div className="space-y-1">
+            <div className="n99-grid-cell space-y-1">
               <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#292929]">
                 DIRECTORY // ARCHIVE CATALOG MATRIX
               </div>
-              <h1 className="n99-font-mono text-2xl font-bold uppercase tracking-tight md:text-3xl">
+              <h1 className="n99-font-mono n99-display-h1 n99-wrap-anywhere font-bold uppercase tracking-tight">
                 {heading}
               </h1>
             </div>
@@ -174,8 +174,8 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
           </div>
 
           {/* Search & Facet Controls */}
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-12">
-            <div className="md:col-span-5">
+          <div className="mt-5 n99-split-md-12">
+            <div className="n99-grid-cell n99-md-span-5">
               <label
                 htmlFor={searchInputId}
                 className="mb-1.5 block font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000]"
@@ -189,11 +189,11 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="SEARCH E.G. 'THINKPAD', 'KURT', 'ARC-06', 'HTTP'..."
                 data-testid="ninety9-catalog-search"
-                className="w-full min-h-[42px] border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-xs font-bold text-[#000000] placeholder:text-[#808080]"
+                className="n99-touch-input w-full border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-base font-bold text-[#000000] placeholder:text-[#808080]"
               />
             </div>
 
-            <div className="md:col-span-3">
+            <div className="n99-grid-cell n99-md-span-3">
               <label
                 htmlFor={categorySelectId}
                 className="mb-1.5 block font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000]"
@@ -207,7 +207,7 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
                   setSelectedCategory(e.target.value as CategorySlug | "all")
                 }
                 data-testid="ninety9-catalog-category-select"
-                className="w-full min-h-[42px] border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-xs font-bold uppercase text-[#000000]"
+                className="n99-touch-input w-full border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-base font-bold uppercase text-[#000000]"
               >
                 <option value="all">ALL 12 SECTORS</option>
                 {categories.map((cat) => (
@@ -218,7 +218,7 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
               </select>
             </div>
 
-            <div className="md:col-span-2">
+            <div className="n99-grid-cell n99-md-span-2">
               <label
                 htmlFor={typeSelectId}
                 className="mb-1.5 block font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000]"
@@ -232,7 +232,7 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
                   setSelectedType(e.target.value as ArchiveEntryType | "all")
                 }
                 data-testid="ninety9-catalog-type-select"
-                className="w-full min-h-[42px] border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-xs font-bold uppercase text-[#000000]"
+                className="n99-touch-input w-full border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-base font-bold uppercase text-[#000000]"
               >
                 <option value="all">ALL TYPES</option>
                 {availableTypes.map((typeName) => (
@@ -243,7 +243,7 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
               </select>
             </div>
 
-            <div className="md:col-span-2">
+            <div className="n99-grid-cell n99-md-span-2">
               <label
                 htmlFor={sortSelectId}
                 className="mb-1.5 block font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000]"
@@ -255,7 +255,7 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as ArchiveSortOption)}
                 data-testid="ninety9-catalog-sort-select"
-                className="w-full min-h-[42px] border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-xs font-bold uppercase text-[#000000]"
+                className="n99-touch-input w-full border-2 border-[#000000] bg-[#FFFFFF] px-3 py-2 font-mono text-base font-bold uppercase text-[#000000]"
               >
                 <option value="chronological-asc">YEAR: 1990 → 1999</option>
                 <option value="chronological-desc">YEAR: 1999 → 1990</option>

@@ -10,6 +10,7 @@ import {
   getHighlightPhotos,
   queryArchiveEntries,
 } from "../lib/archive/api.js";
+import type { ArcadeCartridgeId } from "../arcade/types.js";
 import type { CategorySlug } from "../lib/archive/types.js";
 import { useNinety9Store } from "../store.js";
 import { ArchivalMediaPlate } from "./ArchivalMediaPlate.js";
@@ -40,6 +41,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const stats = getArchiveStats();
   const navigateTo = useNinety9Store((s) => s.navigateTo);
   const retransmitRandomPacket = useNinety9Store((s) => s.retransmitRandomPacket);
+  const requestImmediateArcadeBoot = useNinety9Store(
+    (s) => s.requestImmediateArcadeBoot
+  );
+
+  const handleHeroBootGame = (cartridge?: ArcadeCartridgeId) => {
+    const bay =
+      typeof document !== "undefined"
+        ? document.getElementById("ninety9-arcade-bay")
+        : null;
+    if (!bay) {
+      if (cartridge) {
+        requestImmediateArcadeBoot(cartridge);
+      }
+      navigateTo("arcade");
+      return;
+    }
+    requestImmediateArcadeBoot(cartridge);
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    bay.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  };
 
   const safeInk = inkHex || "#000000";
   const safeSurface = surfaceHex || "#FFFFFF";
@@ -50,18 +77,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   return (
     <section
       data-testid="ninety9-hero-section"
-      className="border-b-2 border-[#000000] px-4 py-8 md:py-12"
+      className="border-b-2 border-[#000000] n99-section-pad"
       style={{ backgroundColor: bgTone, color: textTone }}
     >
-      <div className="mx-auto max-w-[1380px] space-y-8">
+      <div className="mx-auto max-w-[1380px] space-y-6 sm:space-y-8">
         <div className="n99-split-hero">
           {/* Left Masthead Column */}
-          <div className="space-y-6">
+          <div className="n99-grid-cell space-y-5 sm:space-y-6">
             <div className="inline-block border-2 border-[#000000] bg-[#000000] px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-widest text-[#FFFFFF]">
               {classificationBadge}
             </div>
 
-            <h1 className="n99-font-mono text-3xl font-bold uppercase leading-[1.08] tracking-tight md:text-5xl">
+            <h1 className="n99-font-mono n99-display-hero n99-wrap-anywhere font-bold uppercase tracking-tight">
               {headline}
             </h1>
 
@@ -74,7 +101,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 type="button"
                 onClick={() => navigateTo("archive")}
                 data-testid="ninety9-hero-primary-cta"
-                className="n99-shadow-md min-h-[44px] border-2 border-[#000000] bg-[#000000] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors cursor-pointer"
+                className="n99-shadow-md n99-touch-btn border-2 border-[#000000] bg-[#000000] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors cursor-pointer sm:px-5"
               >
                 {primaryCtaLabel}
               </button>
@@ -85,15 +112,51 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   navigateTo("random-transmit");
                 }}
                 data-testid="ninety9-hero-secondary-cta"
-                className="n99-shadow-md min-h-[44px] border-2 border-[#000000] bg-[#FFFFFF] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#000000] hover:bg-[#D9D9D9] transition-colors cursor-pointer"
+                className="n99-shadow-md n99-touch-btn border-2 border-[#000000] bg-[#FFFFFF] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#000000] hover:bg-[#D9D9D9] transition-colors cursor-pointer sm:px-5"
               >
                 {secondaryCtaLabel}
               </button>
+              <button
+                type="button"
+                onClick={() => handleHeroBootGame()}
+                data-testid="ninety9-hero-arcade-cta"
+                className="n99-shadow-md n99-touch-btn border-2 border-[#000000] bg-[#D9D9D9] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer sm:px-5"
+              >
+                BOOT NINETY9 ARCADE [05]
+              </button>
+            </div>
+
+            {/* Instant Hero Game Launcher Bay Strip */}
+            <div className="border-2 border-[#000000] bg-[#D9D9D9] p-3 font-mono text-xs text-[#000000]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold uppercase tracking-wider">
+                  PLAY WORKSTATION ARCADE IMMEDIATELY BELOW ↓
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      { id: "packet-invaders", label: "▶ PACKET INVADERS" },
+                      { id: "serpent-98", label: "▶ SERPENT-98" },
+                      { id: "break-grid", label: "▶ BREAK-GRID" },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleHeroBootGame(item.id)}
+                      data-testid={`ninety9-hero-quickboot-${item.id}`}
+                      className="min-h-[34px] border-2 border-[#000000] bg-[#FFFFFF] px-2.5 py-1 text-[11px] font-bold uppercase text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Right Archival Pull Quote & Technical Telemetry Plate */}
-          <aside className="n99-halftone-light n99-shadow-md flex flex-col justify-between border-2 border-[#000000] p-6 text-[#000000]">
+          <aside className="n99-halftone-light n99-shadow-md n99-card-pad flex flex-col justify-between border-2 border-[#000000] text-[#000000]">
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b-2 border-[#000000] pb-2 font-mono text-[11px] font-bold uppercase">
                 <span>STATION DECLARATION</span>
@@ -241,12 +304,12 @@ export const FeaturedSection: React.FC<FeaturedSectionProps> = ({
   return (
     <section
       data-testid="ninety9-featured-section"
-      className="border-b-2 border-[#000000] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] n99-section-pad text-[#000000]"
       style={{ backgroundColor: safeBg }}
     >
       <div className="mx-auto max-w-[1380px] space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#000000] pb-2">
-          <h2 className="n99-font-mono text-lg font-bold uppercase tracking-tight">
+          <h2 className="n99-font-mono n99-display-h2 font-bold uppercase tracking-tight">
             {sectionHeading}
           </h2>
           <span className="font-mono text-xs font-bold uppercase text-[#292929]">
@@ -255,19 +318,19 @@ export const FeaturedSection: React.FC<FeaturedSectionProps> = ({
         </div>
 
         {/* Large Split Lead Dossier */}
-        <article className="n99-shadow-md grid grid-cols-1 border-2 border-[#000000] bg-[#FFFFFF] lg:grid-cols-12">
-          <div className="border-b-2 border-[#000000] bg-[#FFFFFF] p-4 lg:col-span-6 lg:border-b-0 lg:border-r-2">
+        <article className="n99-shadow-md n99-split-12-flush border-2 border-[#000000] bg-[#FFFFFF]">
+          <div className="n99-split-divider n99-lg-span-6 bg-[#FFFFFF] p-4">
             <ArchivalMediaPlate
               photo={getEntryPhoto(lead.slug)}
               fallbackSrc={lead.illustrationPath}
               fallbackAlt={`Technical schematic plate for ${lead.title}`}
               fallbackCaption={`PLATE // ${lead.serialNumber} — ${lead.illustrationMotif.toUpperCase()} SCHEMATIC`}
-              aspectClassName="h-64 md:h-72"
+              aspectClassName="h-56 sm:h-72"
               priority="hero"
             />
           </div>
 
-          <div className="flex flex-col justify-between p-6 lg:col-span-6">
+          <div className="n99-card-pad n99-lg-span-6 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold">
                 <span className="border border-[#000000] bg-[#000000] px-2 py-0.5 text-[#FFFFFF]">
@@ -279,7 +342,7 @@ export const FeaturedSection: React.FC<FeaturedSectionProps> = ({
               </div>
 
               <div>
-                <h3 className="n99-font-mono text-2xl font-bold uppercase tracking-tight text-[#000000]">
+                <h3 className="n99-font-mono n99-display-h2 n99-wrap-anywhere font-bold uppercase tracking-tight text-[#000000]">
                   {lead.title}
                 </h3>
                 <p className="mt-1 font-mono text-xs font-bold text-[#292929]">
@@ -289,17 +352,17 @@ export const FeaturedSection: React.FC<FeaturedSectionProps> = ({
 
               <p className="text-sm leading-relaxed text-[#292929]">{lead.summary}</p>
 
-              <dl className="grid grid-cols-2 gap-2 border-2 border-[#000000] bg-[#D9D9D9] p-3 font-mono text-[11px]">
+              <dl className="n99-card-grid-2 border-2 border-[#000000] bg-[#D9D9D9] p-3 font-mono text-[11px]">
                 {lead.specs.map((spec) => (
-                  <div key={spec.label}>
+                  <div key={spec.label} className="n99-grid-cell">
                     <dt className="text-[10px] uppercase text-[#292929]">{spec.label}</dt>
-                    <dd className="font-bold text-[#000000]">{spec.value}</dd>
+                    <dd className="n99-wrap-anywhere font-bold text-[#000000]">{spec.value}</dd>
                   </div>
                 ))}
               </dl>
             </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3 border-t-2 border-[#000000] pt-4">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t-2 border-[#000000] pt-4">
               <span className="font-mono text-xs font-bold text-[#292929]">
                 CAT-{lead.categoryCode} // {getCategoryBySlug(lead.category)?.shortLabel}
               </span>
@@ -387,12 +450,12 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   return (
     <section
       data-testid="ninety9-category-grid"
-      className="border-b-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] bg-[#FFFFFF] n99-section-pad text-[#000000]"
     >
       <div className="mx-auto max-w-[1380px] space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b-2 border-[#000000] pb-3">
-          <div className="space-y-1">
-            <h2 className="n99-font-mono text-lg font-bold uppercase tracking-tight">
+          <div className="n99-grid-cell space-y-1">
+            <h2 className="n99-font-mono n99-display-h2 font-bold uppercase tracking-tight">
               {sectionHeading}
             </h2>
             <p className="text-xs text-[#292929]">{subcaption}</p>

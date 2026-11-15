@@ -1,8 +1,10 @@
 export {
   templateComponents,
   WorkstationFrame,
+  ArcadeView,
   ArchiveCatalogMatrix,
   ArchiveCatalogView,
+  CobolBootTerminal,
   DossierReaderView,
   CategoriesView,
   AboutView,

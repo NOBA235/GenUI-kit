@@ -27,6 +27,7 @@ export const ArchiveSubViewSchema = z.enum([
   "dossier",
   "about",
   "random-transmit",
+  "arcade",
 ]);
 export type ArchiveSubView = z.infer<typeof ArchiveSubViewSchema>;
 

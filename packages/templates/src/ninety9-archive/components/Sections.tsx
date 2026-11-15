@@ -6,8 +6,14 @@ import type {
   CategorySlug,
   CRTMode,
 } from "../lib/archive/types.js";
-import { useNinety9Store, type Ninety9ViewId } from "../store.js";
+import {
+  useNinety9OperatorName,
+  useNinety9Store,
+  type Ninety9ViewId,
+} from "../store.js";
+import { ArcadeView } from "./ArcadeView.js";
 import { ArchiveCatalogView } from "./ArchiveCatalogView.js";
+import { CobolBootTerminal } from "./CobolBootTerminal.js";
 import { DossierReaderView } from "./DossierReaderView.js";
 import { AboutView, CategoriesView } from "./ExtendedViews.js";
 import { CategoryGrid, FeaturedSection, HeroSection } from "./HomeSections.js";
@@ -65,6 +71,7 @@ export const WorkstationFrame: React.FC<WorkstationFrameProps> = ({
   children,
 }) => {
   const crtMode = useNinety9Store((s) => s.crtMode);
+  const operatorName = useNinety9OperatorName();
   const storeActiveView = useNinety9Store((s) => s.activeView);
   const activeDossierSlug = useNinety9Store((s) => s.activeDossierSlug);
   const timelineYear = useNinety9Store((s) => s.timelineYear);
@@ -136,6 +143,18 @@ export const WorkstationFrame: React.FC<WorkstationFrameProps> = ({
               secondaryCtaLabel="TUNE 99.4 MHZ TRANSMITTER"
               inkHex="#000000"
               surfaceHex="#FFFFFF"
+            />
+            <ArcadeView
+              heading="WORKSTATION BAY // INSTANT PLAYABLE NINETY9 ARCADE"
+              defaultGame="packet-invaders"
+              difficultyPreset="standard-1995"
+              paddleWidth={80}
+              ballSpeed={4}
+              snakeGridSize={20}
+              invaderRows={4}
+              inkHex="#000000"
+              surfaceHex="#FFFFFF"
+              linkedDossierSlug="y2k-bug-1999"
             />
             <FeaturedSection
               sectionHeading="FEATURED ARTIFACT DOSSIERS // CURATED TRANSMISSION"
@@ -221,8 +240,25 @@ export const WorkstationFrame: React.FC<WorkstationFrameProps> = ({
             autoExpandTelemetry={true}
           />
         );
+      case "arcade":
+        return (
+          <ArcadeView
+            heading="VIEW [05] // NINETY9 ARCADE WORKSTATION"
+            defaultGame="packet-invaders"
+            difficultyPreset="standard-1995"
+            paddleWidth={80}
+            ballSpeed={4}
+            snakeGridSize={20}
+            invaderRows={4}
+            inkHex="#000000"
+            surfaceHex="#FFFFFF"
+            linkedDossierSlug="y2k-bug-1999"
+          />
+        );
     }
   };
+
+  const isBootGateOpen = operatorName === null;
 
   return (
     <div
@@ -231,20 +267,28 @@ export const WorkstationFrame: React.FC<WorkstationFrameProps> = ({
       className="n99-workstation-root min-h-screen"
       style={{ backgroundColor: safeSurface, color: safeInk }}
     >
-      <CrtOverlay mode={crtMode} />
+      {!isBootGateOpen && <CrtOverlay mode={crtMode} />}
 
-      <Header
-        systemVersion={systemVersion}
-        protocolLabel={protocolLabel}
-        activeView={effectiveView}
-        remixEditionLabel={remixEditionLabel}
-      />
+      {isBootGateOpen && <CobolBootTerminal systemVersion={systemVersion} />}
 
-      <main id="ninety9-main" tabIndex={-1} className="outline-none">
-        {showStreamedChildren ? children : renderRoutedFallbackView()}
-      </main>
+      <div
+        hidden={isBootGateOpen}
+        aria-hidden={isBootGateOpen ? "true" : undefined}
+        inert={isBootGateOpen ? true : undefined}
+      >
+        <Header
+          systemVersion={systemVersion}
+          protocolLabel={protocolLabel}
+          activeView={effectiveView}
+          remixEditionLabel={remixEditionLabel}
+        />
 
-      <Footer />
+        <main id="ninety9-main" tabIndex={-1} className="outline-none">
+          {showStreamedChildren ? children : renderRoutedFallbackView()}
+        </main>
+
+        <Footer />
+      </div>
     </div>
   );
 };
@@ -323,13 +367,16 @@ const { registry: templateComponents } = defineRegistry(
       RandomTransmit: ({ props }) => <RandomTransmit {...props} />,
       ArchiveCatalogMatrix: ({ props }) => <ArchiveCatalogMatrix {...props} />,
       DossierReaderView: ({ props }) => <DossierReaderView {...props} />,
+      ArcadeCabinetSection: ({ props }) => <ArcadeView {...props} />,
     },
   }
 );
 
 export { templateComponents };
 export {
+  ArcadeView,
   ArchiveCatalogView,
+  CobolBootTerminal,
   DossierReaderView,
   CategoriesView,
   AboutView,

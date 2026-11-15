@@ -52,20 +52,20 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
   return (
     <section
       data-testid="ninety9-categories-view"
-      className="border-b-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] bg-[#FFFFFF] n99-section-pad text-[#000000]"
     >
-      <div className="mx-auto max-w-[1380px] space-y-8">
+      <div className="mx-auto max-w-[1380px] space-y-6 sm:space-y-8">
         <div className="border-b-2 border-[#000000] pb-4">
           <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#292929]">
             SECTOR ESSAYS // 12 TAXONOMY MONOGRAPHS
           </div>
-          <h1 className="n99-font-mono mt-1 text-2xl font-bold uppercase tracking-tight md:text-3xl">
+          <h1 className="n99-font-mono n99-display-h1 mt-1 font-bold uppercase tracking-tight">
             {heading}
           </h1>
         </div>
 
         {/* 12-Button Sector Switcher */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="n99-sector-grid-6">
           {categories.map((cat) => {
             const active = cat.slug === selectedWithEntries.category.slug;
             return (
@@ -75,7 +75,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
                 onClick={() => setSelectedSlug(cat.slug)}
                 aria-pressed={active}
                 data-testid={`ninety9-sector-btn-${cat.slug}`}
-                className={`border-2 border-[#000000] p-3 text-left font-mono text-xs font-bold uppercase transition-colors cursor-pointer ${
+                className={`n99-touch-btn border-2 border-[#000000] p-2.5 text-left font-mono text-xs font-bold uppercase transition-colors cursor-pointer sm:p-3 ${
                   active
                     ? "n99-shadow-sm bg-[#000000] text-[#FFFFFF]"
                     : "bg-[#FFFFFF] text-[#000000] hover:bg-[#D9D9D9]"
@@ -89,8 +89,8 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
         </div>
 
         {/* Selected Category Long-Form Essay + Vector Plate */}
-        <div className="n99-shadow-md grid grid-cols-1 gap-0 border-2 border-[#000000] bg-[#FFFFFF] lg:grid-cols-12">
-          <div className="space-y-5 border-b-2 border-[#000000] p-6 lg:col-span-7 lg:border-b-0 lg:border-r-2">
+        <div className="n99-shadow-md n99-split-12-flush border-2 border-[#000000] bg-[#FFFFFF]">
+          <div className="n99-split-divider n99-lg-span-7 n99-card-pad space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#000000] pb-2 font-mono text-[11px] font-bold uppercase">
               <span>{selectedWithEntries.category.label}</span>
               <span>
@@ -98,11 +98,11 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
               </span>
             </div>
 
-            <h2 className="n99-font-mono text-2xl font-bold uppercase leading-tight text-[#000000]">
+            <h2 className="n99-font-mono n99-display-h2 font-bold uppercase leading-tight text-[#000000]">
               {selectedWithEntries.category.tagline}
             </h2>
 
-            <p className="text-sm leading-7 text-[#292929] md:text-base">
+            <p className="text-sm leading-7 text-[#292929] sm:text-base">
               {selectedWithEntries.category.essay}
             </p>
 
@@ -123,14 +123,14 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
                     category: selectedWithEntries.category.slug,
                   })
                 }
-                className="min-h-[42px] border-2 border-[#000000] bg-[#000000] px-4 py-2 font-mono text-xs font-bold uppercase text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors cursor-pointer"
+                className="n99-touch-btn border-2 border-[#000000] bg-[#000000] px-4 py-2 font-mono text-xs font-bold uppercase text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors cursor-pointer"
               >
                 FILTER ARCHIVE BY {selectedWithEntries.category.shortLabel} →
               </button>
             </div>
           </div>
 
-          <div className="n99-ortho-grid flex flex-col justify-between p-6 lg:col-span-5 space-y-4">
+          <div className="n99-ortho-grid n99-card-pad n99-lg-span-5 flex flex-col justify-between space-y-4">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-mono text-[10px] font-bold uppercase text-[#292929]">
@@ -281,32 +281,32 @@ export const AboutView: React.FC<{ readonly heading: string }> = ({ heading }) =
   return (
     <section
       data-testid="ninety9-about-view"
-      className="border-b-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] bg-[#FFFFFF] n99-section-pad text-[#000000]"
     >
-      <div className="mx-auto max-w-[1380px] space-y-8">
+      <div className="mx-auto max-w-[1380px] space-y-6 sm:space-y-8">
         <div className="border-b-2 border-[#000000] pb-4">
           <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#292929]">
             WORKSTATION COLOPHON // METHODOLOGY &amp; SPECIFICATIONS
           </div>
-          <h1 className="n99-font-mono mt-1 text-2xl font-bold uppercase tracking-tight md:text-3xl">
+          <h1 className="n99-font-mono n99-display-h1 mt-1 font-bold uppercase tracking-tight">
             {heading}
           </h1>
         </div>
 
         {/* Manifesto Split Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="n99-shadow-md border-2 border-[#000000] bg-[#FFFFFF] p-6 space-y-4 lg:col-span-7">
+        <div className="n99-split-12">
+          <div className="n99-shadow-md n99-card-pad n99-lg-span-7 border-2 border-[#000000] bg-[#FFFFFF] space-y-4">
             <h2 className="border-b-2 border-[#000000] pb-2 font-mono text-base font-bold uppercase">
               01 // THE 1997 PAPER-WHITE WORKSTATION STANDARD
             </h2>
-            <p className="text-sm leading-7 text-[#292929] md:text-base">
+            <p className="text-sm leading-7 text-[#292929] sm:text-base">
               NINETY9 rejects modern soft gradients, rounded corners, and nostalgic neon glow
               in favor of the crisp high-density editorial discipline shared by NeXTSTEP
               manuals, Classic Macintosh system dialogs, Wired print colophons, and HTTP/1.0
               academic index sheets. Every plate, border, and typographic rule operates inside
               a mathematically enforced 5-tone pure grayscale hierarchy.
             </p>
-            <p className="text-sm leading-7 text-[#292929] md:text-base">
+            <p className="text-sm leading-7 text-[#292929] sm:text-base">
               All {stats.totalEntries} historical dossiers across {stats.totalCategories} sectors
               and {stats.totalMilestones} decade milestones ({stats.yearSpan[0]}–{stats.yearSpan[1]})
               are backed by strict Zod schemas (`ArchiveEntrySchema`), zero-dependency deterministic
@@ -314,7 +314,7 @@ export const AboutView: React.FC<{ readonly heading: string }> = ({ heading }) =
             </p>
           </div>
 
-          <div className="n99-halftone-light border-2 border-[#000000] p-6 space-y-4 lg:col-span-5">
+          <div className="n99-halftone-light n99-card-pad n99-lg-span-5 border-2 border-[#000000] space-y-4">
             <h2 className="border-b-2 border-[#000000] pb-2 font-mono text-base font-bold uppercase">
               02 // CRT SCANLINE CALIBRATION
             </h2>
@@ -331,7 +331,7 @@ export const AboutView: React.FC<{ readonly heading: string }> = ({ heading }) =
                     type="button"
                     onClick={() => setCrtMode(mode)}
                     aria-pressed={active}
-                    className={`min-h-[42px] border-2 border-[#000000] px-3 py-2 font-mono text-xs font-bold uppercase cursor-pointer transition-colors ${
+                    className={`n99-touch-btn border-2 border-[#000000] px-2 py-2 font-mono text-xs font-bold uppercase cursor-pointer transition-colors sm:px-3 ${
                       active
                         ? "bg-[#000000] text-[#FFFFFF]"
                         : "bg-[#FFFFFF] text-[#000000] hover:bg-[#D9D9D9]"
@@ -342,7 +342,7 @@ export const AboutView: React.FC<{ readonly heading: string }> = ({ heading }) =
                 );
               })}
             </div>
-            <div className="border-2 border-[#000000] bg-[#FFFFFF] p-3 font-mono text-xs">
+            <div className="n99-wrap-anywhere border-2 border-[#000000] bg-[#FFFFFF] p-3 font-mono text-xs">
               ACTIVE STATE: <strong>CRT={crtMode}</strong> // BORDER-RADIUS: <strong>0PX</strong> //
               PALETTE CAP: <strong>{stats.paletteHexCount} HEXES</strong>
             </div>
@@ -354,7 +354,7 @@ export const AboutView: React.FC<{ readonly heading: string }> = ({ heading }) =
           <h2 className="border-b-2 border-[#000000] pb-2 font-mono text-base font-bold uppercase">
             03 // STRICT 5-TONE MONOCHROME HEX LAW (ZERO COLOR EXCEPTIONS)
           </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="n99-card-grid-5">
             {PALETTE_SWATCHES.map((swatch) => (
               <div
                 key={swatch.hex}

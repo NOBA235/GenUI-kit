@@ -17,10 +17,9 @@ This conditional steering file applies strictly to Flagship Website #2 (`package
      - Light Gray: `#D9D9D9`
      - Medium Gray: `#808080`
      - Dark Gray: `#292929`
-2. **Forbidden Styling:**
-   - NO chromatic accent colors (zero red, cyan, blue, amber, green, or neon glow).
-   - NO rounded corners (`border-radius: 0px` strictly across buttons, inputs, cards, badges, and modals).
-   - NO soft blurry drop shadows; use brutalist solid `#000000` offset shadows (`2px 2px 0px #000000` / `4px 4px 0px #000000`).
+2. **Forbidden Styling & Pre-Entry Exception:**
+   - All NINETY9 website pages/components inside `.n99-workstation-root` have NO chromatic accent colors (zero red, cyan, blue, amber, green, or neon glow), `border-radius: 0px` strictly across buttons, inputs, cards, badges, and modals, and solid `#000000` offset shadows (`2px 2px 0px #000000` / `4px 4px 0px #000000`).
+   - **Pre-Entry Terminal Gate Exception (`CobolBootTerminal.tsx`):** Before authenticating into NINETY9, the gated pre-entry COBOL CRT login terminal renders in dedicated green/red phosphor CRT terminal styling (`#020A04`, `#22FF66`, `#FF4D4D`) with a subtle blinking CRT background, hiding the monochrome website until a non-empty operator name unlocks the archive.
 
 ---
 

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ArcadeCartridgeId } from "./arcade/types.js";
 import { getAllEntries, getEntryBySlug, transmitRandomPacket } from "./lib/archive/api.js";
 import {
   CRTModeSchema,
@@ -10,6 +11,30 @@ import {
 } from "./lib/archive/types.js";
 
 export const NINETY9_CRT_STORAGE_KEY = "ninety9-archive:crt-mode";
+export const NINETY9_ARCADE_STORAGE_KEY = "ninety9-archive:arcade-v1";
+export const OPERATOR_NAME_MAX_LENGTH = 32;
+
+export interface OperatorValidationResult {
+  readonly ok: boolean;
+  readonly normalizedName: string;
+  readonly error?: string;
+}
+
+/** Validates and normalizes an operator callsign entered in the COBOL boot terminal. */
+export function validateOperatorName(raw: string): OperatorValidationResult {
+  const normalizedName = raw.replace(/\s+/g, " ").trim();
+  if (normalizedName.length === 0) {
+    return {
+      ok: false,
+      normalizedName: "",
+      error: "ERR-01 // WS-OPERATOR-NAME CANNOT BE SPACES OR EMPTY.",
+    };
+  }
+  return {
+    ok: true,
+    normalizedName: normalizedName.slice(0, OPERATOR_NAME_MAX_LENGTH),
+  };
+}
 
 export type Ninety9ViewId =
   | "home"
@@ -18,7 +43,108 @@ export type Ninety9ViewId =
   | "categories"
   | "about"
   | "dossier"
-  | "random-transmit";
+  | "random-transmit"
+  | "arcade";
+
+export type ArcadeHighScoresMap = Record<ArcadeCartridgeId, number>;
+
+const DEFAULT_ARCADE_SCORES: ArcadeHighScoresMap = {
+  "serpent-98": 0,
+  "break-grid": 0,
+  "packet-invaders": 0,
+};
+
+interface PersistedArcadeState {
+  readonly highScores: ArcadeHighScoresMap;
+  readonly achievements: readonly string[];
+  readonly muted: boolean;
+}
+
+function readPersistedArcadeState(): PersistedArcadeState {
+  if (typeof window === "undefined") {
+    return {
+      highScores: { ...DEFAULT_ARCADE_SCORES },
+      achievements: [],
+      muted: false,
+    };
+  }
+  try {
+    const raw = window.localStorage.getItem(NINETY9_ARCADE_STORAGE_KEY);
+    if (!raw) {
+      return {
+        highScores: { ...DEFAULT_ARCADE_SCORES },
+        achievements: [],
+        muted: false,
+      };
+    }
+    const parsed = JSON.parse(raw) as Partial<PersistedArcadeState>;
+    const hs: Partial<ArcadeHighScoresMap> = parsed.highScores ?? {};
+    return {
+      highScores: {
+        "serpent-98":
+          typeof hs["serpent-98"] === "number" && Number.isFinite(hs["serpent-98"])
+            ? Math.max(0, Math.floor(hs["serpent-98"]))
+            : 0,
+        "break-grid":
+          typeof hs["break-grid"] === "number" && Number.isFinite(hs["break-grid"])
+            ? Math.max(0, Math.floor(hs["break-grid"]))
+            : 0,
+        "packet-invaders":
+          typeof hs["packet-invaders"] === "number" &&
+          Number.isFinite(hs["packet-invaders"])
+            ? Math.max(0, Math.floor(hs["packet-invaders"]))
+            : 0,
+      },
+      achievements: Array.isArray(parsed.achievements)
+        ? parsed.achievements.filter((x): x is string => typeof x === "string")
+        : [],
+      muted: Boolean(parsed.muted),
+    };
+  } catch {
+    return {
+      highScores: { ...DEFAULT_ARCADE_SCORES },
+      achievements: [],
+      muted: false,
+    };
+  }
+}
+
+function writePersistedArcadeState(next: PersistedArcadeState): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(NINETY9_ARCADE_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage quota / privacy errors
+  }
+}
+
+function computeUnlockedAchievements(
+  scores: ArcadeHighScoresMap,
+  existing: readonly string[],
+  justBootedOrScored: boolean
+): readonly string[] {
+  const unlocked = new Set(existing);
+  if (justBootedOrScored) {
+    unlocked.add("first-boot");
+  }
+  if (scores["serpent-98"] >= 60) {
+    unlocked.add("serpent-survivor");
+  }
+  if (scores["break-grid"] >= 150) {
+    unlocked.add("grid-demolition");
+  }
+  if (scores["packet-invaders"] >= 200) {
+    unlocked.add("y2k-sentinel");
+  }
+  if (
+    scores["serpent-98"] > 0 &&
+    scores["break-grid"] > 0 &&
+    scores["packet-invaders"] > 0
+  ) {
+    unlocked.add("arcade-trifecta");
+  }
+  return Array.from(unlocked);
+}
 
 const CRT_CYCLE_ORDER: readonly CRTMode[] = ["SUBTLE", "ACTIVE", "OFF"];
 
@@ -55,6 +181,7 @@ export interface Ninety9NavigateOptions {
 
 export interface Ninety9StoreState {
   crtMode: CRTMode;
+  operatorName: string | null;
   activeView: Ninety9ViewId;
   activeDossierSlug: string;
   searchQuery: string;
@@ -66,9 +193,16 @@ export interface Ninety9StoreState {
   transmitPacket: TransmissionPacket;
   transmissionCount: number;
   activeRemixBanner: string | null;
+  activeArcadeCartridge: ArcadeCartridgeId;
+  arcadeBootNonce: number;
+  arcadeHighScores: ArcadeHighScoresMap;
+  arcadeAchievements: readonly string[];
+  arcadeMuted: boolean;
 
   setCrtMode: (mode: CRTMode) => void;
   cycleCrtMode: () => CRTMode;
+  authenticateOperator: (rawName: string) => OperatorValidationResult;
+  lockWorkstation: () => void;
   navigateTo: (view: Ninety9ViewId, options?: Ninety9NavigateOptions) => void;
   openDossier: (slug: string) => void;
   setSearchQuery: (query: string) => void;
@@ -81,6 +215,11 @@ export interface Ninety9StoreState {
   retransmitRandomPacket: (seed?: number) => TransmissionPacket;
   setActiveRemixBanner: (banner: string | null) => void;
   syncFromCatalogView: (defaultView: Ninety9ViewId, category?: CategorySlug | "all", year?: number | "all", dossierSlug?: string) => void;
+  selectArcadeCartridge: (cartridge: ArcadeCartridgeId) => void;
+  requestImmediateArcadeBoot: (cartridge?: ArcadeCartridgeId) => void;
+  recordArcadeScore: (cartridge: ArcadeCartridgeId, score: number) => boolean;
+  toggleArcadeMute: () => boolean;
+  resetArcadeProgress: () => void;
   resetStoreForTest: () => void;
 }
 
@@ -122,7 +261,8 @@ function readInitialRouteState(): {
     queryView === "categories" ||
     queryView === "about" ||
     queryView === "random-transmit" ||
-    queryView === "dossier"
+    queryView === "dossier" ||
+    queryView === "arcade"
   ) {
     return {
       activeView: queryView,
@@ -182,6 +322,14 @@ function readInitialRouteState(): {
       selectedYear: "all",
     };
   }
+  if (pathname.endsWith("/arcade")) {
+    return {
+      activeView: "arcade",
+      activeDossierSlug: DEFAULT_ENTRY_SLUG,
+      selectedCategory: "all",
+      selectedYear: "all",
+    };
+  }
 
   return {
     activeView: "home",
@@ -192,9 +340,11 @@ function readInitialRouteState(): {
 }
 
 const initialRoute = readInitialRouteState();
+const initialArcade = readPersistedArcadeState();
 
 export const useNinety9Store = create<Ninety9StoreState>((set, get) => ({
   crtMode: readPersistedCrtMode(),
+  operatorName: null,
   activeView: initialRoute.activeView,
   activeDossierSlug: initialRoute.activeDossierSlug,
   searchQuery: "",
@@ -206,6 +356,11 @@ export const useNinety9Store = create<Ninety9StoreState>((set, get) => ({
   transmitPacket: DEFAULT_PACKET,
   transmissionCount: 1,
   activeRemixBanner: null,
+  activeArcadeCartridge: "packet-invaders",
+  arcadeBootNonce: 0,
+  arcadeHighScores: initialArcade.highScores,
+  arcadeAchievements: initialArcade.achievements,
+  arcadeMuted: initialArcade.muted,
 
   setCrtMode: (mode) => {
     writePersistedCrtMode(mode);
@@ -220,6 +375,17 @@ export const useNinety9Store = create<Ninety9StoreState>((set, get) => ({
     set({ crtMode: next });
     return next;
   },
+
+  authenticateOperator: (rawName) => {
+    const validation = validateOperatorName(rawName);
+    if (!validation.ok) {
+      return validation;
+    }
+    set({ operatorName: validation.normalizedName });
+    return validation;
+  },
+
+  lockWorkstation: () => set({ operatorName: null }),
 
   navigateTo: (view, options) => {
     set((state) => {
@@ -291,9 +457,69 @@ export const useNinety9Store = create<Ninety9StoreState>((set, get) => ({
     }));
   },
 
+  selectArcadeCartridge: (cartridge) => set({ activeArcadeCartridge: cartridge }),
+
+  requestImmediateArcadeBoot: (cartridge) =>
+    set((state) => ({
+      activeArcadeCartridge: cartridge ?? state.activeArcadeCartridge,
+      arcadeBootNonce: state.arcadeBootNonce + 1,
+    })),
+
+  recordArcadeScore: (cartridge, score) => {
+    const cleanScore = Number.isFinite(score) ? Math.max(0, Math.floor(score)) : 0;
+    const state = get();
+    const prevBest = state.arcadeHighScores[cartridge] ?? 0;
+    const isNewRecord = cleanScore > prevBest;
+    const nextHighScores: ArcadeHighScoresMap = {
+      ...state.arcadeHighScores,
+      [cartridge]: Math.max(prevBest, cleanScore),
+    };
+    const nextAchievements = computeUnlockedAchievements(
+      nextHighScores,
+      state.arcadeAchievements,
+      true
+    );
+    writePersistedArcadeState({
+      highScores: nextHighScores,
+      achievements: nextAchievements,
+      muted: state.arcadeMuted,
+    });
+    set({
+      arcadeHighScores: nextHighScores,
+      arcadeAchievements: nextAchievements,
+    });
+    return isNewRecord;
+  },
+
+  toggleArcadeMute: () => {
+    const state = get();
+    const nextMuted = !state.arcadeMuted;
+    writePersistedArcadeState({
+      highScores: state.arcadeHighScores,
+      achievements: state.arcadeAchievements,
+      muted: nextMuted,
+    });
+    set({ arcadeMuted: nextMuted });
+    return nextMuted;
+  },
+
+  resetArcadeProgress: () => {
+    const nextState: PersistedArcadeState = {
+      highScores: { ...DEFAULT_ARCADE_SCORES },
+      achievements: [],
+      muted: get().arcadeMuted,
+    };
+    writePersistedArcadeState(nextState);
+    set({
+      arcadeHighScores: nextState.highScores,
+      arcadeAchievements: [],
+    });
+  },
+
   resetStoreForTest: () =>
     set({
       crtMode: "SUBTLE",
+      operatorName: null,
       activeView: "home",
       activeDossierSlug: DEFAULT_ENTRY_SLUG,
       searchQuery: "",
@@ -305,5 +531,18 @@ export const useNinety9Store = create<Ninety9StoreState>((set, get) => ({
       transmitPacket: DEFAULT_PACKET,
       transmissionCount: 1,
       activeRemixBanner: null,
+      activeArcadeCartridge: "packet-invaders",
+      arcadeBootNonce: 0,
+      arcadeHighScores: { ...DEFAULT_ARCADE_SCORES },
+      arcadeAchievements: [],
+      arcadeMuted: false,
     }),
 }));
+
+/** Reads operatorName safely across both client Zustand subscriptions and SSR state mutations. */
+export function useNinety9OperatorName(): string | null {
+  const subscribed = useNinety9Store((s) => s.operatorName);
+  return typeof window === "undefined"
+    ? useNinety9Store.getState().operatorName
+    : subscribed;
+}

@@ -80,12 +80,12 @@ export const TimelinePreview: React.FC<TimelinePreviewProps> = ({
   return (
     <section
       data-testid="ninety9-timeline-section"
-      className="border-b-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] bg-[#FFFFFF] n99-section-pad text-[#000000]"
     >
       <div className="mx-auto max-w-[1380px] space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#000000] pb-3">
-          <div className="space-y-1">
-            <h2 className="n99-font-mono text-lg font-bold uppercase tracking-tight">
+          <div className="n99-grid-cell space-y-1">
+            <h2 className="n99-font-mono n99-display-h2 font-bold uppercase tracking-tight">
               {sectionHeading}
             </h2>
             <p className="font-mono text-xs text-[#292929]">
@@ -280,16 +280,16 @@ export const RandomTransmit: React.FC<RandomTransmitProps> = ({
   return (
     <section
       data-testid="ninety9-random-transmit"
-      className="border-b-2 border-[#000000] n99-halftone-light px-4 py-10 text-[#000000]"
+      className="border-b-2 border-[#000000] n99-halftone-light n99-section-pad text-[#000000]"
     >
       <div className="mx-auto max-w-[1380px]">
-        <div className="n99-shadow-md border-2 border-[#000000] bg-[#FFFFFF] p-6">
+        <div className="n99-shadow-md n99-card-pad border-2 border-[#000000] bg-[#FFFFFF]">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-[#000000] pb-4">
-            <div className="space-y-1">
+            <div className="n99-grid-cell space-y-1">
               <div className="inline-block border border-[#000000] bg-[#000000] px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-[#FFFFFF]">
                 {frequencyLabel} // LOCKED @ {tuningFreq}
               </div>
-              <h2 className="n99-font-mono text-xl font-bold uppercase tracking-tight">
+              <h2 className="n99-font-mono n99-display-h2 font-bold uppercase tracking-tight">
                 {heading}
               </h2>
               <p className="text-xs text-[#292929]">{subheadline}</p>
@@ -300,7 +300,7 @@ export const RandomTransmit: React.FC<RandomTransmitProps> = ({
                 type="button"
                 onClick={handleRetransmit}
                 data-testid="ninety9-retransmit-btn"
-                className="n99-shadow-sm min-h-[40px] border-2 border-[#000000] bg-[#000000] px-4 py-2 font-mono text-xs font-bold uppercase text-[#FFFFFF] hover:bg-[#D9D9D9] hover:text-[#000000] transition-colors cursor-pointer"
+                className="n99-shadow-sm n99-touch-btn border-2 border-[#000000] bg-[#000000] px-4 py-2 font-mono text-xs font-bold uppercase text-[#FFFFFF] hover:bg-[#D9D9D9] hover:text-[#000000] transition-colors cursor-pointer"
               >
                 {isTuning ? "TUNING CARRIER..." : "RE-TRANSMIT [99.4 MHZ]"}
               </button>
@@ -308,7 +308,7 @@ export const RandomTransmit: React.FC<RandomTransmitProps> = ({
                 type="button"
                 onClick={() => openDossier(entry.slug)}
                 data-testid="ninety9-transmit-inspect-btn"
-                className="n99-shadow-sm min-h-[40px] border-2 border-[#000000] bg-[#FFFFFF] px-4 py-2 font-mono text-xs font-bold uppercase text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+                className="n99-shadow-sm n99-touch-btn border-2 border-[#000000] bg-[#FFFFFF] px-4 py-2 font-mono text-xs font-bold uppercase text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
               >
                 INSPECT DOSSIER →
               </button>
@@ -317,26 +317,26 @@ export const RandomTransmit: React.FC<RandomTransmitProps> = ({
 
           <div
             aria-live="polite"
-            className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-12"
+            className="mt-5 n99-split-md-12"
           >
-            <div className="md:col-span-5">
+            <div className="n99-grid-cell n99-md-span-5">
               <div className="space-y-1.5">
                 <ArchivalMediaPlate
                   photo={getEntryPhoto(entry.slug)}
                   fallbackSrc={entry.illustrationPath}
                   fallbackAlt={`Transmitted plate for ${entry.title}`}
                   fallbackCaption={`${packet.packetId} // ${packet.baudLabel}`}
-                  aspectClassName="h-60"
+                  aspectClassName="h-56 sm:h-60"
                   priority="standard"
                 />
-                <div className="flex justify-between border border-[#000000] bg-[#D9D9D9] px-2 py-1 font-mono text-[10px] font-bold uppercase text-[#000000]">
+                <div className="flex flex-wrap justify-between gap-2 border border-[#000000] bg-[#D9D9D9] px-2 py-1 font-mono text-[10px] font-bold uppercase text-[#000000]">
                   <span>{packet.packetId}</span>
                   <span>{packet.baudLabel}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col justify-between space-y-4 md:col-span-7">
+            <div className="n99-grid-cell n99-md-span-7 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] font-bold">
                   <span className="border border-[#000000] bg-[#D9D9D9] px-2 py-0.5">
@@ -352,7 +352,7 @@ export const RandomTransmit: React.FC<RandomTransmitProps> = ({
 
                 <h3
                   data-testid="ninety9-transmitted-title"
-                  className="n99-font-mono text-2xl font-bold uppercase tracking-tight text-[#000000]"
+                  className="n99-font-mono n99-display-h2 n99-wrap-anywhere font-bold uppercase tracking-tight text-[#000000]"
                 >
                   {entry.title}
                 </h3>
@@ -365,11 +365,11 @@ export const RandomTransmit: React.FC<RandomTransmitProps> = ({
               </div>
 
               {autoExpandTelemetry && (
-                <dl className="grid grid-cols-2 gap-2 border-2 border-[#000000] bg-[#D9D9D9] p-3 font-mono text-xs sm:grid-cols-4">
+                <dl className="n99-card-grid-4 border-2 border-[#000000] bg-[#D9D9D9] p-3 font-mono text-xs">
                   {entry.specs.map((spec) => (
-                    <div key={spec.label}>
+                    <div key={spec.label} className="n99-grid-cell">
                       <dt className="text-[10px] uppercase text-[#292929]">{spec.label}</dt>
-                      <dd className="font-bold text-[#000000]">{spec.value}</dd>
+                      <dd className="n99-wrap-anywhere font-bold text-[#000000]">{spec.value}</dd>
                     </div>
                   ))}
                 </dl>
@@ -418,11 +418,11 @@ export const RecentArchive: React.FC<RecentArchiveProps> = ({
   return (
     <section
       data-testid="ninety9-recent-archive"
-      className="px-4 py-10 text-[#000000]"
+      className="n99-section-pad text-[#000000]"
     >
       <div className="mx-auto max-w-[1380px] space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#000000] pb-2">
-          <h2 className="n99-font-mono text-lg font-bold uppercase tracking-tight">
+          <h2 className="n99-font-mono n99-display-h2 font-bold uppercase tracking-tight">
             {heading}
           </h2>
           <button

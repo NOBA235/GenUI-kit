@@ -81,6 +81,7 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
           "about",
           "dossier",
           "random-transmit",
+          "arcade",
         ]),
         defaultCrtMode: CRTModeSchema,
         remixEditionLabel: z.string().max(96),
@@ -184,6 +185,23 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
       }),
       slots: [],
     },
+    ArcadeCabinetSection: {
+      description:
+        "Monochrome 1990s workstation arcade cabinet hosting 3 playable HTML5 Canvas cartridges (Serpent-98, Break-Grid, Packet Invaders), Web Audio SFX, local high-score persistence, and Zod-clamped physics tuning.",
+      props: z.object({
+        heading: z.string().min(1).max(96),
+        defaultGame: z.enum(["serpent-98", "break-grid", "packet-invaders"]),
+        difficultyPreset: z.enum(["zen-91", "standard-1995", "turbo-y2k"]),
+        paddleWidth: z.number().int().min(48).max(112),
+        ballSpeed: z.number().int().min(2).max(6),
+        snakeGridSize: z.number().int().min(14).max(26),
+        invaderRows: z.number().int().min(2).max(5),
+        inkHex: MonochromeForegroundHexSchema,
+        surfaceHex: MonochromeSurfaceHexSchema,
+        linkedDossierSlug: Ninety9EntrySlugEnumSchema,
+      }),
+      slots: [],
+    },
   },
   actions: {},
 });
@@ -202,6 +220,7 @@ const DEFAULT_HOME_ELEMENTS: Spec["elements"] = {
     },
     children: [
       "ninety9-hero",
+      "ninety9-home-arcade",
       "ninety9-featured",
       "ninety9-categories",
       "ninety9-timeline",
@@ -223,6 +242,22 @@ const DEFAULT_HOME_ELEMENTS: Spec["elements"] = {
       secondaryCtaLabel: "TUNE 99.4 MHZ TRANSMITTER",
       inkHex: "#000000",
       surfaceHex: "#FFFFFF",
+    },
+    children: [],
+  },
+  "ninety9-home-arcade": {
+    type: "ArcadeCabinetSection",
+    props: {
+      heading: "WORKSTATION BAY // INSTANT PLAYABLE NINETY9 ARCADE",
+      defaultGame: "packet-invaders",
+      difficultyPreset: "standard-1995",
+      paddleWidth: 80,
+      ballSpeed: 4,
+      snakeGridSize: 20,
+      invaderRows: 4,
+      inkHex: "#000000",
+      surfaceHex: "#FFFFFF",
+      linkedDossierSlug: "y2k-bug-1999",
     },
     children: [],
   },
@@ -409,6 +444,40 @@ export const initialPageSpecs: Readonly<Record<string, Spec>> = {
       },
     },
   },
+  arcade: {
+    root: "ninety9-shell",
+    elements: {
+      "ninety9-shell": {
+        type: "WorkstationFrame",
+        props: {
+          systemVersion: "SYS_ARCH_VER: 1990.99",
+          protocolLabel: "PROTOCOL: HTTP/1.0 WHITE MONO",
+          defaultView: "arcade",
+          defaultCrtMode: "SUBTLE",
+          remixEditionLabel: "",
+          inkHex: "#000000",
+          surfaceHex: "#FFFFFF",
+        },
+        children: ["ninety9-arcade-view"],
+      },
+      "ninety9-arcade-view": {
+        type: "ArcadeCabinetSection",
+        props: {
+          heading: "VIEW [05] // NINETY9 ARCADE WORKSTATION",
+          defaultGame: "packet-invaders",
+          difficultyPreset: "standard-1995",
+          paddleWidth: 80,
+          ballSpeed: 4,
+          snakeGridSize: 20,
+          invaderRows: 4,
+          inkHex: "#000000",
+          surfaceHex: "#FFFFFF",
+          linkedDossierSlug: "y2k-bug-1999",
+        },
+        children: [],
+      },
+    },
+  },
 };
 
 export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): string {
@@ -463,6 +532,50 @@ export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): strin
     } as unknown as Spec;
 
     return specToJsonlStream(corruptedSpec);
+  }
+
+  // Preset 4: 1998 NINETY9 Arcade Special Edition (Turbo Packet Invaders / Break-Grid)
+  if (
+    lower.includes("arcade") ||
+    lower.includes("invader") ||
+    lower.includes("break-grid") ||
+    lower.includes("serpent")
+  ) {
+    const arcadeSpec: Spec = {
+      root: "ninety9-shell",
+      elements: {
+        "ninety9-shell": {
+          type: "WorkstationFrame",
+          props: {
+            systemVersion: "SYS_ARCH_VER: 1998.99",
+            protocolLabel: "PROTOCOL: HTTP/1.0 ARCADE BAY",
+            defaultView: "arcade",
+            defaultCrtMode: "ACTIVE",
+            remixEditionLabel: "SPECIAL CARTRIDGE // TURBO Y2K ARCADE BAY",
+            inkHex: "#000000",
+            surfaceHex: "#FFFFFF",
+          },
+          children: ["ninety9-arcade-view"],
+        },
+        "ninety9-arcade-view": {
+          type: "ArcadeCabinetSection",
+          props: {
+            heading: "VIEW [05] // TURBO Y2K ARCADE WORKSTATION",
+            defaultGame: "packet-invaders",
+            difficultyPreset: "turbo-y2k",
+            paddleWidth: 64,
+            ballSpeed: 5,
+            snakeGridSize: 18,
+            invaderRows: 5,
+            inkHex: "#000000",
+            surfaceHex: "#FFFFFF",
+            linkedDossierSlug: "y2k-bug-1999",
+          },
+          children: [],
+        },
+      },
+    };
+    return specToJsonlStream(arcadeSpec);
   }
 
   // Preset 1: 1995 Cyber-Hardware Special Issue (Technology & Gaming)

@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { getArchiveStats } from "../lib/archive/api.js";
 import { MONOCHROME_PALETTE, type CRTMode } from "../lib/archive/types.js";
-import { useNinety9Store, type Ninety9ViewId } from "../store.js";
+import {
+  useNinety9OperatorName,
+  useNinety9Store,
+  type Ninety9ViewId,
+} from "../store.js";
 
 export const CrtOverlay: React.FC<{ readonly mode: CRTMode }> = ({ mode }) => {
   if (mode === "OFF") {
@@ -53,6 +57,7 @@ const NAV_ITEMS: readonly {
   { view: "timeline", label: "[02] TIMELINE" },
   { view: "categories", label: "[03] CATEGORIES" },
   { view: "about", label: "[04] ABOUT" },
+  { view: "arcade", label: "[05] ARCADE" },
 ];
 
 export const Header: React.FC<WorkstationHeaderProps> = ({
@@ -63,10 +68,13 @@ export const Header: React.FC<WorkstationHeaderProps> = ({
 }) => {
   const crtMode = useNinety9Store((s) => s.crtMode);
   const cycleCrtMode = useNinety9Store((s) => s.cycleCrtMode);
+  const operatorName = useNinety9OperatorName();
+  const lockWorkstation = useNinety9Store((s) => s.lockWorkstation);
   const navigateTo = useNinety9Store((s) => s.navigateTo);
   const retransmitRandomPacket = useNinety9Store((s) => s.retransmitRandomPacket);
 
   const [utcClock, setUtcClock] = useState<string>("02:17:00 UTC");
+  const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
 
   useEffect(() => {
     setUtcClock(formatUtcTimestamp(new Date()));
@@ -76,7 +84,13 @@ export const Header: React.FC<WorkstationHeaderProps> = ({
     return () => window.clearInterval(timer);
   }, []);
 
+  const handleSelectNav = (view: Ninety9ViewId) => {
+    setMobileNavOpen(false);
+    navigateTo(view);
+  };
+
   const handleRandomNav = () => {
+    setMobileNavOpen(false);
     retransmitRandomPacket();
     navigateTo("random-transmit");
   };
@@ -88,14 +102,32 @@ export const Header: React.FC<WorkstationHeaderProps> = ({
       </a>
 
       {/* Top System Telemetry Strip */}
-      <div className="border-b border-[#000000] bg-[#D9D9D9] px-4 py-1.5">
+      <div className="border-b border-[#000000] bg-[#D9D9D9] px-3 py-1.5 sm:px-4">
         <div className="mx-auto flex max-w-[1380px] flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000]">
-          <span>
+          <span className="n99-wrap-anywhere">
             {systemVersion} // {protocolLabel}
           </span>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <SignalIndicator />
+            {operatorName && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  data-testid="ninety9-active-operator"
+                  className="border border-[#000000] bg-[#000000] px-2 py-0.5 text-[11px] text-[#FFFFFF]"
+                >
+                  OP: {operatorName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => lockWorkstation()}
+                  data-testid="ninety9-reboot-terminal-btn"
+                  className="min-h-[28px] border border-[#000000] bg-[#FFFFFF] px-2 py-0.5 font-mono text-[11px] font-bold uppercase text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+                >
+                  [REBOOT]
+                </button>
+              </div>
+            )}
             <span
               data-testid="ninety9-utc-clock"
               className="border border-[#000000] bg-[#FFFFFF] px-2 py-0.5 text-[11px] text-[#000000]"
@@ -116,28 +148,46 @@ export const Header: React.FC<WorkstationHeaderProps> = ({
       </div>
 
       {/* Main Workstation Navbar */}
-      <div className="px-4 py-3">
-        <div className="mx-auto flex max-w-[1380px] flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigateTo("home")}
-              aria-label="NINETY9 Home"
-              className="n99-shadow-sm flex h-11 w-11 items-center justify-center border-2 border-[#000000] bg-[#000000] font-mono text-xl font-bold text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors cursor-pointer"
-            >
-              99
-            </button>
-            <div>
-              <div className="n99-font-mono text-base font-bold tracking-tight text-[#000000]">
-                NINETY9 ARCHIVE
-              </div>
-              <div className="font-mono text-[10px] uppercase tracking-widest text-[#292929]">
-                NEURAL INDEX // 1990–1999 MONOCHROME PUBLICATION
+      <div className="px-3 py-3 sm:px-4">
+        <div className="mx-auto flex max-w-[1380px] flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => handleSelectNav("home")}
+                aria-label="NINETY9 Home"
+                className="n99-shadow-sm flex h-11 w-11 shrink-0 items-center justify-center border-2 border-[#000000] bg-[#000000] font-mono text-xl font-bold text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors cursor-pointer"
+              >
+                99
+              </button>
+              <div className="min-w-0">
+                <div className="n99-font-mono truncate text-sm font-bold tracking-tight text-[#000000] sm:text-base">
+                  NINETY9 ARCHIVE
+                </div>
+                <div className="truncate font-mono text-[10px] uppercase tracking-wider text-[#292929]">
+                  NEURAL INDEX // 1990–1999 MONOCHROME
+                </div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen((prev) => !prev)}
+              aria-expanded={mobileNavOpen}
+              aria-controls="ninety9-primary-nav"
+              data-testid="ninety9-mobile-menu-toggle"
+              className="n99-mobile-menu-toggle n99-touch-btn n99-shadow-sm shrink-0 items-center justify-center border-2 border-[#000000] bg-[#D9D9D9] px-3 py-1.5 font-mono text-xs font-bold uppercase text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+            >
+              {mobileNavOpen ? "[CLOSE // X]" : "[MENU // NAV]"}
+            </button>
           </div>
 
-          <nav aria-label="Primary" className="flex flex-wrap items-center gap-1.5">
+          <nav
+            id="ninety9-primary-nav"
+            data-nav-open={mobileNavOpen ? "true" : "false"}
+            aria-label="Primary"
+            className="n99-nav-links"
+          >
             {NAV_ITEMS.map((item) => {
               const isCurrent =
                 activeView === item.view ||
@@ -146,10 +196,10 @@ export const Header: React.FC<WorkstationHeaderProps> = ({
                 <button
                   key={item.view}
                   type="button"
-                  onClick={() => navigateTo(item.view)}
+                  onClick={() => handleSelectNav(item.view)}
                   aria-current={isCurrent ? "page" : undefined}
                   data-testid={`ninety9-nav-${item.view}`}
-                  className={`min-h-[38px] border-2 border-[#000000] px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  className={`n99-touch-btn border-2 border-[#000000] px-3 py-1.5 text-left font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
                     isCurrent
                       ? "bg-[#000000] text-[#FFFFFF] n99-shadow-sm"
                       : "bg-[#FFFFFF] text-[#000000] hover:bg-[#D9D9D9]"
@@ -165,7 +215,7 @@ export const Header: React.FC<WorkstationHeaderProps> = ({
               onClick={handleRandomNav}
               aria-current={activeView === "random-transmit" ? "page" : undefined}
               data-testid="ninety9-nav-random"
-              className={`min-h-[38px] border-2 border-[#000000] px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+              className={`n99-touch-btn border-2 border-[#000000] px-3 py-1.5 text-left font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
                 activeView === "random-transmit"
                   ? "bg-[#000000] text-[#FFFFFF] n99-shadow-sm"
                   : "bg-[#D9D9D9] text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] n99-shadow-sm"
@@ -198,8 +248,8 @@ export const Footer: React.FC = () => {
   const retransmitRandomPacket = useNinety9Store((s) => s.retransmitRandomPacket);
 
   return (
-    <footer className="mt-16 border-t-2 border-[#000000] bg-[#FFFFFF] px-4 py-10 text-[#000000]">
-      <div className="mx-auto grid max-w-[1380px] grid-cols-1 gap-8 md:grid-cols-3">
+    <footer className="mt-12 border-t-2 border-[#000000] bg-[#FFFFFF] px-3 pt-8 pb-16 text-[#000000] sm:px-4 sm:pt-10">
+      <div className="mx-auto max-w-[1380px] n99-card-grid-3 gap-6">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="border-2 border-[#000000] bg-[#000000] px-2 py-0.5 font-mono text-sm font-bold text-[#FFFFFF]">
@@ -242,7 +292,7 @@ export const Footer: React.FC = () => {
               }}
               className="text-left font-bold text-[#000000] hover:underline cursor-pointer"
             >
-              [05] TRANSMIT
+              [RANDOM] TRANSMIT
             </button>
           </div>
         </div>

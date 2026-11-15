@@ -441,7 +441,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ) : isMonochromeArchive ? (
         <div
           data-testid="immersion-hud-indicator"
-          className="fixed bottom-3 right-3 z-40 flex items-center gap-2 border-2 border-[#000000] bg-[#FFFFFF] px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000] shadow-[2px_2px_0px_#000000]"
+          className="fixed bottom-3 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 border-2 border-[#000000] bg-[#FFFFFF] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#000000] shadow-[2px_2px_0px_#000000] sm:text-[11px]"
         >
           <button
             type="button"
@@ -450,7 +450,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
               setIsRemixOpen(true);
             }}
             data-testid="open-immersion-hud-btn"
-            className="text-left hover:underline cursor-pointer"
+            className="truncate text-left hover:underline cursor-pointer"
           >
             [ALT+G] GENUI STUDIO // EXPORT ARCHIVE
           </button>
@@ -458,7 +458,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ) : (
         <div
           data-testid="immersion-hud-indicator"
-          className="fixed bottom-3 right-3 z-40 flex items-center gap-2 rounded-full border border-zinc-800/75 bg-black/75 px-3 py-1 font-mono text-[10px] text-zinc-400 backdrop-blur-sm transition hover:border-red-900/70 hover:text-zinc-200"
+          className="fixed bottom-3 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-wrap items-center gap-2 rounded-full border border-zinc-800/75 bg-black/75 px-3 py-1 font-mono text-[10px] text-zinc-400 backdrop-blur-sm transition hover:border-red-900/70 hover:text-zinc-200"
         >
           <button
             type="button"
@@ -484,8 +484,8 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       )}
 
       <main
-        className={`flex-1 flex justify-center ${
-          isFullBleedViewport ? "p-0" : "p-4 md:p-6 bg-slate-950/60"
+        className={`flex-1 flex justify-center min-w-0 ${
+          isFullBleedViewport ? "p-0" : "p-2 sm:p-4 md:p-6 bg-slate-950/60"
         }`}
       >
         <div
@@ -497,7 +497,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
                 ? "immersion"
                 : viewport
           }
-          className={`studio-viewport-stage overflow-hidden ${
+          className={`studio-viewport-stage min-w-0 overflow-hidden ${
             isFullBleedViewport
               ? "w-full min-h-dvh"
               : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-2xl border border-slate-800 shadow-2xl`

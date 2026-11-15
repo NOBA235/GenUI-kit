@@ -93,9 +93,26 @@
         "WorkstationFrame",
         "ArchiveCatalogMatrix"
       ]
+    },
+    {
+      "id": "arcade",
+      "slug": "arcade",
+      "title": "NINETY9 · [05] Workstation Arcade",
+      "route": "/arcade",
+      "description": "Playable 1-bit monochrome arcade bay featuring Serpent-98, Break-Grid, and Packet Invaders with Web Audio SFX and local high-score persistence.",
+      "sections": [
+        "WorkstationFrame",
+        "ArcadeCabinetSection"
+      ]
     }
   ],
   "remixPresets": [
+    {
+      "id": "arcade-1998",
+      "label": "Remix Layout: 1998 NINETY9 Arcade Edition (Focus: Packet Invaders & Break-Grid)",
+      "description": "Boots straight into the [05] Arcade Bay in Turbo Y2K CRT mode with tuned physics bounds and 5-row corrupted packet waves.",
+      "prompt": "Remix Layout: 1998 NINETY9 Arcade Edition (Focus: Packet Invaders & Break-Grid)"
+    },
     {
       "id": "cyber-hardware-1995",
       "label": "Remix Layout: 1995 Cyber-Hardware Special Issue (Focus: Technology & Gaming)",
