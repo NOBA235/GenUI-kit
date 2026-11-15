@@ -33,7 +33,7 @@ Applies only to Flagship Website #4 (`packages/templates/src/neuro-chimera-synth
 1. `lib/chimera/bio-solver.ts` is pure: no `Date`, no `Math.random`, no I/O. Any randomness uses a seeded PRNG passed in by the caller.
 2. Conductivity updates use the implicit form `D' = (D + dt·f(|Q|)) / (1 + dt)` so any step size is stable. Conductivity never drops below `MIN_CONDUCTIVITY`, which keeps the Kirchhoff system solvable.
 3. Only nodes connected to an alive sink enter the linear solve. Unreachable queries are reported as failed, never as NaN.
-4. Graph size is bounded (`MAX_NODES` 64, `MAX_LINKS` 256, `MAX_QUERIES` 32) so one solver step stays well under 1 ms.
+4. Graph size is bounded (`MAX_NODES` 64, `MAX_LINKS` 256, `MAX_QUERIES` 32). The shipped scenarios step in under 1 ms. The worst case at the bounds is about 8 ms, so the UI steps the solver on a timer (10–20 Hz), never inside the render loop.
 
 ## 5. 60 FPS Canvas Rendering
 1. The network renders on a single 2D `<canvas>` driven by one `requestAnimationFrame` loop. The loop is cancelled on unmount and paused while `document.hidden`.

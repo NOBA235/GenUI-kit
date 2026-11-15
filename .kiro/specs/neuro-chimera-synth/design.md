@@ -53,15 +53,23 @@ Limits are 8 KB of SQL, 2,000 tokens and 64 levels of nesting. Identifiers are l
 | `cpu_index_tuple_cost` | 0.005 |
 | `cpu_operator_cost` | 0.0025 |
 
-- **Selectivity:**
+- **Selectivity** (PostgreSQL defaults from `selfuncs.h`):
   - equality: `1 / n_distinct`, default 0.005
-  - range: 1/3; `BETWEEN`: 1/9 (two ranges)
-  - `LIKE 'prefix%'`: 0.02, other `LIKE`: 0.005
+  - one-sided range: 1/3
+  - `BETWEEN`, or a lower and upper bound on the same column: 0.005 (`DEFAULT_RANGE_INEQ_SEL`)
+  - `LIKE`: 0.005. B-tree indexes are not used for `LIKE`, because the default collation needs `text_pattern_ops`.
   - `IS NULL`: `null_frac`, default 0.005
   - `IN (k items)` / `= ANY` batch of k: `k / n_distinct`
   - `AND` multiplies; `OR` is `a + b − ab`
 - **Seq Scan:** `pages × 1 + rows × (0.01 + quals × 0.0025)`.
-- **Index Scan:** a descent of `⌈log₂ rows⌉ × 50 × 0.0025`, then `matched × (0.005 + 0.01) + min(matched, pages) × 4`. It is chosen only if a predicate hits the leading index column and it is cheaper than the seq scan.
+- **Index Scan:**
+  - Cost: a descent of `(⌈log₂ rows⌉ + 50 × (height + 1)) × 0.0025`, then `matched × (0.005 + quals × 0.0025) + min(matched, pages) × 4 + matched × 0.01`.
+  - It is usable when predicates hit the leading columns (equalities, then at most one range column), or when the index yields the ORDER BY order after the equality prefix (forward or backward).
+  - Single-table queries compare paths after Sort and Limit, so an ordered index can win through early termination.
+- **HNSW scan:**
+  - Requires a `LIMIT` and a matching operator class.
+  - Visits are `40 × ⌈log₂ rows⌉` (ef_search 40), with startup cost `visits × 0.05` and `max(k, 40)` heap fetches.
+  - Without the index, every row pays `0.05` for its distance computation in a top-N sort.
 - **Joins:** left-deep in written order.
   - A Nested Loop with an inner Index Scan is used when the inner table has an index on the join column.
   - Otherwise a Hash Join is used, with inner build cost `rows × (0.01 + 0.0025)`.
@@ -69,7 +77,10 @@ Limits are 8 KB of SQL, 2,000 tokens and 64 levels of nesting. Identifiers are l
 - **Sort:** `2 × n log₂ n × 0.0025`. It is skipped when an index scan already yields the order.
 - **Limit:** scales the child's run cost by `limit / rows`.
 - **Latency estimate:** `totalCost × 0.01 ms + 0.25 ms` round trip. This is a calibration constant, not a measurement.
-- **Index advice:** for each scan with predicates and no usable index, recommend `CREATE INDEX CONCURRENTLY idx_<table>_<cols> ON <table> (eq cols by selectivity, range col, sort col)`.
+- **Index advice:** for each full scan, recommend `CREATE INDEX CONCURRENTLY idx_<table>_<cols>`.
+  - Column order: equality columns (most selective first), then the ORDER BY columns when the query has a `LIMIT`, otherwise the range column.
+  - Join inner sides get an index on the join key. Distance ordering gets `USING hnsw (col <opclass>)`.
+  - A recommendation is kept only if re-planning with it lowers total cost by more than 5%.
 
 ## 5. Physarum model
 For each query *q* with source *s* and call rate *λ*:
@@ -78,8 +89,11 @@ For each query *q* with source *s* and call rate *λ*:
 Gᵩᵢ = 1 / Rᵩᵢ for candidate sinks of q,  Rᵩᵢ = serviceLatency(q, i) / (1 − ρᵢ)
 Qᵢⱼ = (Dᵢⱼ / Lᵢⱼ)(pᵢ − pⱼ),   sink share of i = Gᵩᵢ · pᵢ
 ```
-- The matrix is symmetric positive definite on the component that touches a grounded sink, so it is solved with Jacobi-preconditioned conjugate gradient (tolerance 1e-10, at most 4N iterations).
-- Nodes off that component are excluded. A source off that component makes the query fail.
+- The matrix is symmetric positive definite on the component reachable from the source when it contains a grounded sink.
+  - It is solved exactly by dense Cholesky. Sink conductances span six orders of magnitude (a 0.3 ms index lookup vs. a 30 s scan), and an iterative solver converges poorly at that range.
+  - Shipped scenarios step in 0.07–1 ms. The bounded worst case (64 nodes, 32 queries) is about 8 ms.
+- Nodes off that component are excluded. A query fails if none of its live sinks is reachable.
+- **Statement timeout:** statements slower than 30 s (PostgreSQL `statement_timeout`) are reported as timed out and capped at 30 s. Timed-out statements do not count as completed.
 - **Link update:** `|Q|ᵢⱼ = Σ_q w_q |Qᵢⱼ^q|`, where `w_q` is the query's share of total call rate. Then `D' = (D + dt · |Q|ᵘ/(1+|Q|ᵘ)) / (1 + dt)` with μ = 1.8, dt = 0.25 and D ≥ 1e-4.
 - **Latency:** flow-weighted latency is `Σ_links |Q^q| · L + Σ_sinks share · R`. Potential flow has no cycles, so this equals the mean path latency under flow decomposition.
 - **Load:** `ρᵢ = Σ_q share · λ_q · cost_q / capacityᵢ`. It is computed from the previous step, which keeps the iteration explicit and deterministic.
@@ -94,7 +108,10 @@ Qᵢⱼ = (Dᵢⱼ / Lᵢⱼ)(pᵢ − pⱼ),   sink share of i = Gᵩᵢ · p�
 ## 6. Optimizer Agent (deterministic)
 1. Collect index recommendations for every query on every live sink. Score each by `(costBefore − costAfter) × callRate`.
 2. Apply the top three by score, without duplicates.
-3. For each query with `perRequestCalls > 1` and a batchable `col = $n` predicate, rewrite the predicate to `col = ANY($n)` through the AST. Set calls to 1 per request with a batch size of `perRequestCalls`.
+3. For each query with `perRequestCalls > 1` and a batchable `col = $n` predicate, rewrite the predicate to `col = ANY($n)` through the AST.
+   - Add `col` to the select list (and to GROUP BY for aggregates) so each row maps back to its item.
+   - Set calls to 1 per request with a batch size of `perRequestCalls`.
+   - Queries with LIMIT, OFFSET or DISTINCT are not batched, because that would change results.
 4. Return an ordered action log: kind, target, SQL, cost before and after.
 
 ## 7. Sonification mapping
