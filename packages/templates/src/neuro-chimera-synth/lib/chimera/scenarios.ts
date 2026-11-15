@@ -483,7 +483,95 @@ const rideFailover: ScenarioSpec = {
   ],
 };
 
-export const CHIMERA_SCENARIOS: readonly ScenarioSpec[] = [checkoutSpike, socialFeed, vectorShards, crewRefactor, analyticsHot, rideFailover];
+/* ═══════════════════════════ 7. Genomics pipeline ═══════════════════════════ */
+
+const genomicsPipeline: ScenarioSpec = {
+  id: "genomics-pipeline",
+  title: "Biotech Genomics Pipeline & Protein Fold Search",
+  summary:
+    "Variant-calling workers query 850M variants by genomic region with no (chrom, pos) index, and the folding agent ranks 220k protein structures by embedding distance without an HNSW index.",
+  datasets: {
+    variants: dataset(
+      "variants",
+      "variants (PostgreSQL 17)",
+      [
+        table("variants", 850_000_000, 11_000_000, { id: 850_000_000, sample_id: 120_000, chrom: 25, pos: 250_000_000, gene_id: 20_000, allele: 12 }),
+        table("samples", 120_000, 2_000, { id: 120_000, cohort_id: 300 }),
+        table("genes", 20_000, 300, { id: 20_000, symbol: 20_000 }),
+      ],
+      [btree("variants_pkey", "variants", ["id"]), btree("samples_pkey", "samples", ["id"]), btree("genes_pkey", "genes", ["id"]), btree("genes_symbol", "genes", ["symbol"])],
+    ),
+    structures: dataset(
+      "structures",
+      "structures (pgvector 0.8, 1024 dims)",
+      [table("protein_structures", 220_000, 180_000, { id: 220_000, uniprot_id: 220_000, fold_embedding: 220_000, plddt: 1_000 })],
+      [btree("protein_structures_pkey", "protein_structures", ["id"])],
+    ),
+  },
+  nodes: [
+    { id: "lims-gateway", label: "LIMS Gateway", kind: "gateway", x: 0.06, y: 0.5 },
+    { id: "alignment-worker", label: "Alignment Worker", kind: "agent", x: 0.34, y: 0.28 },
+    { id: "folding-agent", label: "Folding Agent", kind: "agent", x: 0.34, y: 0.74 },
+    { id: "variant-primary", label: "Variant Store Primary", kind: "primary", x: 0.72, y: 0.18, datasetId: "variants", workers: 48 },
+    { id: "variant-replica", label: "Variant Store Replica", kind: "replica", x: 0.92, y: 0.42, datasetId: "variants", workers: 32 },
+    { id: "structure-db", label: "Structure DB", kind: "primary", x: 0.8, y: 0.82, datasetId: "structures", workers: 16 },
+  ],
+  links: [
+    { a: "lims-gateway", b: "alignment-worker", latencyMs: 1 },
+    { a: "lims-gateway", b: "folding-agent", latencyMs: 1 },
+    { a: "alignment-worker", b: "variant-primary", latencyMs: 0.8 },
+    { a: "alignment-worker", b: "variant-replica", latencyMs: 1 },
+    { a: "folding-agent", b: "structure-db", latencyMs: 0.8 },
+    { a: "folding-agent", b: "variant-replica", latencyMs: 1.5 },
+    { a: "variant-primary", b: "variant-replica", latencyMs: 0.3 },
+  ],
+  queries: [
+    {
+      id: "region-variants",
+      label: "Region browser page (500 variants)",
+      sql: "SELECT sample_id, pos, allele FROM variants WHERE chrom = $1 AND pos BETWEEN $2 AND $3 ORDER BY pos ASC LIMIT 500",
+      source: "alignment-worker",
+      sinks: ["variant-replica", "variant-primary"],
+      requestsPerSecond: 25,
+    },
+    {
+      id: "gene-burden",
+      label: "Gene burden for a 50-sample cohort",
+      sql: "SELECT sample_id, COUNT(*) FROM variants WHERE gene_id = $1 AND sample_id = ANY($2) GROUP BY sample_id",
+      source: "alignment-worker",
+      sinks: ["variant-replica", "variant-primary"],
+      requestsPerSecond: 10,
+      arrayParamLength: 50,
+    },
+    {
+      id: "similar-folds",
+      label: "Nearest protein folds",
+      sql: "SELECT id, uniprot_id FROM protein_structures ORDER BY fold_embedding <=> $1 LIMIT 10",
+      source: "folding-agent",
+      sinks: ["structure-db"],
+      requestsPerSecond: 15,
+    },
+    {
+      id: "sample-cohort",
+      label: "Cohort for sample batch",
+      sql: "SELECT id, cohort_id FROM samples WHERE id = ANY($1)",
+      source: "lims-gateway",
+      sinks: ["variant-replica", "variant-primary"],
+      requestsPerSecond: 30,
+      arrayParamLength: 50,
+    },
+  ],
+};
+
+export const CHIMERA_SCENARIOS: readonly ScenarioSpec[] = [
+  checkoutSpike,
+  socialFeed,
+  vectorShards,
+  crewRefactor,
+  analyticsHot,
+  rideFailover,
+  genomicsPipeline,
+];
 
 export type ChimeraScenarioId = (typeof CHIMERA_SCENARIOS)[number]["id"];
 
