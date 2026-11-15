@@ -1,0 +1,30 @@
+import type { DualModeTemplateEntry } from "../types.js";
+import { buildChaosPackets, buildRemixJsonl, initialPageSpecs, verifiedCatalog } from "./catalog.js";
+import { templateComponents } from "./components/index.js";
+import { CREW_PYTHON_SOURCE_FILES } from "./lib/chimera/crew-bundle.js";
+import {
+  TEMPLATE_KIRO_POWER_MD,
+  TEMPLATE_MANIFEST,
+  TEMPLATE_SKILL_MD,
+  TEMPLATE_SOURCE_FILES,
+  TEMPLATE_STEERING_MD,
+  TEMPLATE_THEME_CSS,
+} from "./bundle.generated.js";
+
+export const templateEntry: DualModeTemplateEntry = {
+  manifest: TEMPLATE_MANIFEST,
+  catalog: verifiedCatalog,
+  registry: templateComponents,
+  pageSpecs: initialPageSpecs,
+  themeCss: TEMPLATE_THEME_CSS,
+  steeringMd: TEMPLATE_STEERING_MD,
+  skillMd: TEMPLATE_SKILL_MD,
+  kiroPowerMd: TEMPLATE_KIRO_POWER_MD,
+  // The shared bundler skips .py files, so the Kiro Crew backend hooks are appended here.
+  sourceFiles: [...TEMPLATE_SOURCE_FILES, ...CREW_PYTHON_SOURCE_FILES.map((f) => ({ ...f, kind: "config" as const }))],
+  buildRemixJsonl,
+  buildChaosPackets,
+};
+
+export * from "./lib/chimera/index.js";
+export default templateEntry;
