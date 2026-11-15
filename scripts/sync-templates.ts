@@ -57,6 +57,8 @@ const TEXT_FILENAMES = new Set([
   "README",
 ]);
 
+const BINARY_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+
 function isTextFile(filePath: string): boolean {
   const base = path.basename(filePath);
   if (base === ".env" || (base.startsWith(".env.") && base !== ".env.example")) {
@@ -64,6 +66,10 @@ function isTextFile(filePath: string): boolean {
   }
   if (TEXT_FILENAMES.has(base)) return true;
   return TEXT_EXTENSIONS.has(path.extname(base).toLowerCase());
+}
+
+function isBinaryImageFile(filePath: string): boolean {
+  return BINARY_IMAGE_EXTENSIONS.has(path.extname(path.basename(filePath)).toLowerCase());
 }
 
 function walkCleanFiles(
@@ -140,6 +146,7 @@ function syncBundle(
     slug: string;
     title: string;
     description: string;
+    publicAssetsPrefix?: string;
   };
   const themeCssPath = path.join(templateDir, "theme.css");
   const steeringPath = path.join(templateDir, "steering.md");
@@ -159,7 +166,12 @@ function syncBundle(
     ? fs.readFileSync(powerPath, "utf-8")
     : `---\nname: "${manifest.slug}"\ndisplayName: "${manifest.title}"\ndescription: "${manifest.description}"\n---\n\n# ${manifest.title} Kiro Power\n\n${steeringMd}`;
 
-  const sourceFiles: Array<{ path: string; content: string; kind: string }> = [];
+  const sourceFiles: Array<{
+    path: string;
+    content: string;
+    kind: string;
+    encoding?: "utf8" | "base64";
+  }> = [];
   for (const f of walkCleanFiles(templateDir)) {
     if (
       f.relativePath.endsWith(".generated.ts") ||
@@ -177,12 +189,41 @@ function syncBundle(
 
   if (mode === "standalone" && standaloneSourceDir && fs.existsSync(standaloneSourceDir)) {
     for (const f of walkCleanFiles(standaloneSourceDir)) {
-      if (!isTextFile(f.absolutePath)) continue;
-      sourceFiles.push({
-        path: f.relativePath,
-        content: fs.readFileSync(f.absolutePath, "utf-8"),
-        kind: "source",
-      });
+      if (isTextFile(f.absolutePath)) {
+        sourceFiles.push({
+          path: f.relativePath,
+          content: fs.readFileSync(f.absolutePath, "utf-8"),
+          kind: "source",
+        });
+      } else if (isBinaryImageFile(f.absolutePath)) {
+        sourceFiles.push({
+          path: f.relativePath,
+          content: fs.readFileSync(f.absolutePath).toString("base64"),
+          kind: "source",
+          encoding: "base64",
+        });
+      }
+    }
+  }
+
+  if (manifest.publicAssetsPrefix) {
+    const cleanPrefix = manifest.publicAssetsPrefix.replace(/^\/+|\/+$/g, "");
+    const publicAssetDir = path.join(repoRoot, "public", cleanPrefix);
+    for (const f of walkCleanFiles(publicAssetDir)) {
+      if (isTextFile(f.absolutePath)) {
+        sourceFiles.push({
+          path: `public/${cleanPrefix}/${f.relativePath}`,
+          content: fs.readFileSync(f.absolutePath, "utf-8"),
+          kind: "source",
+        });
+      } else if (isBinaryImageFile(f.absolutePath)) {
+        sourceFiles.push({
+          path: `public/${cleanPrefix}/${f.relativePath}`,
+          content: fs.readFileSync(f.absolutePath).toString("base64"),
+          kind: "source",
+          encoding: "base64",
+        });
+      }
     }
   }
 

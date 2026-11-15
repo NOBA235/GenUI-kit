@@ -123,8 +123,26 @@ export async function generateTemplateZip(
     projectName: options.projectName ?? `${entry.manifest.slug}-website`,
   });
 
+  const base64Targets = new Set(
+    entry.sourceFiles
+      .filter((f) => f.encoding === "base64")
+      .map((f) =>
+        f.path.startsWith("public/")
+          ? f.path
+          : entry.manifest.mode === "standalone"
+            ? f.kind === "source"
+              ? f.path
+              : `genui/${f.path}`
+            : `src/template/${f.path}`,
+      ),
+  );
+
   for (const [filePath, content] of Object.entries(merged)) {
-    zip.file(filePath, content);
+    if (base64Targets.has(filePath)) {
+      zip.file(filePath, content, { base64: true });
+    } else {
+      zip.file(filePath, content);
+    }
   }
 
   return zip.generateAsync({ type: "uint8array" });

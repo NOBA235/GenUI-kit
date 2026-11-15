@@ -1,0 +1,122 @@
+{
+  "slug": "ninety9-archive",
+  "id": "ninety9-archive",
+  "name": "ninety9-archive",
+  "title": "NINETY9 — The Monochrome Archive of the 1990s",
+  "description": "Flagship Website #2: 1997 NeXT/Macintosh paper-white monochrome editorial workstation publication archiving 34 historical artifacts across 12 sectors and 1990-1999 decade milestones, featuring toggleable CRT scanlines, 99.4 MHz random packet transmission, and Zod-verified live monochrome remixes.",
+  "mode": "native",
+  "version": "1.0.0",
+  "author": "GenUI Studio Flagship Lab",
+  "license": "MIT",
+  "tier": "free",
+  "priceUsd": 0,
+  "category": "Editorial / Archive",
+  "tags": [
+    "Editorial",
+    "Monochrome",
+    "Next.js 15",
+    "GenUI Verified"
+  ],
+  "verified": true,
+  "featured": true,
+  "immersiveExperience": true,
+  "publicAssetsPrefix": "images/ninety9",
+  "theme": {
+    "defaultColorScheme": "light",
+    "accentColor": "#000000",
+    "surfaceBg": "#FFFFFF",
+    "surfaceElevated": "#D9D9D9",
+    "textColor": "#000000",
+    "mutedColor": "#292929",
+    "displayFont": "\"Space Mono\", \"Courier New\", monospace",
+    "bodyFont": "\"Inter\", system-ui, sans-serif",
+    "borderRadius": "0px"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "slug": "home",
+      "title": "NINETY9 · [00] Workstation Home",
+      "route": "/",
+      "description": "Paper-white editorial masthead, featured artifact split, 12-sector directory, 1990-1999 timeline preview, and 99.4 MHz random packet transmitter.",
+      "sections": [
+        "WorkstationFrame",
+        "HeroSection",
+        "FeaturedSection",
+        "CategoryGrid",
+        "TimelinePreview",
+        "RandomTransmit",
+        "ArchiveCatalogMatrix"
+      ]
+    },
+    {
+      "id": "archive",
+      "slug": "archive",
+      "title": "NINETY9 · [01] Searchable Archive Catalog",
+      "route": "/archive",
+      "description": "Multi-facet searchable index of all 34 1990s artifacts with 1990-1999 year pills, sector/type selectors, sort order, and interactive dossier reader.",
+      "sections": [
+        "WorkstationFrame",
+        "ArchiveCatalogMatrix",
+        "DossierReaderView"
+      ]
+    },
+    {
+      "id": "timeline",
+      "slug": "timeline",
+      "title": "NINETY9 · [02] 1990-1999 Decade Timeline",
+      "route": "/timeline",
+      "description": "Chronological quarterly ledger linking 1990-1999 cultural and hardware breakthroughs directly to indexed dossiers.",
+      "sections": [
+        "WorkstationFrame",
+        "TimelinePreview"
+      ]
+    },
+    {
+      "id": "categories",
+      "slug": "categories",
+      "title": "NINETY9 · [03] Sector Essays & Index",
+      "route": "/categories",
+      "description": "Long-form essays, decade shift notes, and monochrome schematic plates across all 12 archival sectors.",
+      "sections": [
+        "WorkstationFrame",
+        "ArchiveCatalogMatrix"
+      ]
+    },
+    {
+      "id": "about",
+      "slug": "about",
+      "title": "NINETY9 · [04] Manifesto & Spec Sheet",
+      "route": "/about",
+      "description": "1997 Paper-White workstation colophon, 5-tone monochrome hex specimen, and CRT scanline calibration.",
+      "sections": [
+        "WorkstationFrame",
+        "ArchiveCatalogMatrix"
+      ]
+    }
+  ],
+  "remixPresets": [
+    {
+      "id": "cyber-hardware-1995",
+      "label": "Remix Layout: 1995 Cyber-Hardware Special Issue (Focus: Technology & Gaming)",
+      "description": "Pivots the lead masthead, featured plates, timeline year, and recent feed onto 1995 silicon hardware and 32-bit gaming.",
+      "prompt": "Remix Layout: 1995 Cyber-Hardware Special Issue (Focus: Technology & Gaming)"
+    },
+    {
+      "id": "underground-zine-1991",
+      "label": "Remix Layout: 1991 Underground Zine Edition (Focus: Music & Cinema)",
+      "description": "Configures the workstation issue around 1991 photocopied DIY zine culture, grunge albums, and independent celluloid.",
+      "prompt": "Remix Layout: 1991 Underground Zine Edition (Focus: Music & Cinema)"
+    },
+    {
+      "id": "chaos-monochrome-heal",
+      "label": "Inject Corrupted Non-Monochrome / Invalid Year Packet",
+      "description": "Injects off-palette neon colors and invalid year 2045 JSONL packets to verify @genui-studio/core real-time schema healing.",
+      "prompt": "Inject Corrupted Non-Monochrome / Invalid Year Packet"
+    }
+  ],
+  "dependencies": {
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {}
+}

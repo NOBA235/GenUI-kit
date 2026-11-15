@@ -157,6 +157,52 @@ export interface MergedShellOptions {
   readonly projectName?: string;
 }
 
+function buildNextjsRoutePage(
+  componentName: string,
+  pageId: string,
+  slug: string,
+  importDepthPrefix: string,
+): string {
+  return `"use client";
+import React, { useMemo } from "react";
+import { JSONUIProvider } from "@json-render/react";
+import {
+  createTelemetryTracker,
+  createTimeTravelStateStore,
+  SafeGenUIRenderer,
+  wrapRegistryWithTelemetry,
+} from "@genui-studio/core";
+import { verifiedCatalog, initialPageSpecs } from ${JSON.stringify(`${importDepthPrefix}src/template/catalog`)};
+import { templateComponents } from ${JSON.stringify(`${importDepthPrefix}src/template/components`)};
+
+export default function ${componentName}() {
+  const store = useMemo(() => createTimeTravelStateStore({}), []);
+  const tracker = useMemo(() => createTelemetryTracker(), []);
+  const safeRegistry = useMemo(
+    () =>
+      wrapRegistryWithTelemetry(verifiedCatalog, templateComponents, {
+        telemetryTracker: tracker,
+      }),
+    [tracker],
+  );
+  const spec = initialPageSpecs[${JSON.stringify(pageId)}] ?? Object.values(initialPageSpecs)[0] ?? null;
+
+  return (
+    <main data-template-theme=${JSON.stringify(slug)} className="min-h-screen">
+      <JSONUIProvider registry={safeRegistry} store={store}>
+        <SafeGenUIRenderer
+          spec={spec}
+          registry={safeRegistry}
+          catalog={verifiedCatalog}
+          telemetryTracker={tracker}
+        />
+      </JSONUIProvider>
+    </main>
+  );
+}
+`;
+}
+
 /**
  * Merges `base-nextjs-shell` with a Mode A (Internal Native) or Mode B (Ingested Standalone)
  * template into a complete, runnable Next.js 15 project file map.
@@ -210,6 +256,11 @@ export function mergeTemplateWithNextjsShell(
     devDependencies: Record<string, string>;
   };
 
+  const extraHeadLinks =
+    manifest.slug === "ninety9-archive"
+      ? `\n      <head>\n        <link rel="preconnect" href="https://fonts.googleapis.com" />\n        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />\n        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" />\n      </head>`
+      : "";
+
   const mergedFiles: Record<string, string> = {
     ...BASE_NEXTJS_SHELL_FILES,
     "package.json": JSON.stringify(
@@ -244,55 +295,40 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en">${extraHeadLinks}
       <body data-template-theme=${JSON.stringify(manifest.slug)}>{children}</body>
     </html>
   );
 }
 `,
-    "app/page.tsx": `"use client";
-import React, { useMemo } from "react";
-import { JSONUIProvider } from "@json-render/react";
-import {
-  createTelemetryTracker,
-  createTimeTravelStateStore,
-  SafeGenUIRenderer,
-  wrapRegistryWithTelemetry,
-} from "@genui-studio/core";
-import { verifiedCatalog, initialPageSpecs } from "../src/template/catalog";
-import { templateComponents } from "../src/template/components";
-
-export default function ${toPascalCase(manifest.slug)}Page() {
-  const store = useMemo(() => createTimeTravelStateStore({}), []);
-  const tracker = useMemo(() => createTelemetryTracker(), []);
-  const safeRegistry = useMemo(
-    () =>
-      wrapRegistryWithTelemetry(verifiedCatalog, templateComponents, {
-        telemetryTracker: tracker,
-      }),
-    [tracker],
-  );
-  const spec = initialPageSpecs["home"] ?? Object.values(initialPageSpecs)[0] ?? null;
-
-  return (
-    <main data-template-theme=${JSON.stringify(manifest.slug)} className="min-h-screen">
-      <JSONUIProvider registry={safeRegistry} store={store}>
-        <SafeGenUIRenderer
-          spec={spec}
-          registry={safeRegistry}
-          catalog={verifiedCatalog}
-          telemetryTracker={tracker}
-        />
-      </JSONUIProvider>
-    </main>
-  );
-}
-`,
+    "app/page.tsx": buildNextjsRoutePage(
+      `${toPascalCase(manifest.slug)}Page`,
+      "home",
+      manifest.slug,
+      "../",
+    ),
   };
+
+  for (const page of manifest.pages) {
+    const cleanRoute = page.route.replace(/^\/+|\/+$/g, "");
+    if (!cleanRoute) continue;
+    const segments = cleanRoute.split("/").filter(Boolean);
+    const depthPrefix = "../".repeat(segments.length + 1);
+    mergedFiles[`app/${cleanRoute}/page.tsx`] = buildNextjsRoutePage(
+      `${toPascalCase(`${manifest.slug}-${page.id}`)}Page`,
+      page.id,
+      manifest.slug,
+      depthPrefix,
+    );
+  }
 
   for (const file of sourceFiles) {
     if (isExcludedExportPath(file.path)) continue;
-    mergedFiles[`src/template/${file.path}`] = file.content;
+    if (file.path.startsWith("public/")) {
+      mergedFiles[file.path] = file.content;
+    } else {
+      mergedFiles[`src/template/${file.path}`] = file.content;
+    }
   }
 
   mergedFiles["src/template/manifest.json"] = JSON.stringify(manifest, null, 2);

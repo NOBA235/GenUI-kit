@@ -53,6 +53,8 @@ const TEXT_FILENAMES = new Set([
   "README",
 ]);
 
+const BINARY_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+
 export function isTextSourceFile(filePath: string): boolean {
   const base = path.basename(filePath);
   if (base === ".env" || (base.startsWith(".env.") && base !== ".env.example")) {
@@ -61,6 +63,10 @@ export function isTextSourceFile(filePath: string): boolean {
   if (TEXT_FILENAMES.has(base)) return true;
   const ext = path.extname(base).toLowerCase();
   return TEXT_EXTENSIONS.has(ext);
+}
+
+export function isBinaryImageFile(filePath: string): boolean {
+  return BINARY_IMAGE_EXTENSIONS.has(path.extname(path.basename(filePath)).toLowerCase());
 }
 
 export function walkCleanFiles(
@@ -180,12 +186,20 @@ function syncSingleTemplateBundle(
   if (mode === "standalone" && standaloneSourceDir && fs.existsSync(standaloneSourceDir)) {
     const cleanStandalone = walkCleanFiles(standaloneSourceDir);
     for (const f of cleanStandalone) {
-      if (!isTextSourceFile(f.absolutePath)) continue;
-      sourceFiles.push({
-        path: f.relativePath,
-        content: fs.readFileSync(f.absolutePath, "utf-8"),
-        kind: "source",
-      });
+      if (isTextSourceFile(f.absolutePath)) {
+        sourceFiles.push({
+          path: f.relativePath,
+          content: fs.readFileSync(f.absolutePath, "utf-8"),
+          kind: "source",
+        });
+      } else if (isBinaryImageFile(f.absolutePath)) {
+        sourceFiles.push({
+          path: f.relativePath,
+          content: fs.readFileSync(f.absolutePath).toString("base64"),
+          kind: "source",
+          encoding: "base64",
+        });
+      }
     }
   }
 

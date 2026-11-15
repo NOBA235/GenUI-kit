@@ -58,3 +58,4 @@ export {
 } from "./registry.js";
 
 export { useAfterdarkStore } from "./afterdark-horror/store.js";
+export { useNinety9Store } from "./ninety9-archive/store.js";

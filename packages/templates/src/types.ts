@@ -72,6 +72,7 @@ export interface TemplateManifest {
   readonly verified: boolean;
   readonly featured?: boolean;
   readonly immersiveExperience?: boolean;
+  readonly publicAssetsPrefix?: string;
   readonly theme: TemplateThemeConfig;
   readonly pages: readonly TemplatePageDefinition[];
   readonly remixPresets?: readonly TemplateRemixPreset[];
@@ -95,6 +96,7 @@ export interface TemplateSourceFile {
   readonly path: string;
   readonly content: string;
   readonly kind: TemplateFileKind;
+  readonly encoding?: "utf8" | "base64";
 }
 
 export interface DualModeTemplateEntry {

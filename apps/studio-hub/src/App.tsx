@@ -54,14 +54,23 @@ export const App: React.FC<StudioHubAppProps> = ({
     setRoute({ path: nextPath, fullscreen });
   }, []);
 
-  const previewMatch = /^\/preview\/([^/?#]+)\/?$/.exec(route.path);
+  const previewMatch = /^\/preview\/([^/?#]+)(?:\/(.*))?$/.exec(route.path);
   if (previewMatch && previewMatch[1]) {
     const slug = decodeURIComponent(previewMatch[1]);
+    const subPath = previewMatch[2]
+      ? decodeURIComponent(previewMatch[2]).replace(/\/+$/, "")
+      : undefined;
     return (
       <PreviewPage
         slug={slug}
+        initialSubPath={subPath}
         isFullscreen={route.fullscreen}
-        onToggleFullscreen={() => navigate(`/preview/${slug}`, !route.fullscreen)}
+        onToggleFullscreen={() =>
+          navigate(
+            subPath ? `/preview/${slug}/${subPath}` : `/preview/${slug}`,
+            !route.fullscreen,
+          )
+        }
         onNavigateHome={() => navigate("/", false)}
         instantStreamForTest={instantStreamForTest}
       />

@@ -2,9 +2,11 @@
 // Do not edit manually; run `pnpm sync:templates` after adding Mode A or Mode B templates.
 import type { DualModeTemplateEntry } from "./types.js";
 import { templateEntry as native_afterdark_horror } from "./afterdark-horror/index.js";
+import { templateEntry as native_ninety9_archive } from "./ninety9-archive/index.js";
 
 export const GENERATED_NATIVE_TEMPLATES: readonly DualModeTemplateEntry[] = [
   native_afterdark_horror,
+  native_ninety9_archive,
 ];
 
 export const GENERATED_STANDALONE_TEMPLATES: readonly DualModeTemplateEntry[] = [

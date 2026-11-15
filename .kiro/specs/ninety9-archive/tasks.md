@@ -12,8 +12,9 @@
 - [x] Create & run `scripts/generate-ninety9-assets.ts` generating bespoke 5-tone monochrome technical SVGs for all 34 entries + 12 categories inside `public/images/ninety9/`.
 - [x] Add Milestone 1 Vitest verification suite `packages/templates/src/__tests__/ninety9-archive.m1.test.ts` and verify zero TypeScript errors across the monorepo.
 
-## Milestone 2: Monochrome Workstation UI, Scoped CSS, CRT Mode & Studio Hub Sub-Routing (Awaiting User Prompt)
-- [ ] Build scoped `[data-template-theme="ninety9-archive"]` stylesheet (`theme.css`), `manifest.json`, Paper-White CRT overlay (`SUBTLE` / `ACTIVE` / `OFF`), NeXT/Macintosh navigation chrome, all sub-views (`Archive`, `Categories`, `Timeline`, `Dossiers`, `About`, `Random Transmit`), and collapsed monochrome corner HUD.
+## Milestone 2: Monochrome Workstation UI, Scoped CSS, CRT Mode & Studio Hub Sub-Routing
+- [x] Build scoped `[data-template-theme="ninety9-archive"]` stylesheet (`theme.css`), `manifest.json`, Paper-White CRT overlay (`SUBTLE` / `ACTIVE` / `OFF`), NeXT/Macintosh navigation chrome, all sub-views (`Archive`, `Categories`, `Timeline`, `Dossiers`, `About`, `Random Transmit`), and collapsed monochrome corner HUD.
 
-## Milestone 3: `@genui-studio/core` Catalog, Live Monochrome Remixes, PBT Suite & Export (Awaiting User Prompt)
-- [ ] Wire full Zod `catalog.ts`, `bundle.generated.ts`, Marketplace listing, `fast-check` PBT suite (`ninety9.pbt.test.ts`), and standalone `.zip` bundling.
+## Milestone 3: `@genui-studio/core` Catalog, Live Monochrome Remixes, PBT Suite & Export
+- [x] Wire full Zod `catalog.ts`, `bundle.generated.ts`, Marketplace listing, `fast-check` PBT suite (`ninety9.pbt.test.ts`), and standalone `.zip` bundling.
+- [x] Fetch & attribute 52 open-source Wikimedia Commons / Public Domain 1990s photographs (`scripts/fetch-ninety9-photos.mjs`, `content/photos.ts`, `ArchivalMediaPlate.tsx`) with monochrome print treatment, SVG fallback, and binary `.zip` export support.

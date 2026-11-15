@@ -144,55 +144,92 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
           </div>
         </section>
 
-        {/* Flagship Spotlight Banner */}
+        {/* Flagship Spotlight Banners */}
         {featuredFlagships.length > 0 && (
           <section
             data-testid="marketplace-featured-flagship"
-            className="rounded-2xl border border-red-900/50 bg-gradient-to-r from-[#090306] via-slate-950 to-zinc-950 p-6 md:p-7 shadow-xl"
+            className="space-y-4"
           >
-            {featuredFlagships.map((flagship) => (
-              <div
-                key={`featured-${flagship.manifest.slug}`}
-                className="flex flex-wrap items-center justify-between gap-6"
-              >
-                <div className="max-w-2xl space-y-2">
-                  <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
-                    <span className="rounded border border-red-500/40 bg-red-500/15 px-2.5 py-0.5 font-bold uppercase tracking-wider text-red-300">
-                      Flagship Website #1 · Featured Release
-                    </span>
-                    <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300">
-                      Dual-Mode + 60 FPS WebGL + 3D Audio
-                    </span>
+            {featuredFlagships.map((flagship, index) => {
+              const isMono = flagship.manifest.slug === "ninety9-archive";
+              return (
+                <div
+                  key={`featured-${flagship.manifest.slug}`}
+                  className={`flex flex-wrap items-center justify-between gap-6 p-6 md:p-7 shadow-xl ${
+                    isMono
+                      ? "rounded-none border-2 border-[#FFFFFF] bg-[#FFFFFF] text-[#000000] shadow-[4px_4px_0px_#808080]"
+                      : "rounded-2xl border border-red-900/50 bg-gradient-to-r from-[#090306] via-slate-950 to-zinc-950 text-white"
+                  }`}
+                >
+                  <div className="max-w-2xl space-y-2">
+                    <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                      <span
+                        className={`px-2.5 py-0.5 font-bold uppercase tracking-wider ${
+                          isMono
+                            ? "border border-[#000000] bg-[#000000] text-[#FFFFFF]"
+                            : "rounded border border-red-500/40 bg-red-500/15 text-red-300"
+                        }`}
+                      >
+                        Flagship Website #{index + 1} · Featured Release
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 ${
+                          isMono
+                            ? "border border-[#000000] bg-[#D9D9D9] text-[#000000] font-semibold"
+                            : "rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        }`}
+                      >
+                        {isMono
+                          ? "5-Tone White Mono + 34 Dossiers + CRT Mode"
+                          : "Dual-Mode + 60 FPS WebGL + 3D Audio"}
+                      </span>
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-bold tracking-tight">
+                      {flagship.manifest.title}
+                    </h3>
+                    <p
+                      className={`text-sm leading-relaxed ${
+                        isMono ? "text-[#292929]" : "text-slate-300"
+                      }`}
+                    >
+                      {flagship.manifest.description}
+                    </p>
+                    <div
+                      className={`font-mono text-xs ${
+                        isMono ? "text-[#000000] font-bold" : "text-cyan-300"
+                      }`}
+                    >
+                      <code>npx genui-studio add {flagship.manifest.slug}</code>
+                    </div>
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white">
-                    {flagship.manifest.title}
-                  </h3>
-                  <p className="text-sm text-slate-300 leading-relaxed">
-                    {flagship.manifest.description}
-                  </p>
-                  <div className="font-mono text-xs text-cyan-300">
-                    <code>npx genui-studio add {flagship.manifest.slug}</code>
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => onOpenPreview(flagship.manifest.slug)}
-                    className="rounded-lg bg-red-600 px-4 py-2.5 font-mono text-xs font-bold text-white hover:bg-red-500 transition cursor-pointer"
-                  >
-                    Enter 2:17 AM Preview →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportTemplate(flagship)}
-                    className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 font-mono text-xs font-semibold text-slate-200 hover:border-cyan-400/60 hover:text-white transition cursor-pointer"
-                  >
-                    Export .ZIP / SKILL.md
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => onOpenPreview(flagship.manifest.slug)}
+                      className={`px-4 py-2.5 font-mono text-xs font-bold transition cursor-pointer ${
+                        isMono
+                          ? "border-2 border-[#000000] bg-[#000000] text-[#FFFFFF] hover:bg-[#292929] shadow-[2px_2px_0px_#808080]"
+                          : "rounded-lg bg-red-600 text-white hover:bg-red-500"
+                      }`}
+                    >
+                      {isMono ? "Enter NINETY9 Archive →" : "Enter 2:17 AM Preview →"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExportTemplate(flagship)}
+                      className={`px-4 py-2.5 font-mono text-xs font-semibold transition cursor-pointer ${
+                        isMono
+                          ? "border-2 border-[#000000] bg-[#FFFFFF] text-[#000000] hover:bg-[#D9D9D9]"
+                          : "rounded-lg border border-slate-700 bg-slate-900 text-slate-200 hover:border-cyan-400/60 hover:text-white"
+                      }`}
+                    >
+                      Export .ZIP / SKILL.md
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </section>
         )}
 
@@ -326,9 +363,11 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                         className="rounded px-2 py-0.5 font-bold uppercase"
                         style={{
                           backgroundColor:
-                            manifest.mode === "standalone"
-                              ? "rgba(245, 158, 11, 0.22)"
-                              : "rgba(34, 211, 238, 0.2)",
+                            manifest.theme.defaultColorScheme === "light"
+                              ? "#0f172a"
+                              : manifest.mode === "standalone"
+                                ? "rgba(245, 158, 11, 0.22)"
+                                : "rgba(34, 211, 238, 0.2)",
                           color:
                             manifest.mode === "standalone"
                               ? "#fbbf24"
@@ -342,11 +381,17 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
                       <div className="flex items-center gap-1.5">
                         {manifest.verified && (
-                          <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-400">
+                          <span
+                            className={`rounded px-2 py-0.5 font-semibold ${
+                              manifest.theme.defaultColorScheme === "light"
+                                ? "bg-slate-900 text-emerald-300"
+                                : "bg-emerald-500/20 text-emerald-400"
+                            }`}
+                          >
                             ✓ GenUI Verified
                           </span>
                         )}
-                        <span className="rounded bg-slate-950/70 px-2 py-0.5 font-semibold text-slate-200 border border-white/15">
+                        <span className="rounded bg-slate-950/90 px-2 py-0.5 font-semibold text-slate-200 border border-white/15">
                           {manifest.tier === "pro"
                             ? `PRO · $${manifest.priceUsd}`
                             : "FREE · MIT"}

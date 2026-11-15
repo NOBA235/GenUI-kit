@@ -61,6 +61,7 @@ export const TemplateManifestSchema = z.object({
   verified: z.boolean(),
   featured: z.boolean().optional(),
   immersiveExperience: z.boolean().optional(),
+  publicAssetsPrefix: z.string().min(1).optional(),
   theme: TemplateThemeSchema,
   pages: z.array(TemplatePageSchema).min(1),
   remixPresets: z.array(TemplateRemixPresetSchema).optional(),

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   clearRuntimeTemplates,
+  getTemplateBySlug,
   registerRuntimeTemplate,
   showcasePreviewCatalog,
   SHOWCASE_PACK_TEMPLATES,
@@ -263,5 +264,45 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       useAfterdarkStore.getState().plungeBackIntoDarkness();
       useAfterdarkStore.getState().toggleDebug(false);
     }
+  });
+
+  it("renders NINETY9 Archive across Marketplace, preview sub-routes, and monochrome corner HUD", () => {
+    const marketHtml = renderToStaticMarkup(<App initialPath="/" />);
+    expect(marketHtml).toContain("NINETY9");
+    expect(marketHtml).toContain('data-testid="marketplace-card-ninety9-archive"');
+    expect(marketHtml).toContain('data-testid="preview-btn-ninety9-archive"');
+
+    const routes: readonly [string, string][] = [
+      ["/preview/ninety9-archive", 'data-view="home"'],
+      ["/preview/ninety9-archive/archive", 'data-testid="ninety9-archive-catalog-view"'],
+      ["/preview/ninety9-archive/timeline", 'data-testid="ninety9-timeline-section"'],
+      ["/preview/ninety9-archive/categories", 'data-testid="ninety9-categories-view"'],
+      ["/preview/ninety9-archive/about", 'data-testid="ninety9-about-view"'],
+    ];
+
+    for (const [routePath, expectedSnippet] of routes) {
+      const html = renderToStaticMarkup(
+        <App initialPath={routePath} instantStreamForTest />,
+      );
+      expect(html).toContain('data-template-theme="ninety9-archive"');
+      expect(html).toContain('data-testid="immersion-hud-indicator"');
+      expect(html).toContain("[ALT+G] GENUI STUDIO // EXPORT ARCHIVE");
+      expect(html).toContain("/images/ninety9/photos/");
+      expect(html).toContain(expectedSnippet);
+    }
+
+    const ninety9Template = getTemplateBySlug("ninety9-archive");
+    expect(ninety9Template).toBeDefined();
+
+    const exportHtml = renderToStaticMarkup(
+      <TemplateExportDialog
+        isOpen
+        onClose={() => {}}
+        template={ninety9Template!}
+      />,
+    );
+    expect(exportHtml).toContain("npx genui-studio add ninety9-archive");
+    expect(exportHtml).toContain("2. SKILL.md &amp; POWER.md");
+    expect(exportHtml).toContain("3. Standalone Next.js .ZIP");
   });
 });

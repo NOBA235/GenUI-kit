@@ -1,5 +1,12 @@
 import { ARCHIVE_ENTRIES } from "../../content/entries.js";
 import { CATEGORIES } from "../../content/categories.js";
+import {
+  ARCHIVAL_PHOTOS,
+  ENTRY_PHOTOS,
+  HIGHLIGHT_PHOTOS,
+  SECTOR_PHOTOS,
+  type ArchivalPhotoRecord,
+} from "../../content/photos.js";
 import { TIMELINE_MILESTONES } from "../../content/timeline-events.js";
 import {
   ALLOWED_MONOCHROME_HEXES,
@@ -328,4 +335,20 @@ export function transmitRandomPacket(options?: {
     category,
     related,
   };
+}
+
+export function getEntryPhoto(slug: string): ArchivalPhotoRecord | undefined {
+  return ENTRY_PHOTOS[slug];
+}
+
+export function getCategoryPhoto(slug: string): ArchivalPhotoRecord | undefined {
+  return SECTOR_PHOTOS[slug];
+}
+
+export function getHighlightPhotos(): readonly ArchivalPhotoRecord[] {
+  return HIGHLIGHT_PHOTOS;
+}
+
+export function getAllArchivalPhotos(): readonly ArchivalPhotoRecord[] {
+  return ARCHIVAL_PHOTOS;
 }

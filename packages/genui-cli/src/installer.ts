@@ -126,7 +126,12 @@ export async function installPack(
         continue;
       }
 
-      fs.writeFileSync(fullPath, item.content, "utf-8");
+      const ext = path.extname(fullPath).toLowerCase();
+      if (ext === ".jpg" || ext === ".jpeg" || ext === ".png" || ext === ".webp") {
+        fs.writeFileSync(fullPath, Buffer.from(item.content, "base64"));
+      } else {
+        fs.writeFileSync(fullPath, item.content, "utf-8");
+      }
       filesWritten.push(item.relativePath);
     }
 

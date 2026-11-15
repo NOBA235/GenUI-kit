@@ -1,0 +1,240 @@
+/* Scoped 5-Tone White Monochrome Workstation System for [data-template-theme="ninety9-archive"] */
+/* Strict Palette Law: ONLY #FFFFFF, #000000, #D9D9D9, #808080, #292929 */
+
+[data-template-theme="ninety9-archive"] {
+  color-scheme: only light;
+  --n99-white: #FFFFFF;
+  --n99-black: #000000;
+  --n99-light: #D9D9D9;
+  --n99-medium: #808080;
+  --n99-dark: #292929;
+
+  --tpl-bg: #FFFFFF;
+  --tpl-surface: #FFFFFF;
+  --tpl-fg: #000000;
+  --tpl-muted: #292929;
+  --tpl-accent: #000000;
+  --tpl-font-display: "Space Mono", "Courier New", ui-monospace, monospace;
+  --tpl-font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --tpl-font-retro: "VT323", "Space Mono", monospace;
+  --tpl-radius: 0px;
+
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: var(--tpl-font-body);
+  border-radius: 0px;
+  isolation: isolate;
+  contain: layout style;
+  container-type: inline-size;
+}
+
+@scope ([data-template-theme="ninety9-archive"]) {
+  *,
+  *::before,
+  *::after {
+    border-radius: 0px !important;
+  }
+
+  .n99-workstation-root {
+    position: relative;
+    min-height: 100dvh;
+    background-color: #FFFFFF;
+    color: #000000;
+    container-type: inline-size;
+  }
+
+  .n99-font-mono {
+    font-family: "Space Mono", "Courier New", ui-monospace, monospace;
+  }
+
+  .n99-font-retro {
+    font-family: "VT323", "Space Mono", monospace;
+    letter-spacing: 0.04em;
+  }
+
+  /* Brutalist 0px Offset Shadows */
+  .n99-shadow-sm {
+    box-shadow: 2px 2px 0px #000000;
+  }
+
+  .n99-shadow-md {
+    box-shadow: 4px 4px 0px #000000;
+  }
+
+  /* CSS Halftone Dot-Matrix Textures (Zero Raster Dependencies) */
+  .n99-halftone-light {
+    background-color: #FFFFFF;
+    background-image: radial-gradient(#D9D9D9 1px, transparent 1px);
+    background-size: 6px 6px;
+  }
+
+  .n99-halftone-medium {
+    background-color: #FFFFFF;
+    background-image: radial-gradient(#808080 1px, transparent 1px);
+    background-size: 5px 5px;
+  }
+
+  .n99-ortho-grid {
+    background-color: #FFFFFF;
+    background-image:
+      linear-gradient(to right, #D9D9D9 1px, transparent 1px),
+      linear-gradient(to bottom, #D9D9D9 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* High-Contrast Silver-Gelatin Monochrome Print Treatment for Archival 1990s Photos */
+  .n99-archival-photo {
+    display: block;
+    background-color: #D9D9D9;
+    filter: grayscale(100%) contrast(1.22) brightness(1.02);
+    image-rendering: auto;
+  }
+
+  .n99-archival-photo:hover {
+    filter: grayscale(100%) contrast(1.32) brightness(1.04);
+  }
+
+  /* Paper-White CRT Scanline Modes (Subtle / Active / Off) */
+  .n99-crt-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 35;
+  }
+
+  .n99-crt-subtle {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      #000000 0px,
+      #000000 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    opacity: 0.04;
+  }
+
+  .n99-crt-active {
+    background-image:
+      repeating-linear-gradient(
+        to bottom,
+        #000000 0px,
+        #000000 1px,
+        transparent 1px,
+        transparent 3px
+      ),
+      repeating-linear-gradient(
+        to right,
+        #D9D9D9 0px,
+        #D9D9D9 1px,
+        transparent 1px,
+        transparent 8px
+      );
+    opacity: 0.1;
+  }
+
+  /* Compositor-only Signal Pulse well under 3Hz (respects prefers-reduced-motion) */
+  @keyframes n99SignalPulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.35;
+      transform: scale(0.85);
+    }
+  }
+
+  .n99-signal-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #000000;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .n99-signal-dot {
+      animation: n99SignalPulse 2.4s ease-in-out infinite;
+    }
+  }
+
+  /* Skip Link Pattern */
+  .n99-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 60;
+    border: 2px solid #000000;
+    background-color: #FFFFFF;
+    color: #000000;
+    padding: 0.5rem 0.75rem;
+    font-family: "Space Mono", monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .n99-skip-link:focus-visible {
+    left: 0.75rem;
+    top: 0.75rem;
+  }
+
+  /* Crisp Accessible Focus Ring (Strict Monochrome) */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  [role="tab"]:focus-visible {
+    outline: 3px solid #000000;
+    outline-offset: 2px;
+  }
+
+  /* Size-Aware Container Queries for Desktop / Tablet / Mobile Studio Viewports */
+  .n99-split-hero {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .n99-card-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .n99-card-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  @container (min-width: 680px) {
+    .n99-card-grid-3 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 960px) {
+    .n99-split-hero {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+      align-items: stretch;
+    }
+    .n99-card-grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .n99-card-grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* Forced Colors Mode Resilience */
+  @media (forced-colors: active) {
+    .n99-shadow-sm,
+    .n99-shadow-md {
+      box-shadow: none;
+    }
+    [aria-selected="true"],
+    [aria-current="page"] {
+      border: 2px solid ButtonText;
+    }
+  }
+}

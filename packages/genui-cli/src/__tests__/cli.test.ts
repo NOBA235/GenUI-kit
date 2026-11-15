@@ -183,6 +183,20 @@ describe("GenUI Studio Template Pack Registry & Installer", () => {
         clearRuntimeTemplates();
       }
     });
+
+    it("installs free flagship template ninety9-archive with SKILL.md, POWER.md, and public SVGs", async () => {
+      const result = await installPack({
+        packId: "ninety9-archive",
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.licenseStatus.required).toBe(false);
+      expect(result.pack.id).toBe("ninety9-archive");
+      expect(result.filesWritten).toContain("SKILL.md");
+      expect(result.filesWritten).toContain(".kiro/powers/ninety9-archive/POWER.md");
+      expect(result.filesWritten).toContain("public/images/ninety9/entries/nirvana-nevermind.svg");
+    });
   });
 
   describe("CLI Spec & Stream Validator (genui-studio validate)", () => {

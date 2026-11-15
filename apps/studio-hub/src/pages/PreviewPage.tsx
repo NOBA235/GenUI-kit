@@ -24,6 +24,7 @@ import {
 
 export interface PreviewPageProps {
   readonly slug: string;
+  readonly initialSubPath?: string;
   readonly isFullscreen: boolean;
   readonly onToggleFullscreen: () => void;
   readonly onNavigateHome: () => void;
@@ -70,8 +71,22 @@ function defaultRemixSynthesizer(prompt: string, baseSpec: Spec): string {
   return specToJsonlStream({ ...baseSpec, elements: nextElements });
 }
 
+function resolveInitialPageId(
+  pages: readonly { readonly id: string; readonly route: string }[] | undefined,
+  subPath?: string,
+): string {
+  const defaultId = pages?.[0]?.id ?? "home";
+  if (!subPath || !pages) return defaultId;
+  const normalized = `/${subPath.replace(/^\/+|\/+$/g, "")}`;
+  const exactMatch = pages.find((p) => p.route === normalized || p.id === subPath);
+  if (exactMatch) return exactMatch.id;
+  if (normalized.startsWith("/dossier/")) return "archive";
+  return defaultId;
+}
+
 export const PreviewPage: React.FC<PreviewPageProps> = ({
   slug,
+  initialSubPath,
   isFullscreen,
   onToggleFullscreen,
   onNavigateHome,
@@ -80,6 +95,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   const template = useMemo(() => getTemplateBySlug(slug), [slug]);
 
   const isImmersiveTemplate = Boolean(template?.manifest.immersiveExperience);
+  const isMonochromeArchive = slug === "ninety9-archive";
   const [viewport, setViewport] = useState<ViewportPreset>("desktop");
   const [isHudCollapsed, setIsHudCollapsed] = useState(false);
   const [immersionHudOpen, setImmersionHudOpen] = useState<boolean>(() => {
@@ -92,18 +108,18 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   const [isXRayOpen, setIsXRayOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
-  const firstPageId = template?.manifest.pages[0]?.id ?? "home";
+  const firstPageId = resolveInitialPageId(template?.manifest.pages, initialSubPath);
   const [activePageId, setActivePageId] = useState<string>(firstPageId);
 
   useEffect(() => {
-    setActivePageId(template?.manifest.pages[0]?.id ?? "home");
+    setActivePageId(resolveInitialPageId(template?.manifest.pages, initialSubPath));
     setImmersionHudOpen(
       typeof window !== "undefined" &&
         new URLSearchParams(window.location.search).get("hud") === "true",
     );
     setLightModeRestored(false);
     wasPointerLockedRef.current = false;
-  }, [slug, template]);
+  }, [slug, template, initialSubPath]);
 
   // Immersion Mode hotkeys ([Alt+G]), Pointer Lock ESC release recovery, and Light Mode reveal
   useEffect(() => {
@@ -112,7 +128,13 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && e.key.toLowerCase() === "g") {
         e.preventDefault();
-        setImmersionHudOpen((v) => !v);
+        setImmersionHudOpen((prev) => {
+          const next = !prev;
+          if (next && isMonochromeArchive) {
+            setIsRemixOpen(true);
+          }
+          return next;
+        });
       }
     };
 
@@ -387,7 +409,9 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
     <div
       className={`min-h-dvh flex flex-col ${
         isFullBleedViewport
-          ? "bg-[#000000] text-zinc-100"
+          ? isMonochromeArchive
+            ? "bg-[#FFFFFF] text-[#000000]"
+            : "bg-[#000000] text-zinc-100"
           : "bg-[#060911] text-slate-100"
       }`}
     >
@@ -414,6 +438,23 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           onResetSpec={handleResetSpec}
           onSubmitRemixPrompt={handleSubmitRemixPrompt}
         />
+      ) : isMonochromeArchive ? (
+        <div
+          data-testid="immersion-hud-indicator"
+          className="fixed bottom-3 right-3 z-40 flex items-center gap-2 border-2 border-[#000000] bg-[#FFFFFF] px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[#000000] shadow-[2px_2px_0px_#000000]"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setImmersionHudOpen(true);
+              setIsRemixOpen(true);
+            }}
+            data-testid="open-immersion-hud-btn"
+            className="text-left hover:underline cursor-pointer"
+          >
+            [ALT+G] GENUI STUDIO // EXPORT ARCHIVE
+          </button>
+        </div>
       ) : (
         <div
           data-testid="immersion-hud-indicator"
