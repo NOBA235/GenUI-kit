@@ -440,10 +440,10 @@ export class PhysarumNetwork {
     return i !== undefined && this.alive[i]!;
   }
 
-  /** Current SQL and N+1 factor of a query (after any rewrites). */
-  getQuery(id: string): { readonly sql: string; readonly perRequestCalls: number } | undefined {
+  /** Current SQL, N+1 factor and array-parameter length of a query (after any rewrites). */
+  getQuery(id: string): { readonly sql: string; readonly perRequestCalls: number; readonly arrayParamLength: number | undefined } | undefined {
     const q = this.queries.find((x) => x.spec.id === id);
-    return q ? { sql: q.sql, perRequestCalls: q.perRequestCalls } : undefined;
+    return q ? { sql: q.sql, perRequestCalls: q.perRequestCalls, arrayParamLength: q.arrayParamLength } : undefined;
   }
 
   /** EXPLAIN text for a query at a sink, or the planning error. */
