@@ -22,8 +22,12 @@
   - [ ] Install and enable the app in a running Kiro Crew gateway (`kirocrew app install` / `enable`). Not run yet: Kiro Crew is not installed in this workspace.
 
 ## Interactive lab: canvas, catalog, tests, marketplace
-- [ ] 8. 60 FPS network canvas, HUD panels, scenario picker and intervention controls. _Req 9.1_
-- [ ] 9. `manifest.json`, `theme.css`, `catalog.ts`, registry, remix presets, `index.ts`. _Req 9.2_
-- [ ] 10. Studio Hub bio-tag and marketplace banner. _Req 1.3, 9.4_
-- [ ] 11. `fast-check` suite. _Req 9.3_
-- [ ] 12. `.zip` export including the Kiro Crew app; full workspace build, typecheck and tests. _Req 9.4_
+- [x] 8. Lab store, `BioNetworkCanvas` (sever, inject index, dispatch agents, drag), shell with scenario picker and solver timer, SQL deck, Kiro Crew hive with app download, sonification HUD, landing sections. _Req 9.1_
+  - [x] `index-surgeon` and `deadlock-hunter` agents with paused crons (`app.json` 1.1.0); genomics scenario and benchmarks.
+- [x] 9. `manifest.json`, `theme.css`, `catalog.ts`, registry, three remix presets, `index.ts`. _Req 9.2_
+- [x] 10. Studio Hub corner bio-tag `[ALT+G] GENUI STUDIO // EXPORT CHIMERA + KIRO CREW APP`. The marketplace lists the template as the fourth featured flagship through its existing fallback ordering; no marketplace edit was made while that page was being redesigned. _Req 1.3, 9.4_
+- [x] 11. `src/__tests__/chimera-lab.pbt.test.ts`: 500 random graphs, index monotonicity, Crew bundle fuzzing and drift, catalog invariants, presets, chaos healing, SSR, export. It found and fixed link flux overshooting 1 by rounding. _Req 9.3_
+- [x] 12. `.zip` export includes `kiro-crew-app/` with `backend/*.py`, `SKILL.md` and `POWER.md`. _Req 9.4_
+  - [x] Workspace tests: 135/135 across six packages (templates 52). Catalog audit hook: PASS.
+  - [x] Typecheck and build pass for every package except `apps/spatial-ops`.
+  - [ ] `apps/spatial-ops` typecheck and build fail on an uncommitted stray token in `src/three/SpatialSceneCanvas.tsx` line 104, outside this template. Left for the file's owner.

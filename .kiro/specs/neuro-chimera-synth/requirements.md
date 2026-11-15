@@ -106,7 +106,7 @@ Glossary:
 5. THE SYSTEM SHALL validate the manifest with `validateCrewManifest()`. That validator encodes the documented install-time rules: kebab-case name, semver version, relative contained paths, exactly one cron schedule field, page route and label, and `module.path:callable` hooks.
 6. THE SYSTEM SHALL keep `@kirocrew/app-sdk`, React and `lucide-react` external in the dashboard bundle.
 
-## Requirement 9: Interactive lab (follow-up work)
+## Requirement 9: Interactive lab
 1. THE SYSTEM SHALL render the network on a 60 FPS canvas with particle flux, plus HUD panels for plans, telemetry and the agent log.
 2. THE SYSTEM SHALL register the lab components in a GenUI catalog with strict Zod props and remix presets.
 3. THE SYSTEM SHALL verify parser round-trips, planner monotonicity, solver conservation and manifest validity with `fast-check`.
