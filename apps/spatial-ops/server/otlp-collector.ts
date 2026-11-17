@@ -94,14 +94,22 @@ class PayloadTooLargeError extends Error {
   }
 }
 
+/**
+ * Environment variable that overrides the snapshot path. The MCP server's
+ * `getDefaultOtlpSnapshotPath()` (packages/genui-mcp) reads the same variable,
+ * so writer and reader always agree.
+ */
+export const OTLP_SNAPSHOT_ENV_VAR = "SPATIAL_OPS_OTLP_SNAPSHOT";
+
 export function getDefaultOtlpStoragePaths(): {
   dataFile: string;
   snapshotFile: string;
 } {
   const dir = path.join(os.homedir(), ".spatial-ops");
+  const snapshotOverride = process.env[OTLP_SNAPSHOT_ENV_VAR]?.trim();
   return {
     dataFile: path.join(dir, "otlp-traces.ndjson"),
-    snapshotFile: path.join(dir, "otlp-snapshot.json"),
+    snapshotFile: snapshotOverride || path.join(dir, "otlp-snapshot.json"),
   };
 }
 

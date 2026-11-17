@@ -14,8 +14,17 @@ The Model Context Protocol (MCP) server for **GenUI Studio**. It exposes product
 | `fuzz_test_catalog` | `app?: "spatial"`, `componentName?: string`, `numRuns?: number` | Runs randomized `fast-check` property checks against a component schema or the catalog invariant suite. |
 
 ### SpatialOps Telemetry Tools (Live OTLP Snapshot & Pluggable Providers)
-These tools expose telemetry inspection and remediation hooks (`OtlpSnapshotMcpTelemetryProvider` reads live OTLP snapshots from `~/.genui-studio/otlp-latest-snapshot.json` by default; pass `--demo` to force synthetic sandbox simulation or call `setMcpTelemetryProvider`):
+These tools expose telemetry inspection and remediation hooks:
 - `query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`
+
+**Snapshot location (shared with the SpatialOps OTLP collector):**
+
+| Setting | Value |
+|---|---|
+| Default path | `~/.spatial-ops/otlp-snapshot.json` |
+| Override | `SPATIAL_OPS_OTLP_SNAPSHOT=/abs/path/snapshot.json` (empty values are ignored) |
+
+The collector (`pnpm --filter @genui-studio/spatial-ops collector`, OTLP/HTTP JSON on `:4318`) writes this file atomically. By default `OtlpSnapshotMcpTelemetryProvider` reads it on every tool call. Set `SPATIAL_OPS_OTLP_SNAPSHOT` to the **same value** for both processes. If the file does not exist yet, the tools return empty results (`fetch_trace_spans` includes collector setup instructions); they do **not** substitute synthetic data. Pass `--demo` (or set `SPATIAL_OPS_DEMO=1`) to use the in-memory synthetic `DefaultMcpTelemetryProvider` instead, or call `setMcpTelemetryProvider` to plug in a custom provider.
 
 ---
 

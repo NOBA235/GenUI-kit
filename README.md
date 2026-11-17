@@ -278,7 +278,7 @@ Configured out-of-the-box in [`.kiro/settings/mcp.json`](./.kiro/settings/mcp.js
   - `fuzz_test_catalog` — Executes randomized `fast-check` property verification runs from the agent loop.
 - **OTLP Telemetry & Remediation Tools:**
   - `query_telemetry_metrics`, `fetch_trace_spans`, `execute_remediation`
-  - Reads local snapshots written by the SpatialOps OTLP collector at `~/.spatial-ops/otlp-snapshot.json` (configurable via `SPATIAL_OPS_OTLP_SNAPSHOT`), falling back to `DefaultMcpTelemetryProvider` when started with `--demo` or before live traces arrive.
+  - Read the snapshot that the SpatialOps OTLP collector writes atomically to `~/.spatial-ops/otlp-snapshot.json`. Both the collector and the MCP server honour the same `SPATIAL_OPS_OTLP_SNAPSHOT` override. Until the collector has written a snapshot, the tools return empty results (no synthetic data). Start the MCP server with `--demo` (or `SPATIAL_OPS_DEMO=1`) to use the in-memory `DefaultMcpTelemetryProvider` simulation instead.
 
 ---
 

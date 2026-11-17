@@ -60,11 +60,14 @@ interface RawOtlpSnapshotFile {
   bottleneckServiceId?: string | null;
 }
 
+/**
+ * Default snapshot location shared with the SpatialOps OTLP collector
+ * (`apps/spatial-ops/server/otlp-collector.ts` → `getDefaultOtlpStoragePaths`):
+ * `$SPATIAL_OPS_OTLP_SNAPSHOT` when set and non-empty, else `~/.spatial-ops/otlp-snapshot.json`.
+ */
 export function getDefaultOtlpSnapshotPath(): string {
-  return (
-    process.env.SPATIAL_OPS_OTLP_SNAPSHOT ??
-    path.join(os.homedir(), ".spatial-ops", "otlp-snapshot.json")
-  );
+  const override = process.env.SPATIAL_OPS_OTLP_SNAPSHOT?.trim();
+  return override || path.join(os.homedir(), ".spatial-ops", "otlp-snapshot.json");
 }
 
 /**

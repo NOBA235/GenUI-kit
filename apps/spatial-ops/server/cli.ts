@@ -59,6 +59,9 @@ async function main(): Promise<void> {
   console.log(
     `[SpatialOps OTLP] Snapshot SSE: http://localhost:${collector.port}/api/events | Storage: ${args.dataFile === false ? "in-memory" : (args.dataFile ?? paths.dataFile)}`
   );
+  console.log(
+    `[SpatialOps OTLP] MCP snapshot file: ${paths.snapshotFile} (override with SPATIAL_OPS_OTLP_SNAPSHOT)`
+  );
 
   const shutdown = async () => {
     await collector.close();
