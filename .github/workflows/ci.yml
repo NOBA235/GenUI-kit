@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build, typecheck, lint, test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24]
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installs the pnpm version pinned in package.json "packageManager" (pnpm@9.15.0).
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # pnpm -r skips packages that lack a script and still exits 0; fail instead.
+      - name: Check every package declares build/typecheck/lint/test
+        run: node scripts/check-workspace-scripts.mjs
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Lint
+        run: pnpm -r lint
+
+      - name: Test
+        run: pnpm -r test
+
+      - name: Kiro hook - catalog audit
+        run: node .kiro/hooks/scripts/catalog-audit.mjs
+
+      - name: Kiro hook - property-based invariant suite
+        run: node .kiro/hooks/scripts/run-pbt-suite.mjs

@@ -14,7 +14,8 @@
     "build:server": "tsc -p tsconfig.server.json",
     "preview": "vite preview --port 4174",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@genui-studio/core": "workspace:*",
