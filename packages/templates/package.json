@@ -18,6 +18,11 @@
       "default": "./dist/node/index.js"
     }
   },
+  "files": [
+    "dist",
+    "!dist/__tests__",
+    "README.md"
+  ],
   "scripts": {
     "prebuild": "node ../../scripts/sync-templates.ts",
     "build": "tsc -p tsconfig.json",
