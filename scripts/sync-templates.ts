@@ -68,6 +68,12 @@ function isTextFile(filePath: string): boolean {
   return TEXT_EXTENSIONS.has(path.extname(base).toLowerCase());
 }
 
+// Normalize CRLF so the generated bundles do not depend on the checkout's line
+// endings (Windows clones with core.autocrlf=true check sources out as CRLF).
+function readTextFile(filePath: string): string {
+  return fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
+}
+
 function isBinaryImageFile(filePath: string): boolean {
   return BINARY_IMAGE_EXTENSIONS.has(path.extname(path.basename(filePath)).toLowerCase());
 }
@@ -142,7 +148,7 @@ function syncBundle(
     return false;
   }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
+  const manifest = JSON.parse(readTextFile(manifestPath)) as {
     slug: string;
     title: string;
     description: string;
@@ -154,16 +160,16 @@ function syncBundle(
   const powerPath = path.join(templateDir, "POWER.md");
 
   const themeCss = fs.existsSync(themeCssPath)
-    ? fs.readFileSync(themeCssPath, "utf-8")
+    ? readTextFile(themeCssPath)
     : "";
   const steeringMd = fs.existsSync(steeringPath)
-    ? fs.readFileSync(steeringPath, "utf-8")
+    ? readTextFile(steeringPath)
     : `# ${manifest.title} Steering Rules\n`;
   const skillMd = fs.existsSync(skillPath)
-    ? fs.readFileSync(skillPath, "utf-8")
+    ? readTextFile(skillPath)
     : `---\nname: ${manifest.slug}\ndescription: ${manifest.description}\n---\n\n# ${manifest.title} Skill\n\n${steeringMd}`;
   const kiroPowerMd = fs.existsSync(powerPath)
-    ? fs.readFileSync(powerPath, "utf-8")
+    ? readTextFile(powerPath)
     : `---\nname: "${manifest.slug}"\ndisplayName: "${manifest.title}"\ndescription: "${manifest.description}"\n---\n\n# ${manifest.title} Kiro Power\n\n${steeringMd}`;
 
   const sourceFiles: Array<{
@@ -182,7 +188,7 @@ function syncBundle(
     if (!isTextFile(f.absolutePath)) continue;
     sourceFiles.push({
       path: f.relativePath,
-      content: fs.readFileSync(f.absolutePath, "utf-8"),
+      content: readTextFile(f.absolutePath),
       kind: classifyKind(f.relativePath),
     });
   }
@@ -192,7 +198,7 @@ function syncBundle(
       if (isTextFile(f.absolutePath)) {
         sourceFiles.push({
           path: f.relativePath,
-          content: fs.readFileSync(f.absolutePath, "utf-8"),
+          content: readTextFile(f.absolutePath),
           kind: "source",
         });
       } else if (isBinaryImageFile(f.absolutePath)) {
@@ -213,7 +219,7 @@ function syncBundle(
       if (isTextFile(f.absolutePath)) {
         sourceFiles.push({
           path: `public/${cleanPrefix}/${f.relativePath}`,
-          content: fs.readFileSync(f.absolutePath, "utf-8"),
+          content: readTextFile(f.absolutePath),
           kind: "source",
         });
       } else if (isBinaryImageFile(f.absolutePath)) {
