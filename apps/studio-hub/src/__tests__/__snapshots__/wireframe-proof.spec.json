@@ -1,0 +1,121 @@
+{
+  "root": "wf-frame-page",
+  "elements": {
+    "wf-frame-page": {
+      "type": "SiteShell",
+      "props": {
+        "badge": "WIREFRAME LIVE",
+        "brandName": "Aegis 3D Spatial Infrastructure War-Room",
+        "layoutDensity": "spacious",
+        "tagline": "14 Verified Catalog Components"
+      },
+      "children": [
+        "wf-blk-hero",
+        "wf-blk-metrics",
+        "wf-blk-features",
+        "wf-aa-note",
+        "wf-zz-note",
+        "wf-blk-rogue"
+      ]
+    },
+    "wf-blk-hero": {
+      "type": "HeroSection",
+      "props": {
+        "eyebrow": "3D / WebGL · @genui-studio/core",
+        "headline": "Zero-trust edge firewall",
+        "primaryCta": "Deploy spatial-ops-3d-pro",
+        "secondaryCta": "Catalog SHA: sha256-a94f31c",
+        "summary": {
+          "$state": "/wireframeBindings/selectedRegion"
+        }
+      },
+      "children": []
+    },
+    "wf-blk-metrics": {
+      "type": "MetricStrip",
+      "props": {
+        "heading": "kpi telemetry",
+        "primaryLabel": "Live p95 latency per region",
+        "primaryValue": "16 Nodes",
+        "secondaryLabel": "Zero-Alloc WebGL",
+        "secondaryValue": "60 FPS",
+        "uptimePercent": 99.98
+      },
+      "children": []
+    },
+    "wf-blk-features": {
+      "type": "FeatureGrid",
+      "props": {
+        "columns": 3,
+        "items": [
+          {
+            "title": "AegisWarRoomShell",
+            "detail": "Root container organizing 3D spatial viewport and 2D tactical HUD."
+          },
+          {
+            "title": "ClusterTopologyCanvas",
+            "detail": "3D WebGL scene viewport rendering the microservice mesh."
+          },
+          {
+            "title": "ServiceMeshNode3D",
+            "detail": "Interactive 3D microservice node mesh with emissive glow and label."
+          },
+          {
+            "title": "TrafficFlowEdge3D",
+            "detail": "Directional 3D bezier connection line with animated packet pulses."
+          },
+          {
+            "title": "BlastRadiusSphere3D",
+            "detail": "Translucent volumetric pulsating sphere indicating fault blast radius."
+          },
+          {
+            "title": "RegionZoneBoundary3D",
+            "detail": "Spatial bounding zone wireframe delimiting a regional cluster."
+          }
+        ],
+        "sectionTitle": "Capabilities"
+      },
+      "children": []
+    },
+    "wf-aa-note": {
+      "type": "MetricStrip",
+      "props": {
+        "heading": "Stacked note A (same x/y as Z)",
+        "primaryLabel": "3D Mesh Topology",
+        "primaryValue": "16 Nodes",
+        "secondaryLabel": "Zero-Alloc WebGL",
+        "secondaryValue": "60 FPS",
+        "uptimePercent": 99.98
+      },
+      "children": []
+    },
+    "wf-zz-note": {
+      "type": "MetricStrip",
+      "props": {
+        "heading": "Stacked note Z (same x/y as A)",
+        "primaryLabel": "3D Mesh Topology",
+        "primaryValue": "16 Nodes",
+        "secondaryLabel": "Zero-Alloc WebGL",
+        "secondaryValue": "60 FPS",
+        "uptimePercent": 99.98
+      },
+      "children": []
+    },
+    "wf-blk-rogue": {
+      "type": "HeroSection",
+      "props": {
+        "eyebrow": "3D / WebGL · @genui-studio/core",
+        "headline": "hero banner",
+        "primaryCta": "Deploy spatial-ops-3d-pro",
+        "secondaryCta": "Catalog SHA: sha256-a94f31c",
+        "summary": "<script>alert(1)</script>"
+      },
+      "children": []
+    }
+  },
+  "state": {
+    "wireframeBindings": {
+      "selectedRegion": "selectedRegion"
+    }
+  }
+}

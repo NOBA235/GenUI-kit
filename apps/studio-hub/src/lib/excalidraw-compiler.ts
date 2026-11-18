@@ -653,6 +653,14 @@ function wouldCreateParentCycle(
   return hops > MAX_TREE_DEPTH;
 }
 
+/**
+ * Locale-independent string order (UTF-16 code units). `localeCompare` would make the
+ * compiled Spec depend on the runtime's default locale (e.g. Danish sorts "aa" after "z").
+ */
+function compareCodePoints(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function compareVisualNodes(
   a: InternalVisualNode,
   b: InternalVisualNode,
@@ -663,7 +671,7 @@ function compareVisualNodes(
   if (a.bbox.minX !== b.bbox.minX) {
     return a.bbox.minX - b.bbox.minX;
   }
-  return a.rawId.localeCompare(b.rawId);
+  return compareCodePoints(a.rawId, b.rawId);
 }
 
 function buildMermaidArchitecture(
@@ -967,7 +975,7 @@ export function compileExcalidrawToGenUI(
       node.childKeys.sort((ka, kb) => {
         const na = specKeyToNode.get(ka);
         const nb = specKeyToNode.get(kb);
-        if (!na || !nb) return ka.localeCompare(kb);
+        if (!na || !nb) return compareCodePoints(ka, kb);
         return compareVisualNodes(na, nb);
       });
     }

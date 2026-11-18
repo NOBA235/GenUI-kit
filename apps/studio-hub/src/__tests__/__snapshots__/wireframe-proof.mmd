@@ -1,0 +1,15 @@
+flowchart TD
+  wf_frame_page["SiteShell (wf-frame-page)"]
+  wf_blk_hero["HeroSection: HeroSection"]
+  wf_blk_metrics["MetricStrip: kpi telemetry"]
+  wf_blk_features["FeatureGrid: Capabilities"]
+  wf_aa_note["MetricStrip: MetricStrip"]
+  wf_zz_note["MetricStrip: MetricStrip"]
+  wf_blk_rogue["HeroSection: hero banner"]
+  wf_frame_page --> wf_blk_hero
+  wf_frame_page --> wf_blk_metrics
+  wf_frame_page --> wf_blk_features
+  wf_frame_page --> wf_aa_note
+  wf_frame_page --> wf_zz_note
+  wf_frame_page --> wf_blk_rogue
+  wf_blk_metrics -.->|"/wireframeBindings/selectedRegion"| wf_blk_hero
