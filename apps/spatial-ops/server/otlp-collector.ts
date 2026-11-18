@@ -23,6 +23,20 @@ export interface OtlpCollectorOptions {
   snapshotFile?: string | false;
   /** When true, seeds explicit sample demo traces on startup. Defaults to false. */
   demoMode?: boolean;
+  /**
+   * Explicit opt-in required to bind to non-loopback interfaces (e.g. `0.0.0.0`).
+   * Can also be set via `SPATIAL_OPS_ALLOW_REMOTE=1`. Defaults to false.
+   */
+  allowRemote?: boolean;
+  /**
+   * Optional Bearer token required for mutating endpoints (`POST /v1/*`, `POST /api/reset`,
+   * `POST /api/demo/trace`). Can also be set via `SPATIAL_OPS_AUTH_TOKEN`.
+   */
+  authToken?: string;
+  /**
+   * Optional allowlist of browser `Origin` headers beyond loopback (`localhost`, `127.0.0.1`, `[::1]`).
+   */
+  allowedOrigins?: readonly string[];
 }
 
 export interface RunningOtlpCollector {
@@ -35,16 +49,91 @@ export interface RunningOtlpCollector {
   close: () => Promise<void>;
 }
 
+const LOOPBACK_ORIGIN_PATTERN =
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+
+export function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return (
+    normalized === "127.0.0.1" ||
+    normalized === "localhost" ||
+    normalized === "::1" ||
+    normalized === "[::1]"
+  );
+}
+
+function isLoopbackRemoteAddress(remoteAddress: string | undefined): boolean {
+  if (!remoteAddress) return false;
+  const normalized = remoteAddress.trim().toLowerCase();
+  return (
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized === "::ffff:127.0.0.1"
+  );
+}
+
+export function resolveCorsOrigin(
+  req: IncomingMessage,
+  allowedOrigins?: readonly string[]
+): string {
+  const originHeader = req.headers.origin;
+  if (typeof originHeader === "string" && originHeader.trim().length > 0) {
+    const candidate = originHeader.trim();
+    if (
+      LOOPBACK_ORIGIN_PATTERN.test(candidate) ||
+      (allowedOrigins && allowedOrigins.includes(candidate))
+    ) {
+      return candidate;
+    }
+  }
+  return "http://localhost:5174";
+}
+
+function checkMutatingRequestAccess(
+  req: IncomingMessage,
+  authToken: string | undefined,
+  requireLoopbackWithoutToken: boolean
+): { ok: true } | { ok: false; statusCode: number; error: string } {
+  if (authToken) {
+    const header = String(req.headers.authorization ?? "").trim();
+    if (header !== `Bearer ${authToken}`) {
+      return {
+        ok: false,
+        statusCode: 401,
+        error:
+          "Unauthorized: valid Authorization Bearer token required (SPATIAL_OPS_AUTH_TOKEN).",
+      };
+    }
+    return { ok: true };
+  }
+
+  if (
+    requireLoopbackWithoutToken &&
+    !isLoopbackRemoteAddress(req.socket?.remoteAddress)
+  ) {
+    return {
+      ok: false,
+      statusCode: 403,
+      error:
+        "Forbidden: control endpoints are restricted to loopback connections unless SPATIAL_OPS_AUTH_TOKEN is configured.",
+    };
+  }
+
+  return { ok: true };
+}
+
 function sendJson(
   res: ServerResponse,
   statusCode: number,
   body: unknown,
-  extraHeaders?: Record<string, string>
+  extraHeaders?: Record<string, string>,
+  corsOrigin = "http://localhost:5174"
 ): void {
   const payload = JSON.stringify(body);
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": corsOrigin,
+    Vary: "Origin",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
     ...extraHeaders,
@@ -66,8 +155,8 @@ function readRequestBuffer(
       total += chunk.length;
       if (total > maxBytes) {
         settled = true;
+        req.resume();
         reject(new PayloadTooLargeError(maxBytes));
-        req.destroy();
         return;
       }
       chunks.push(chunk);
@@ -164,14 +253,21 @@ async function parseOtlpHttpJsonBody(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   endpointPath: string,
-  maxBodyBytes: number
+  maxBodyBytes: number,
+  corsOrigin: string
 ): Promise<unknown | null> {
   const contentType = String(req.headers["content-type"] ?? "").toLowerCase();
   if (contentType.includes("application/x-protobuf")) {
-    sendJson(res, 415, {
-      error:
-        "Unsupported Media Type: application/x-protobuf. Configure OTEL_EXPORTER_OTLP_PROTOCOL=http/json to send OTLP JSON payloads to this local receiver.",
-    });
+    sendJson(
+      res,
+      415,
+      {
+        error:
+          "Unsupported Media Type: application/x-protobuf. Configure OTEL_EXPORTER_OTLP_PROTOCOL=http/json to send OTLP JSON payloads to this local receiver.",
+      },
+      undefined,
+      corsOrigin
+    );
     return null;
   }
 
@@ -179,25 +275,47 @@ async function parseOtlpHttpJsonBody(
   const encoding = String(req.headers["content-encoding"] ?? "").toLowerCase();
   if (encoding.includes("gzip")) {
     try {
-      rawBuf = gunzipSync(rawBuf);
-    } catch {
-      sendJson(res, 400, { error: "Invalid gzip-compressed OTLP request body" });
+      rawBuf = gunzipSync(rawBuf, { maxOutputLength: maxBodyBytes });
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === "ERR_BUFFER_TOO_LARGE") {
+        throw new PayloadTooLargeError(maxBodyBytes);
+      }
+      sendJson(
+        res,
+        400,
+        { error: "Invalid gzip-compressed OTLP request body" },
+        undefined,
+        corsOrigin
+      );
       return null;
     }
   }
 
   const text = rawBuf.toString("utf8").trim();
   if (!text) {
-    sendJson(res, 400, { error: `Empty OTLP ${endpointPath} request body` });
+    sendJson(
+      res,
+      400,
+      { error: `Empty OTLP ${endpointPath} request body` },
+      undefined,
+      corsOrigin
+    );
     return null;
   }
 
   try {
     return JSON.parse(text);
   } catch {
-    sendJson(res, 400, {
-      error: `Invalid JSON in OTLP ${endpointPath} request body`,
-    });
+    sendJson(
+      res,
+      400,
+      {
+        error: `Invalid JSON in OTLP ${endpointPath} request body`,
+      },
+      undefined,
+      corsOrigin
+    );
     return null;
   }
 }
@@ -240,6 +358,18 @@ export async function startOtlpCollectorServer(
   const requestedPort = options.port ?? 4318;
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const demoMode = options.demoMode ?? false;
+  const allowRemote =
+    options.allowRemote ?? process.env.SPATIAL_OPS_ALLOW_REMOTE === "1";
+  const authToken =
+    (options.authToken ?? process.env.SPATIAL_OPS_AUTH_TOKEN ?? "").trim() ||
+    undefined;
+  const allowedOrigins = options.allowedOrigins;
+
+  if (!isLoopbackHost(host) && !allowRemote) {
+    throw new Error(
+      `Refusing to bind SpatialOps OTLP collector to non-loopback host "${host}" without explicit opt-in (pass allowRemote: true, --allow-remote, or SPATIAL_OPS_ALLOW_REMOTE=1).`
+    );
+  }
 
   const defaults = getDefaultOtlpStoragePaths();
   const dataFile =
@@ -305,10 +435,12 @@ export async function startOtlpCollectorServer(
     const method = (req.method ?? "GET").toUpperCase();
     const parsedUrl = new URL(req.url ?? "/", `http://${host}:${requestedPort}`);
     const pathname = parsedUrl.pathname;
+    const corsOrigin = resolveCorsOrigin(req, allowedOrigins);
 
     if (method === "OPTIONS") {
       res.writeHead(204, {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": corsOrigin,
+        Vary: "Origin",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers":
           "Content-Type, Authorization, X-Requested-With, Accept",
@@ -322,37 +454,55 @@ export async function startOtlpCollectorServer(
       const addr = server.address();
       const boundPort =
         addr && typeof addr === "object" ? addr.port : requestedPort;
-      sendJson(res, 200, {
-        ok: true,
-        service: "spatial-ops-otlp-collector",
-        host,
-        port: boundPort,
-        demoMode,
-        endpoint: `http://localhost:${boundPort}/v1/traces`,
-        endpoints: {
-          traces: `http://localhost:${boundPort}/v1/traces`,
-          logs: `http://localhost:${boundPort}/v1/logs`,
-          metrics: `http://localhost:${boundPort}/v1/metrics`,
+      sendJson(
+        res,
+        200,
+        {
+          ok: true,
+          service: "spatial-ops-otlp-collector",
+          host,
+          port: boundPort,
+          demoMode,
+          endpoint: `http://localhost:${boundPort}/v1/traces`,
+          endpoints: {
+            traces: `http://localhost:${boundPort}/v1/traces`,
+            logs: `http://localhost:${boundPort}/v1/logs`,
+            metrics: `http://localhost:${boundPort}/v1/metrics`,
+          },
+          ...store.getStats(),
         },
-        ...store.getStats(),
-      });
+        undefined,
+        corsOrigin
+      );
       return;
     }
 
     if (method === "GET" && pathname === "/api/snapshot") {
-      sendJson(res, 200, store.buildSnapshot(), {
-        "X-Spatial-Demo-Mode": demoMode ? "1" : "0",
-      });
+      sendJson(
+        res,
+        200,
+        store.buildSnapshot(),
+        {
+          "X-Spatial-Demo-Mode": demoMode ? "1" : "0",
+        },
+        corsOrigin
+      );
       return;
     }
 
     if (method === "GET" && pathname === "/api/traces") {
       const limit = Number(parsedUrl.searchParams.get("limit") ?? "25");
-      sendJson(res, 200, {
-        traces: store.getRecentTraces(
-          Number.isFinite(limit) && limit > 0 ? Math.min(100, limit) : 25
-        ),
-      });
+      sendJson(
+        res,
+        200,
+        {
+          traces: store.getRecentTraces(
+            Number.isFinite(limit) && limit > 0 ? Math.min(100, limit) : 25
+          ),
+        },
+        undefined,
+        corsOrigin
+      );
       return;
     }
 
@@ -360,10 +510,16 @@ export async function startOtlpCollectorServer(
       const traceId = decodeURIComponent(pathname.slice("/api/traces/".length));
       const trace = store.getTrace(traceId);
       if (!trace) {
-        sendJson(res, 404, { error: `Trace "${traceId}" not found` });
+        sendJson(
+          res,
+          404,
+          { error: `Trace "${traceId}" not found` },
+          undefined,
+          corsOrigin
+        );
         return;
       }
-      sendJson(res, 200, { trace });
+      sendJson(res, 200, { trace }, undefined, corsOrigin);
       return;
     }
 
@@ -372,7 +528,8 @@ export async function startOtlpCollectorServer(
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": corsOrigin,
+        Vary: "Origin",
       });
       res.write(
         `event: snapshot\ndata: ${JSON.stringify(store.buildSnapshot())}\n\n`
@@ -390,12 +547,19 @@ export async function startOtlpCollectorServer(
         pathname === "/v1/logs" ||
         pathname === "/v1/metrics")
     ) {
+      const access = checkMutatingRequestAccess(req, authToken, false);
+      if (!access.ok) {
+        req.resume();
+        sendJson(res, access.statusCode, { error: access.error }, undefined, corsOrigin);
+        return;
+      }
       try {
         const payload = await parseOtlpHttpJsonBody(
           req,
           res,
           pathname,
-          maxBodyBytes
+          maxBodyBytes,
+          corsOrigin
         );
         if (payload === null) {
           return;
@@ -412,12 +576,18 @@ export async function startOtlpCollectorServer(
             });
           }
           broadcastSnapshot();
-          sendJson(res, 200, {
-            partialSuccess:
-              stats.rejectedLogs > 0
-                ? { rejectedLogRecords: stats.rejectedLogs }
-                : {},
-          });
+          sendJson(
+            res,
+            200,
+            {
+              partialSuccess:
+                stats.rejectedLogs > 0
+                  ? { rejectedLogRecords: stats.rejectedLogs }
+                  : {},
+            },
+            undefined,
+            corsOrigin
+          );
           return;
         }
 
@@ -431,12 +601,18 @@ export async function startOtlpCollectorServer(
             });
           }
           broadcastSnapshot();
-          sendJson(res, 200, {
-            partialSuccess:
-              stats.rejectedMetrics > 0
-                ? { rejectedDataPoints: stats.rejectedMetrics }
-                : {},
-          });
+          sendJson(
+            res,
+            200,
+            {
+              partialSuccess:
+                stats.rejectedMetrics > 0
+                  ? { rejectedDataPoints: stats.rejectedMetrics }
+                  : {},
+            },
+            undefined,
+            corsOrigin
+          );
           return;
         }
 
@@ -451,25 +627,42 @@ export async function startOtlpCollectorServer(
         broadcastSnapshot();
 
         // Standard OTLP/HTTP ExportTraceServiceResponse JSON
-        sendJson(res, 200, {
-          partialSuccess:
-            stats.rejectedSpans > 0
-              ? { rejectedSpans: stats.rejectedSpans }
-              : {},
-        });
+        sendJson(
+          res,
+          200,
+          {
+            partialSuccess:
+              stats.rejectedSpans > 0
+                ? { rejectedSpans: stats.rejectedSpans }
+                : {},
+          },
+          undefined,
+          corsOrigin
+        );
       } catch (err) {
         if (err instanceof PayloadTooLargeError) {
-          sendJson(res, 413, { error: err.message });
+          sendJson(res, 413, { error: err.message }, undefined, corsOrigin);
           return;
         }
-        sendJson(res, 500, {
-          error: err instanceof Error ? err.message : "Collector ingestion error",
-        });
+        sendJson(
+          res,
+          500,
+          {
+            error: err instanceof Error ? err.message : "Collector ingestion error",
+          },
+          undefined,
+          corsOrigin
+        );
       }
       return;
     }
 
     if (method === "POST" && pathname === "/api/demo/trace") {
+      const access = checkMutatingRequestAccess(req, authToken, true);
+      if (!access.ok) {
+        sendJson(res, access.statusCode, { error: access.error }, undefined, corsOrigin);
+        return;
+      }
       try {
         const buf = await readRequestBuffer(req, 64 * 1024);
         let faulty = false;
@@ -490,16 +683,27 @@ export async function startOtlpCollectorServer(
           persistNdjsonLine(dataFile, { receivedAtMs: nowMs, payload: samplePayload });
         }
         const snapshot = broadcastSnapshot();
-        sendJson(res, 200, { ok: true, stats, snapshot });
+        sendJson(res, 200, { ok: true, stats, snapshot }, undefined, corsOrigin);
       } catch (err) {
-        sendJson(res, 500, {
-          error: err instanceof Error ? err.message : "Failed to emit sample trace",
-        });
+        sendJson(
+          res,
+          500,
+          {
+            error: err instanceof Error ? err.message : "Failed to emit sample trace",
+          },
+          undefined,
+          corsOrigin
+        );
       }
       return;
     }
 
     if (method === "POST" && pathname === "/api/reset") {
+      const access = checkMutatingRequestAccess(req, authToken, true);
+      if (!access.ok) {
+        sendJson(res, access.statusCode, { error: access.error }, undefined, corsOrigin);
+        return;
+      }
       store.clear();
       if (dataFile) {
         try {
@@ -510,11 +714,17 @@ export async function startOtlpCollectorServer(
         }
       }
       const snapshot = broadcastSnapshot();
-      sendJson(res, 200, { ok: true, snapshot });
+      sendJson(res, 200, { ok: true, snapshot }, undefined, corsOrigin);
       return;
     }
 
-    sendJson(res, 404, { error: `Not found: ${method} ${pathname}` });
+    sendJson(
+      res,
+      404,
+      { error: `Not found: ${method} ${pathname}` },
+      undefined,
+      corsOrigin
+    );
   });
 
   await new Promise<void>((resolve, reject) => {

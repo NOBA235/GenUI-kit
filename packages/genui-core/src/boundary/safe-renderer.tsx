@@ -2,7 +2,7 @@ import React, {
   Component,
   createContext,
   useContext,
-  useSyncExternalStore,
+  useMemo,
   type ComponentType,
   type ErrorInfo,
   type ReactNode,
@@ -275,74 +275,21 @@ export interface WrapRegistryOptions {
   readonly onElementFault?: (fault: ElementFaultRecord) => void;
 }
 
-const noopSubscribe = () => () => {};
-const getClientRenderFlag = () => false;
-const getServerRenderFlag = () => true;
-
 interface SafeElementInvokerProps {
   readonly OriginalComponent: ComponentRenderer<any>;
   readonly renderProps: ComponentRenderProps<any>;
-  readonly elementKey: string;
-  readonly componentType: string;
-  readonly telemetryTracker?: TelemetryTracker;
-  readonly onElementFault?: (fault: ElementFaultRecord) => void;
 }
 
 /**
  * Isolates invocation of the user's catalog component on its own child React fiber so
  * valid <-> invalid schema transitions or render throws inside SafeWrappedComponent never
- * violate React's Rules of Hooks.
+ * violate React's Rules of Hooks, and React's dispatcher manages hooks across both SSR
+ * (`renderToString` / `renderToStaticMarkup`) and client hydration/DOM renders.
  */
 function SafeElementInvoker({
   OriginalComponent,
   renderProps,
-  elementKey,
-  componentType,
-  telemetryTracker,
-  onElementFault,
-}: SafeElementInvokerProps): ReactNode {
-  const isServerRender = useSyncExternalStore(
-    noopSubscribe,
-    getClientRenderFlag,
-    getServerRenderFlag,
-  );
-
-  // React SSR (renderToStaticMarkup) does not activate class ErrorBoundaries,
-  // so catch synchronous throws directly during SSR passes while letting client
-  // React ErrorBoundaries handle live DOM renders and hook isolation cleanly.
-  if (isServerRender) {
-    try {
-      const callable = OriginalComponent as unknown as (
-        p: ComponentRenderProps<any>,
-      ) => ReactNode;
-      return callable(renderProps);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : String(err ?? "Render error");
-      const fault: ElementFaultRecord = {
-        id: `${elementKey}-sync-render`,
-        elementKey,
-        componentType,
-        phase: "react_render",
-        message,
-        timestamp: Date.now(),
-      };
-      telemetryTracker?.recordElementFault(fault);
-      onElementFault?.(fault);
-
-      return (
-        <ElementFaultCard
-          elementKey={elementKey}
-          componentType={componentType}
-          phase="react_render"
-          message={message}
-        >
-          {renderProps.children}
-        </ElementFaultCard>
-      );
-    }
-  }
-
+}: SafeElementInvokerProps): React.JSX.Element {
   const ComponentToRender = OriginalComponent as ComponentType<
     ComponentRenderProps<any>
   >;
@@ -477,10 +424,6 @@ export function wrapRegistryWithTelemetry(
               ...renderProps,
               element: healedElement,
             }}
-            elementKey={elementKey}
-            componentType={compName}
-            telemetryTracker={options.telemetryTracker}
-            onElementFault={options.onElementFault}
           />
         </GenUIElementErrorBoundary>
       );
@@ -511,9 +454,12 @@ export const DefaultUnknownComponentFallback: ComponentRenderer = ({
   element,
   children,
 }) => {
+  const elementRecord = (element ?? {}) as unknown as Record<string, unknown>;
+  const elementKey =
+    (elementRecord[GENUI_ELEMENT_KEY_FIELD] as string | undefined) ?? "unknown";
   return (
     <ElementFaultCard
-      elementKey="unknown"
+      elementKey={elementKey}
       componentType={element?.type ?? "UnknownComponent"}
       phase="schema_validation"
       message={`Hallucinated component type "${element?.type ?? "Unknown"}" is not registered in the active catalog.`}
@@ -522,6 +468,11 @@ export const DefaultUnknownComponentFallback: ComponentRenderer = ({
     </ElementFaultCard>
   );
 };
+
+const recordedSpecsByTracker = new WeakMap<
+  TelemetryTracker,
+  WeakSet<object>
+>();
 
 /**
  * Drop-in safe wrapper around `@json-render/react`'s `<Renderer />`.
@@ -536,6 +487,42 @@ export function SafeGenUIRenderer({
   telemetryTracker,
   healedDiagnostics,
 }: SafeGenUIRendererProps): React.JSX.Element | null {
+  const fallbackRenderer: ComponentRenderer = useMemo(
+    () =>
+      ({ element, children }) => {
+        const elementRecord = (element ?? {}) as unknown as Record<
+          string,
+          unknown
+        >;
+        const elementKey =
+          (elementRecord[GENUI_ELEMENT_KEY_FIELD] as string | undefined) ??
+          "unknown";
+        const componentType = element?.type ?? "UnknownComponent";
+        const message = `Hallucinated component type "${componentType}" is not registered in the active catalog.`;
+        if (telemetryTracker) {
+          telemetryTracker.recordElementFault({
+            id: `${elementKey}-unknown-component`,
+            elementKey,
+            componentType,
+            phase: "schema_validation",
+            message,
+            timestamp: Date.now(),
+          });
+        }
+        return (
+          <ElementFaultCard
+            elementKey={elementKey}
+            componentType={componentType}
+            phase="schema_validation"
+            message={message}
+          >
+            {children}
+          </ElementFaultCard>
+        );
+      },
+    [telemetryTracker],
+  );
+
   if (!spec || !spec.root) {
     return null;
   }
@@ -548,17 +535,25 @@ export function SafeGenUIRenderer({
   });
 
   if (sanitized.severedCyclesCount > 0 && telemetryTracker) {
-    telemetryTracker.recordChunkPass({
-      charsCount: 0,
-      appliedPatchesCount: 0,
-      rejectedPatchesCount: 0,
-      validationLatencyMs: 0,
-      evaluatedPropsDelta: 0,
-      healedPropsDelta: sanitized.healedNumbersCount,
-      rejectedPropsDelta: sanitized.blockedPathsCount,
-      severedCyclesDelta: sanitized.severedCyclesCount,
-      issues: sanitized.inspection.issues,
-    });
+    let seenSpecs = recordedSpecsByTracker.get(telemetryTracker);
+    if (!seenSpecs) {
+      seenSpecs = new WeakSet<object>();
+      recordedSpecsByTracker.set(telemetryTracker, seenSpecs);
+    }
+    if (!seenSpecs.has(spec)) {
+      seenSpecs.add(spec);
+      telemetryTracker.recordChunkPass({
+        charsCount: 0,
+        appliedPatchesCount: 0,
+        rejectedPatchesCount: 0,
+        validationLatencyMs: 0,
+        evaluatedPropsDelta: 0,
+        healedPropsDelta: sanitized.healedNumbersCount,
+        rejectedPropsDelta: sanitized.blockedPathsCount,
+        severedCyclesDelta: sanitized.severedCyclesCount,
+        issues: sanitized.inspection.issues,
+      });
+    }
   }
 
   // Stamp element keys (shallow copies only; never mutates the caller's spec).
@@ -574,7 +569,7 @@ export function SafeGenUIRenderer({
         spec={keyedSpec}
         registry={registry}
         loading={loading}
-        fallback={DefaultUnknownComponentFallback}
+        fallback={fallbackRenderer}
       />
     </HealedProvenanceContext.Provider>
   );

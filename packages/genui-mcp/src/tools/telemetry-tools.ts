@@ -56,6 +56,7 @@ export interface McpTelemetryProvider {
     parameters?: Record<string, unknown>;
   }) => {
     success: boolean;
+    executionMode?: "LOCAL_SIMULATION" | "LOCAL_OTLP_SNAPSHOT_ADVISORY";
     action: string;
     targetServiceId: string;
     message: string;
@@ -271,12 +272,13 @@ class DefaultMcpTelemetryProvider implements McpTelemetryProvider {
     targetServiceId: string;
     parameters?: Record<string, unknown>;
   }) {
-    this.chaosActive = false; // clears chaos
+    this.chaosActive = false; // clears simulated in-memory chaos flag only
     return {
       success: true,
+      executionMode: "LOCAL_SIMULATION" as const,
       action: req.action,
       targetServiceId: req.targetServiceId,
-      message: `Remediation action '${req.action}' executed successfully on ${req.targetServiceId}. Fleet health verified: 0% errors, <45ms p95 latency.`,
+      message: `[LOCAL SIMULATION ONLY — no external cluster or cloud control plane was mutated] Simulated remediation action '${req.action}' on ${req.targetServiceId}; in-memory demo fleet state verified: 0% errors, <45ms p95 latency.`,
       timestamp: new Date().toISOString(),
       verificationPassed: true,
     };

@@ -9,10 +9,14 @@ function parseCliArgs(argv: string[]): {
   host: string;
   demoMode: boolean;
   dataFile?: string | false;
+  allowRemote: boolean;
+  authToken?: string;
 } {
   let port = Number(process.env.OTLP_PORT ?? 4318);
   let host = process.env.OTLP_HOST ?? "127.0.0.1";
   let demoMode = process.env.SPATIAL_OPS_DEMO === "1";
+  let allowRemote = process.env.SPATIAL_OPS_ALLOW_REMOTE === "1";
+  let authToken = process.env.SPATIAL_OPS_AUTH_TOKEN?.trim() || undefined;
   let dataFile: string | false | undefined =
     process.env.SPATIAL_OPS_DATA_FILE === "none"
       ? false
@@ -24,6 +28,10 @@ function parseCliArgs(argv: string[]): {
       demoMode = true;
     } else if (arg === "--in-memory") {
       dataFile = false;
+    } else if (arg === "--allow-remote") {
+      allowRemote = true;
+    } else if (arg.startsWith("--auth-token=")) {
+      authToken = arg.slice("--auth-token=".length).trim() || undefined;
     } else if (arg.startsWith("--port=")) {
       port = Number(arg.slice("--port=".length));
     } else if (arg === "--port" && argv[i + 1]) {
@@ -45,6 +53,8 @@ function parseCliArgs(argv: string[]): {
     host,
     demoMode,
     dataFile,
+    allowRemote,
+    authToken,
   };
 }
 
@@ -60,7 +70,7 @@ async function main(): Promise<void> {
     `[SpatialOps OTLP] Snapshot SSE: http://localhost:${collector.port}/api/events | Storage: ${args.dataFile === false ? "in-memory" : (args.dataFile ?? paths.dataFile)}`
   );
   console.log(
-    `[SpatialOps OTLP] MCP snapshot file: ${paths.snapshotFile} (override with SPATIAL_OPS_OTLP_SNAPSHOT)`
+    `[SpatialOps OTLP] MCP snapshot file: ${paths.snapshotFile} (override with SPATIAL_OPS_OTLP_SNAPSHOT) | Auth: ${args.authToken ? "Bearer token required" : "loopback-only"}`
   );
 
   const shutdown = async () => {

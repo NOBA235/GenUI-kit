@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
 import * as fc from "fast-check";
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import React, { act, useState } from "react";
+import { createRoot } from "react-dom/client";
 import { schema } from "@json-render/react/schema";
 import { defineRegistry, JSONUIProvider } from "@json-render/react";
 import { z } from "zod";
@@ -318,7 +319,9 @@ describe("@genui-studio/core — Property-Based Testing (PBT) & Formal Invariant
     );
   });
 
-  it("Fail-Safe Component Boundary & Telemetry Wrapper: heals out-of-bounds numbers, numeric strings, and invalid enums with a diagnostic badge, and isolates throwing nodes without crashing parent React tree", () => {
+  it("Fail-Safe Component Boundary & Telemetry Wrapper: heals out-of-bounds numbers, numeric strings, and invalid enums with a diagnostic badge, and isolates throwing nodes without crashing parent React tree", async () => {
+    (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const tracker = createTelemetryTracker();
 
     const { registry } = defineRegistry(verifiedTestCatalog.catalog, {
@@ -332,13 +335,14 @@ describe("@genui-studio/core — Property-Based Testing (PBT) & Formal Invariant
             React.createElement("div", null, children),
           ),
         MetricGauge: ({ props }) => {
+          const [unitFallback] = useState("%");
           if (props.label === "TRIGGER_CRASH") {
             throw new Error("Simulated leaf component runtime failure");
           }
           return React.createElement(
             "div",
             { "data-testid": "metric-gauge", "data-value": props.value },
-            `${props.label}: ${props.value}${props.unit ?? "%"}`,
+            `${props.label}: ${props.value}${props.unit ?? unitFallback}`,
           );
         },
         ActionTrigger: ({ props }) =>
@@ -408,18 +412,29 @@ describe("@genui-studio/core — Property-Based Testing (PBT) & Formal Invariant
       },
     };
 
-    const html = renderToStaticMarkup(
-      React.createElement(
-        JSONUIProvider,
-        { registry: safeRegistry, initialState: {}, children: null },
-        React.createElement(SafeGenUIRenderer, {
-          spec: adversarialSpec,
-          registry: safeRegistry,
-          catalog: verifiedTestCatalog,
-          telemetryTracker: tracker,
-        }),
-      ),
-    );
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        React.createElement(
+          JSONUIProvider,
+          { registry: safeRegistry, initialState: {}, children: null },
+          React.createElement(SafeGenUIRenderer, {
+            spec: adversarialSpec,
+            registry: safeRegistry,
+            catalog: verifiedTestCatalog,
+            telemetryTracker: tracker,
+          }),
+        ),
+      );
+    });
+    const html = container.innerHTML;
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+    errorSpy.mockRestore();
 
     // Parent card and healthy sibling button rendered cleanly
     expect(html).toContain("Cluster Control Plane");

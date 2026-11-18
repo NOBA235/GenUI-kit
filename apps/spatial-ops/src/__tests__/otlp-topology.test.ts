@@ -504,4 +504,95 @@ describe("Local OTLP Receiver & Dynamic Topology Builder", () => {
       .map((el) => el.props.serviceId);
     expect(critIds).toContain("checkout-service");
   });
+
+  it("10. Hardens collector safety boundaries: rejects non-loopback bind by default, enforces decompressed gzip maxOutputLength (413), restricts CORS to loopback, and enforces Bearer authToken", async () => {
+    // 1. Refuses non-loopback bind without allowRemote: true
+    await expect(
+      startOtlpCollectorServer({
+        host: "0.0.0.0",
+        port: 0,
+        dataFile: false,
+        snapshotFile: false,
+      })
+    ).rejects.toThrow(/Refusing to bind SpatialOps OTLP collector to non-loopback host/);
+
+    // 2. Starts collector with bounded maxBodyBytes (8 KiB) and authToken
+    const collector = await startOtlpCollectorServer({
+      port: 0,
+      maxBodyBytes: 8192,
+      authToken: "secret-sre-token",
+      dataFile: false,
+      snapshotFile: false,
+    });
+    activeServers.push(collector);
+
+    // 3. Loopback Origin is reflected; untrusted external Origin is NOT reflected
+    const loopbackOriginRes = await fetch(`${collector.url}/health`, {
+      headers: { Origin: "http://localhost:5174" },
+    });
+    expect(loopbackOriginRes.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:5174"
+    );
+
+    const untrustedOriginRes = await fetch(`${collector.url}/health`, {
+      headers: { Origin: "https://evil.example.com" },
+    });
+    expect(untrustedOriginRes.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:5174"
+    );
+    expect(untrustedOriginRes.headers.get("access-control-allow-origin")).not.toBe("*");
+
+    // 4. Unauthenticated POST /api/reset and POST /v1/traces are rejected with 401
+    const unauthReset = await requestJson(`${collector.url}/api/reset`, "POST");
+    expect(unauthReset.status).toBe(401);
+
+    const samplePayload = createSampleOtlpRequest({ faulty: false, traceId: "auth-tr-1" });
+    const unauthIngest = await requestJson(
+      `${collector.url}/v1/traces`,
+      "POST",
+      JSON.stringify(samplePayload),
+      { "Content-Type": "application/json" }
+    );
+    expect(unauthIngest.status).toBe(401);
+
+    // 5. Authenticated POST /v1/traces and POST /api/reset succeed with 200
+    const authIngest = await requestJson(
+      `${collector.url}/v1/traces`,
+      "POST",
+      JSON.stringify(samplePayload),
+      {
+        "Content-Type": "application/json",
+        Authorization: "Bearer secret-sre-token",
+      }
+    );
+    expect(authIngest.status).toBe(200);
+
+    const authReset = await requestJson(
+      `${collector.url}/api/reset`,
+      "POST",
+      undefined,
+      { Authorization: "Bearer secret-sre-token" }
+    );
+    expect(authReset.status).toBe(200);
+
+    // 6. Gzip decompression bomb: compressed size < 8192 bytes, decompressed size > 8192 bytes -> 413
+    const largeUncompressed = JSON.stringify({
+      resourceSpans: [],
+      padding: "A".repeat(32_768),
+    });
+    const compressedBomb = gzipSync(Buffer.from(largeUncompressed, "utf8"));
+    expect(compressedBomb.byteLength).toBeLessThan(8192);
+
+    const bombRes = await requestJson(
+      `${collector.url}/v1/traces`,
+      "POST",
+      compressedBomb,
+      {
+        "Content-Type": "application/json",
+        "Content-Encoding": "gzip",
+        Authorization: "Bearer secret-sre-token",
+      }
+    );
+    expect(bombRes.status).toBe(413);
+  });
 });

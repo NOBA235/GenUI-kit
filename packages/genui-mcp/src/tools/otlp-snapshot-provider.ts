@@ -205,6 +205,7 @@ export class OtlpSnapshotMcpTelemetryProvider implements McpTelemetryProvider {
     const exists = Boolean(snapshot?.services?.[req.targetServiceId]);
     return {
       success: true,
+      executionMode: "LOCAL_OTLP_SNAPSHOT_ADVISORY" as const,
       action: req.action,
       targetServiceId: req.targetServiceId,
       message: exists

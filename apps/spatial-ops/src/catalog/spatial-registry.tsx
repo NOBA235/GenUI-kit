@@ -321,8 +321,9 @@ export function createSpatialRegistry(telemetry?: TelemetryTracker) {
 
         ServiceMeshNode3D: ({ props }) => {
           if (
-            props.name === "CHAOS_TRIGGER_RENDER_CRASH" ||
-            props.serviceId === "srv-chaos-throw"
+            typeof window !== "undefined" &&
+            (props.name === "CHAOS_TRIGGER_RENDER_CRASH" ||
+              props.serviceId === "srv-chaos-throw")
           ) {
             throw new Error("Simulated WebGL mesh shader compilation failure");
           }
