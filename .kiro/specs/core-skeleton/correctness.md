@@ -25,8 +25,11 @@ For any random partition vector $P = (p_1, p_2, \dots, p_k)$ where $0 < p_1 < p_
 
 $$\forall S \in \text{ValidSpecs}(\mathcal{C}), \forall P \in \text{Partitions}(|L|): \quad \text{Finalize}\left(\bigoplus_{i=1}^{k+1} \text{Push}(c_i)\right).\text{spec} \equiv \text{CompileBatch}(L).\text{spec} \equiv S$$
 
+Here $\text{CompileBatch}(L)$ is a single `push(L)` followed by `finalize()` on a fresh compiler.
+
 **What this tests:**
-- Line buffering inside `GuardrailedStreamCompiler` is invariant to arbitrary network packet fragmentation, 1-byte drips, `\r\n` vs `\n` line endings, code-fence wrappers (` ```spec `), SSE `data:` framing, and missing trailing newlines at EOF.
+- Line buffering inside `GuardrailedStreamCompiler` is invariant to arbitrary network packet fragmentation, 1-byte drips, `\r\n` vs `\n` line endings, and missing trailing newlines at EOF (`invariants.fuzz.test.ts` "Invariant 1", which asserts both equivalences). SSE `data:` framing and the byte caps are covered separately in `hardening.test.ts`.
+- The reusable suite theorem `INV-PBT-01` in `runCatalogInvariantSuite` checks the first equivalence (chunked ≡ batch) only.
 
 ---
 
@@ -56,27 +59,30 @@ Let $\mathcal{M}_1, \mathcal{M}_2$ be two independent `TimeTravelStateStore` ins
 3. **Structural Sharing & Isolation:** Mutating $\mathcal{M}_1$ at path `/a/b` never mutates $\mathcal{M}_2$ and preserves strict `===` object reference equality on all disjoint branches `/c` in $\mathcal{M}_1$.
 4. **Time-Travel Invertibility:** Performing $k$ mutations followed by $k$ `undo()` calls restores a snapshot deeply equal to $S_0$, and $k$ subsequent `redo()` calls restore the exact terminal snapshot.
 
+All four sub-properties are asserted by `invariants.fuzz.test.ts` "Invariant 3". The reusable suite theorem `INV-PBT-03` covers 1, 2 and session isolation; it does not check `===` sharing or undo/redo.
+
 ---
 
 ### Property 4: Catalog-to-Prompt & Fingerprint Determinism (`INV-PBT-04`)
 Let $\mathcal{C}_A$ and $\mathcal{C}_B$ be two catalog definitions containing the exact same set of component schemas and action definitions, but constructed with arbitrary key insertion permutations $\pi_{\text{comp}}, \pi_{\text{props}}, \pi_{\text{act}}$.
 
 $$\forall \pi_{\text{comp}}, \pi_{\text{props}}, \pi_{\text{act}}: \quad \text{createVerifiedCatalog}(\mathcal{C}_A).\text{metadata.catalogHash} === \text{createVerifiedCatalog}(\mathcal{C}_B).\text{metadata.catalogHash}$$
-$$\land \quad \text{generateSynchronizedPrompt}(\mathcal{C}_A, \text{opts}) === \text{generateSynchronizedPrompt}(\mathcal{C}_B, \text{opts})$$
+$$\land \quad \text{createVerifiedCatalog}(\mathcal{C}_A).\text{prompt}(\text{opts}) === \text{createVerifiedCatalog}(\mathcal{C}_B).\text{prompt}(\text{opts})$$
 
 **What this tests:**
-- System prompt compilation and synchronous FIPS 180-4 SHA-256 schema fingerprinting over canonical UTF-8 JSON are deterministic, immune to V8 key-insertion order variance, and lossless (every registered component name, prop key, and action name is present in the compiled prompt).
+- System prompt compilation and synchronous FIPS 180-4 SHA-256 schema fingerprinting over canonical UTF-8 JSON are deterministic and immune to V8 key-insertion order variance (`invariants.fuzz.test.ts` "Invariant 4" permutes component, prop and action keys; `hardening.test.ts` checks hash order invariance and SHA-256 against `node:crypto`).
+- The reusable suite theorem `INV-PBT-04` is narrower: it reverses the `customRules` order on one catalog and checks that every component name appears in the prompt. No test asserts that every prop key and action name appears in the prompt.
 
 ---
 
 ## 3. Real Edge-Case Bugs Caught by `fast-check` Shrinking (Engineering Log)
 
-During Phase 2 development of `@genui-studio/core`, `fast-check` shrinking uncovered **4 subtle edge-case bugs** in standard JSON Patch and spec handling that traditional unit tests missed:
+During Phase 2 development of `@genui-studio/core`, `fast-check` shrinking uncovered **5 subtle edge-case bugs** in standard JSON Patch and spec handling that traditional unit tests missed:
 
 | Bug ID | Shrunk Counterexample Discovered by `fast-check` | Root Cause | Fix Implemented in `@genui-studio/core` |
 | :--- | :--- | :--- | :--- |
-| **BUG-PBT-01** | Stream chunk ending without trailing `\n` on final line: `{"op":"add","path":"/root","value":"el-0"}` | `@json-render/core`'s `createSpecStreamCompiler().push()` buffers lines until `\n` is seen; if an LLM stream closes at EOF without a trailing newline, the final patch stays trapped in the internal buffer. | `GuardrailedStreamCompiler.finalize()` explicitly flushes any residual un-newlined buffer by appending `\n` when the buffer is non-empty before running final DAG sanitization. |
-| **BUG-PBT-02** | `applySpecStreamPatch` given `{"op":"replace","path":"/elements/card-1/props/count","value":-0}` or `NaN` | `JSON.stringify(-0)` yields `"0"`, and `NaN`/`Infinity` serialize to `null` in JSON, causing round-trip state mismatch (`Object.is(-0, +0) === false`) and broken numeric comparisons in UI components. | Added `normalizeFiniteValue()` across both `sanitizeSpecGraph` and `TimeTravelStateStore` to canonicalize `-0 -> 0` and clamp/heal `NaN`/`Infinity` while incrementing `healedPropsCount`. |
+| **BUG-PBT-01** | Stream chunk ending without trailing `\n` on final line: `{"op":"add","path":"/root","value":"el-0"}` | `@json-render/core`'s `createSpecStreamCompiler().push()` buffers lines until `\n` is seen; if an LLM stream closes at EOF without a trailing newline, the final patch stays trapped in the internal buffer. | `GuardrailedStreamCompiler` keeps its own line buffer (it does not wrap `createSpecStreamCompiler`). `finalize()` splits any residual un-newlined buffer on `\n` and processes those lines before running final DAG sanitization. |
+| **BUG-PBT-02** | `applySpecStreamPatch` given `{"op":"replace","path":"/elements/card-1/props/count","value":-0}` or `NaN` | `JSON.stringify(-0)` yields `"0"`, and `NaN`/`Infinity` serialize to `null` in JSON, causing round-trip state mismatch (`Object.is(-0, +0) === false`) and broken numeric comparisons in UI components. | `deepCloneAndSanitizeValue()` (used by both `sanitizeSpecGraph` and `TimeTravelStateStore`) canonicalizes `-0 -> 0` and heals `NaN`/`Infinity` to `0`, incrementing `healedNumbersCount` and recording a `healed_non_finite_number` issue. |
 | **BUG-PBT-03** | Diamond / duplicate child reference: `elements["root"].children = ["item-1", "item-1"]` | Standard 3-color cycle detection (`GRAY` check) only catches ancestor back-edges (`A -> B -> A`), allowing the same child key `"item-1"` to be visited twice (`BLACK`) under the same parent or across two parents, causing React duplicate `key` collisions and shared state corruption. | Upgraded `sanitizeSpecGraph` to track a global `mountedNodes: Set<string>` in addition to the recursion-stack `GRAY` set, deduplicating repeated sibling keys and preventing multi-parent node aliasing. |
-| **BUG-PBT-04** | Batch `store.update({ "/a/b": 1, "/a": { b: 2 } })` vs `{ "/a": { b: 2 }, "/a/b": 1 }` | JavaScript object key iteration order follows insertion order; applying a parent path `/a` after child path `/a/b` overwrote the child path depending on key order. | `TimeTravelStateStore.update()` lexicographically sorts all JSON Pointers by path depth and code point (`a.localeCompare(b)`) before applying `immutableSetByPath`, guaranteeing 100% permutation-independent determinism. |
+| **BUG-PBT-04** | Batch `store.update({ "/a/b": 1, "/a": { b: 2 } })` vs `{ "/a": { b: 2 }, "/a/b": 1 }` | JavaScript object key iteration order follows insertion order; applying a parent path `/a` after child path `/a/b` overwrote the child path depending on key order. | `TimeTravelStateStore.update()` sorts all JSON Pointers by path depth (shallowest first), then by `a.localeCompare(b)`, before applying `immutableSetByPath`, guaranteeing 100% permutation-independent determinism. |
 | **BUG-PBT-05** | Throwing leaf component (`MetricGauge` with `TRIGGER_CRASH`) rendered via `renderToStaticMarkup` in Node/SSR | React's `react-dom/server` renderer does not invoke class `ErrorBoundary.getDerivedStateFromError` during synchronous SSR passes, causing a leaf throw to abort the entire SSR tree. | Upgraded `wrapRegistryWithTelemetry()` to combine a synchronous `try / catch` invocation around the `@json-render/react` component function with a client-side `<GenUIElementErrorBoundary>` class boundary, guaranteeing leaf fault quarantine in both SSR and client DOM. |

@@ -5,7 +5,7 @@ CHIMERA // LAB stitches four technologies that were never meant to meet into one
 1. **Physarum routing.** A slime-mould (*Physarum polycephalum*) flow-reinforcement solver finds fault-tolerant routes through a service graph.
 2. **SQL plan analysis.** A deterministic SQL parser and cost-based planner turn real queries into `Seq Scan` / `Index Scan` / `Hash Join` plans. The plans set the "food quality" of every database node the slime mould can reach.
 3. **Sonification.** A Web Audio FM and granular synthesizer turns network entropy, latency and flux into an ambient drone. Full-table scans add Geiger-counter clicks.
-4. **Kiro Crew app.** An installable Kiro Crew app (`kiro-crew-app/`) ships an agent, a skill and a scheduled audit cron, so the same optimization logic runs inside a developer's Kiro Crew workspace.
+4. **Kiro Crew app.** An installable Kiro Crew app (`kiro-crew-app/`) ships three agents, a skill and three scheduled crons, so the same optimization logic runs inside a developer's Kiro Crew workspace.
 
 Glossary:
 - **Node**: a gateway, service, agent, database primary, replica, shard or cache in the routing graph.
@@ -49,7 +49,7 @@ Glossary:
 
 ## Requirement 5: Physarum routing solver
 1. THE SYSTEM SHALL model each query as current injected at its source node. Each candidate sink is grounded through a sink resistance equal to its planned service latency.
-2. WHEN stepping the solver, THE SYSTEM SHALL solve the Kirchhoff pressure system per query, sum the absolute link flux over queries, and update conductivity with `D' = (D + dt·f(Q)) / (1 + dt)`, where `f(Q) = Qᵘ / (1 + Qᵘ)`.
+2. WHEN stepping the solver, THE SYSTEM SHALL solve the Kirchhoff pressure system per query, sum the absolute link flux over queries, and update conductivity with `D' = (D + dt·f(G·|Q|)) / (1 + dt)`, where `f(x) = xᵘ / (1 + xᵘ)` and `G = FLUX_GAIN = 4`.
 3. THE SYSTEM SHALL keep conductivity at or above `MIN_CONDUCTIVITY` and exclude dead nodes and their links.
 4. IF a query's source has no path to any live candidate sink, THEN THE SYSTEM SHALL mark that query as failed and never produce NaN.
 5. THE SYSTEM SHALL raise sink resistance with load (`R / (1 − ρ)`, ρ capped at 0.95) and report saturated sinks.
@@ -62,13 +62,14 @@ Glossary:
 8. THE SYSTEM SHALL be deterministic: the same scenario and the same sequence of operations give identical results.
 
 ## Requirement 6: Scenarios and interventions
-1. THE SYSTEM SHALL ship six scenarios with realistic schemas, statistics and queries:
+1. THE SYSTEM SHALL ship seven scenarios with realistic schemas, statistics and queries:
    - Unindexed E-Commerce Checkout Spike
    - N+1 Social Feed Graph
    - Vector Embedding Shard Imbalance
    - Overnight Kiro Crew Autonomous PR Refactor
    - Multi-Tenant Analytics Hot Partition
    - Ride-Hailing Dispatch Region Failover
+   - Biotech Genomics Pipeline & Protein Fold Search
 2. WHEN the user injects an index, THE SYSTEM SHALL add it to the dataset, re-plan every query on nodes that share that dataset, and return the DDL plus the before and after cost.
 3. WHEN the user severs or revives a node, THE SYSTEM SHALL remove or restore it and its links. The network SHALL reroute on later steps.
 4. WHEN the user runs the Optimizer Agent, THE SYSTEM SHALL deterministically:
@@ -91,9 +92,9 @@ Glossary:
 ## Requirement 8: Kiro Crew app bundle
 1. THE SYSTEM SHALL ship `kiro-crew-app/app.json` that conforms to the Kiro Crew App Kit manifest reference. It SHALL declare:
    - identity fields
-   - one agent and one skill
+   - three agents (`chimera-architect`, `index-surgeon`, `deadlock-hunter`) and one skill (`bio-query-optimizer`)
    - a dashboard page
-   - a `0 */6 * * *` audit cron
+   - three crons (`0 */6 * * *`, `0 3 * * *`, `*/30 * * * *`)
    - documented backend lifecycle hooks
    - permissions, dependencies and setup commands
 2. THE SYSTEM SHALL ship `agents/chimera-architect.json` with `"model": "auto"` and `"tools": ["@kirocrew-core"]`. Its prompt SHALL inspect schemas, git history and `EXPLAIN` plans, and SHALL propose changes without running DDL unasked.
@@ -102,7 +103,7 @@ Glossary:
    - composite index design
    - reading `EXPLAIN (ANALYZE, BUFFERS)`
    - emitting `@json-render` RFC 6902 patches
-4. THE SYSTEM SHALL ship the cron paused (`"enabled": false`) because it needs a configured project and database first.
+4. THE SYSTEM SHALL ship all three crons paused (`"enabled": false`) because they need a configured project and database first.
 5. THE SYSTEM SHALL validate the manifest with `validateCrewManifest()`. That validator encodes the documented install-time rules: kebab-case name, semver version, relative contained paths, exactly one cron schedule field, page route and label, and `module.path:callable` hooks.
 6. THE SYSTEM SHALL keep `@kirocrew/app-sdk`, React and `lucide-react` external in the dashboard bundle.
 
@@ -110,4 +111,5 @@ Glossary:
 1. THE SYSTEM SHALL render the network on a 60 FPS canvas with particle flux, plus HUD panels for plans, telemetry and the agent log.
 2. THE SYSTEM SHALL register the lab components in a GenUI catalog with strict Zod props and remix presets.
 3. THE SYSTEM SHALL verify parser round-trips, planner monotonicity, solver conservation and manifest validity with `fast-check`.
+   - **Status:** the committed `fast-check` suite (`src/__tests__/chimera-lab.pbt.test.ts`) covers solver NaN/Infinity and flux bounds, planner index monotonicity and manifest validity. There is no committed parser round-trip property; round-trip was checked by a one-off script over the 22 distinct SQL statements shipped in the scenarios, all passing.
 4. THE SYSTEM SHALL list the template in the Studio Hub marketplace and export it, including the Kiro Crew app, in the `.zip`.

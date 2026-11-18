@@ -4,7 +4,7 @@
 - [x] Create scoped steering `.kiro/steering/afterdark-3d-horror.md` (`inclusion: fileMatch`) without touching root steering files.
 - [x] Author `.kiro/specs/afterdark/` (`requirements.md`, `design.md`, `tasks.md`).
 - [x] Add `three`, `@types/three`, `@react-three/fiber`, `@react-three/drei`, `zustand` offline to `@genui-studio/templates` and `@genui-studio/studio-hub`.
-- [x] Extend Studio Hub (`PreviewPage.tsx` & `StudioHud.tsx`) with **Immersion Mode**:
+- [x] Extend Studio Hub (`PreviewPage.tsx`) with **Immersion Mode**:
   - Auto-engage on `manifest.immersiveExperience === true` (`/preview/afterdark-horror`).
   - Collapse header into corner indicator (`Press [Alt+G] for GenUI Studio / Export | [?debug=true] for Debug`).
   - Support `[Alt+G]` toggle, `ESC` Pointer Lock release detection, and Light Mode restoration HUD reveal without trapping user focus.
@@ -25,7 +25,7 @@
   - [x] Zone D (`chapel_steps`): Enterable Abandoned Gothic Chapel with split front doorway, ajar oak doors, stained-glass windows, timber nave floorboards (`surface = "wood"`), pews, Clue 02 altar, and 16-step East sanctuary stairwell descending from `y = 0.3m` to `y = -4.5m`.
   - [x] Zone E (`crypt_entrance`): Subterranean stone-walled T-corridor beneath Chapel (`y = -4.5m`), stone sarcophagi, flickering candles, dormant NW Breaker Switch alcove `[-4.0, -3.2, -50.22]`.
 - [x] Phase 4 — Raycasted `[E]` Interaction Engine (`evaluateInteractableFocus`, `FirstPersonController`, `SceneOverlays`) and persistent 3-Clue chain (`localStorage` `afterdark-archive-progress-v2`, zero tacky HUD quest checklists).
-- [x] Phase 5 — Stateful Cooldown-Governed `EncounterEntities` + `EncounterManager` (`enc-01` The Watcher with dot-product gaze vanish, `enc-02` The Moving Shadow, `enc-03` The Weeping Woman ember guide trail, `enc-04` The Presence rear ambush whisper, `enc-05` The Final Warning crypt intimidation flicker `< 2.5 Hz`) + `?debug=true` Teleports A–E, Clue 1–3 reveals, and Encounter 1–5 triggers.
+- [x] Phase 5 — Stateful Cooldown-Governed `EncounterEntities` + `evaluateEncounterProximity` (`engine/world-data.ts`) with `triggerEncounter` / `clearVisualEncounter` store actions (`enc-01` The Watcher with dot-product gaze vanish, `enc-02` The Moving Shadow, `enc-03` The Weeping Woman ember guide trail, `enc-04` The Presence rear ambush whisper, `enc-05` The Final Warning crypt intimidation flicker `< 2.5 Hz`) + `?debug=true` Teleports A–E, Clue 1–3 reveals, and Encounter 1–5 triggers.
 - [x] Verify Milestone 2 with `afterdark-horror.test.ts` + `studio-hub.test.tsx`, `pnpm sync:templates`, full workspace build/typecheck/test & Kiro PBT/catalog audits.
 
 ## Milestone 3: Physical Light Mode Breaker Switch & Restored Illuminated Website (Verified Complete)

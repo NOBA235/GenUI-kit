@@ -24,7 +24,7 @@ flowchart TD
 
 ---
 
-## 2. Component Catalog Decomposition (14 Components)
+## 2. Component Catalog Decomposition (15 Components)
 
 ### 3D Spatial Infrastructure Components
 1. **`AegisWarRoomShell`**: Top-level hybrid split-screen layout organizing 3D spatial viewport (left/center) and 2D tactical telemetry drawer (right/bottom).
@@ -37,16 +37,19 @@ flowchart TD
 ### 2D Tactical HUD & Telemetry Components
 7. **`IncidentHeroBanner`**: Executive severity indicator (SEV-0/SEV-1/SEV-2), incident elapsed time, root-cause summary, and one-click mitigation trigger.
 8. **`ServiceDiagnosticPanel`**: Detailed inspection card for the currently selected 3D node showing CPU/Memory saturation, ingress/egress RPS, and deployment version.
-9. **`LatencyHistogramCard`**: Live p50/p95/p99 latency distribution sparklines and SLO burn rate bound to `/cluster/services/{id}/latency`.
+9. **`LatencyHistogramCard`**: Live p50/p95/p99 latency distribution sparklines and SLO burn rate reading the service's `p50LatencyMs`, `p95LatencyMs` and `p99LatencyMs` from the `/cluster/services` map.
 10. **`ErrorLogTailer`**: Live streaming tail of raw JSON structured logs with error stack traces and HTTP 5xx codes.
 11. **`BlastRadiusDependencyTree`**: Upstream callers and downstream dependencies tree showing cascading fault propagation paths.
 12. **`RunbookActionDesk`**: Interactive guardrailed mutation forms: Trip Circuit Breaker, Trigger Regional Failover, Scale Pod Replicas, and Rollback Canary.
 13. **`ClusterMetricsGrid`**: High-level cluster health metrics (Global Error Rate, Active Nodes, Dropped Packets, MTTD).
 14. **`SreAuditTrailBanner`**: Live timeline of all executed SRE mitigation actions with Time-Travel Undo/Redo hints.
+15. **`TraceWaterfallViewer`**: Distributed trace waterfall (hierarchical spans, critical-path bottleneck, statement attributes, error status) for traces ingested over OTLP.
 
 ---
 
 ## 3. Bidirectional State Store Model (`/cluster/*`)
+
+Illustrative excerpt of the demo seed. `src/data/cluster-seed.ts` is authoritative; for example the seeded gateway has `position [0, 1.4, 0]`, `replicas 18` and `p99LatencyMs 980`, the summary has `clusterMttdMinutes 2.1`, and every service carries `p50LatencyMs`/`p95LatencyMs`/`p99LatencyMs`, CPU/memory saturation and `version`.
 
 ```json
 {
@@ -96,7 +99,7 @@ flowchart TD
 
 ## 4. WebGL Memory Safety & Performance Invariants
 Per `/.kiro/steering/spatial-3d-rules.md`:
-1. Shared `THREE.BoxGeometry`, `THREE.SphereGeometry`, and `THREE.CylinderGeometry` cache singletons.
-2. Temporary vector allocation in file scope: `scratchVec3 = new THREE.Vector3()`.
+1. Shared `THREE.BoxGeometry`, `THREE.SphereGeometry`, `THREE.CylinderGeometry` (and other) geometries created once per canvas (`createSharedGeometries` in a `useMemo`) and disposed on unmount.
+2. `useFrame` callbacks allocate nothing: they mutate refs, material uniforms and existing vectors in place (for example `curve.getPoint(t, mesh.position)`).
 3. Auto-disposal of custom mesh instances upon stream-driven unmount.
 4. Auto-pause render loop when tab is hidden via `document.addEventListener("visibilitychange")`.

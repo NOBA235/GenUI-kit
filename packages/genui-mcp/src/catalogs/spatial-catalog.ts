@@ -3,7 +3,7 @@ import { schema } from "@json-render/react/schema";
 import { createVerifiedCatalog } from "@genui-studio/core";
 
 /**
- * 14-Component Hybrid 3D + 2D Verified Catalog for Aegis Spatial Ops & Incident Command.
+ * 15-Component Hybrid 3D + 2D Verified Catalog for Aegis Spatial Ops & Incident Command.
  * Built on @genui-studio/core + @json-render/react/schema.
  */
 export const spatialCatalogDefinitions = {

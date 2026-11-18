@@ -1,7 +1,7 @@
 # Requirements Document: NINETY9 Archive (`packages/templates/src/ninety9-archive`)
 
 ## 1. Introduction & Editorial Vision
-**NINETY9** is Flagship Website #2 inside GenUI Studio's Mode A Dual-Mode Template Registry: a museum-grade digital archive of 1990–1999 culture styled like a 1997 NeXTstation / Platinum-era Macintosh technical monograph printed on high-contrast paper-white stock. Every pixel obeys a strict 5-tone monochrome palette (`#FFFFFF`, `#000000`, `#D9D9D9`, `#808080`, `#292929`), zero border radii, hard brutalist `#000000` offset shadows, and clean desktop-workstation layout geometry.
+**NINETY9** is Flagship Website #2 inside GenUI Studio's Mode A Dual-Mode Template Registry: a museum-grade digital archive of 1990–1999 culture styled like a 1997 NeXTstation / Platinum-era Macintosh technical monograph printed on high-contrast paper-white stock. Every pixel past the pre-entry COBOL boot gate (see Requirement 1.1) obeys a strict 5-tone monochrome palette (`#FFFFFF`, `#000000`, `#D9D9D9`, `#808080`, `#292929`), zero border radii, hard brutalist `#000000` offset shadows, and clean desktop-workstation layout geometry.
 
 ---
 
@@ -12,6 +12,7 @@
 
 #### Acceptance Criteria
 1. **WHILE** rendering any `ninety9-archive` surface, stylesheet, or SVG illustration, **THE SYSTEM SHALL** restrict all colors strictly to `#FFFFFF`, `#000000`, `#D9D9D9`, `#808080`, and `#292929`.
+   - **Exception (pre-entry COBOL boot gate):** the login terminal shown before operator authentication (`components/CobolBootTerminal.tsx`) uses green/red phosphor colours `#020A04`, `#041809`, `#051F0D`, `#14993D`, `#22FF66`, `#290707` and `#FF4D4D`, and the COBOL section at the end of `theme.css` (after the `PRE-ENTRY COBOL BOOT TERMINAL GATE` marker comment) uses `#020A04`, `#031207`, `#051F0D` and `#22FF66` plus `rgba()` grid/scanline tints. PBT-01 in `src/__tests__/ninety9.pbt.test.ts` exempts `CobolBootTerminal.tsx` and cuts `theme.css` at that marker before checking the 5-tone allowlist.
 2. **WHILE** rendering buttons, cards, badges, inputs, and dialogs inside `[data-template-theme="ninety9-archive"]`, **THE SYSTEM SHALL** enforce `0px` border radius and crisp `1px` or `2px` solid `#000000` rules paired with solid `#000000` offset shadows (`2px 2px 0` / `4px 4px 0`).
 3. **WHEN** previewing inside Studio Hub, **THE SYSTEM SHALL** avoid modifying root `src/app/`, `globals.css`, or unrelated packages, and collapse Studio chrome into a monochrome corner indicator (`[ALT+G] GENUI STUDIO // EXPORT ARCHIVE`).
 
@@ -47,4 +48,4 @@
 ---
 
 ### Requirement 5: Paper-White CRT Scanline System & Single-Server Sub-Navigation (Milestone 2 Scope)
-1. **NOTE:** Milestone 2 will implement `catalog.ts`, `theme.css`, `manifest.json`, Paper-White CRT scanline mode persistence (`SUBTLE` / `ACTIVE` / `OFF`), single-server sub-navigation (`Archive`, `Categories`, `Timeline`, `Dossiers`, `About`, `Random Transmit`), and brutalist NeXT/Macintosh workstation UI components after Milestone 1 datasets, schemas, APIs, and SVG assets pass full verification.
+1. **NOTE:** `catalog.ts`, `theme.css`, `manifest.json`, Paper-White CRT scanline mode persistence (`SUBTLE` / `ACTIVE` / `OFF`), single-server sub-navigation across the views `home`, `archive`, `timeline`, `categories`, `about`, `dossier`, `random-transmit` and `arcade` (primary nav `[00] HOME`, `[01] ARCHIVE`, `[02] TIMELINE`, `[03] CATEGORIES`, `[04] ABOUT`, `[05] ARCADE`, plus a separate `[RANDOM] 99.4 MHZ` button for `random-transmit`; `dossier` is opened from archive content), and brutalist NeXT/Macintosh workstation UI components were delivered in Milestones 2 and 3 (see `tasks.md`) after Milestone 1 datasets, schemas, APIs, and SVG assets passed full verification.

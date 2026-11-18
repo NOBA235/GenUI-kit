@@ -72,4 +72,4 @@
 ---
 
 ### Requirement 7: Milestone 2 & Milestone 3 Roadmap Boundary (Deferred Beyond M1)
-1. **NOTE:** Deep clue reading interactions, dynamic entity stalking/encounter events (Milestone 2), underground crypt descent, physical chapel circuit-breaker lever puzzle, and the full Light Mode transition into the Restored Illuminated Editorial Website (Milestone 3) are registered in the catalog schema cleanly now and scheduled for subsequent milestones after Milestone 1 verification completes.
+1. **NOTE:** Deep clue reading interactions, dynamic entity stalking/encounter events (Milestone 2), underground crypt descent, the physical circuit-breaker lever puzzle in the crypt beneath the chapel, and the full Light Mode transition into the Restored Illuminated Editorial Website (Milestone 3) were deferred beyond Milestone 1 and have since been delivered in Milestones 2 and 3 as listed in `tasks.md`.

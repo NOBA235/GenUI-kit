@@ -97,10 +97,10 @@ Qᵢⱼ = (Dᵢⱼ / Lᵢⱼ)(pᵢ − pⱼ),   sink share of i = Gᵩᵢ · p�
 ```
 - The matrix is symmetric positive definite on the component reachable from the source when it contains a grounded sink.
   - It is solved exactly by dense Cholesky. Sink conductances span six orders of magnitude (a 0.3 ms index lookup vs. a 30 s scan), and an iterative solver converges poorly at that range.
-  - Shipped scenarios step in 0.07–1 ms. The bounded worst case (64 nodes, 32 queries) is about 8 ms.
+  - Shipped scenarios step in 0.07–1 ms. At the bounds (64 nodes, 256 links, 32 queries) one step measured a median of 10.6 ms and p95 of 13.7 ms (Node 24, 2026-11-17 one-off benchmark; no committed timing test).
 - Nodes off that component are excluded. A query fails if none of its live sinks is reachable.
 - **Statement timeout:** statements slower than 30 s (PostgreSQL `statement_timeout`) are reported as timed out and capped at 30 s. Timed-out statements do not count as completed.
-- **Link update:** `|Q|ᵢⱼ = Σ_q w_q |Qᵢⱼ^q|`, where `w_q` is the query's share of total call rate. Then `D' = (D + dt · |Q|ᵘ/(1+|Q|ᵘ)) / (1 + dt)` with μ = 1.8, dt = 0.25 and D ≥ 1e-4.
+- **Link update:** `|Q|ᵢⱼ = Σ_q w_q |Qᵢⱼ^q|`, where `w_q` is the query's share of total call rate. Then `D' = (D + dt · f(G·|Q|)) / (1 + dt)` with `f(x) = xᵘ/(1+xᵘ)`, G = `FLUX_GAIN` = 4, μ = 1.8, dt = 0.25 and D ≥ 1e-4.
 - **Latency:** flow-weighted latency is `Σ_links |Q^q| · L + Σ_sinks share · R`. Potential flow has no cycles, so this equals the mean path latency under flow decomposition.
 - **Load:** `ρᵢ = Σ_q share · λ_q · cost_q / capacityᵢ`. It is computed from the previous step, which keeps the iteration explicit and deterministic.
 - **Entropy:** the Shannon entropy of the outgoing flux split at each node with more than one outgoing link, normalised by `log(degree)` and averaged with flux weights.
@@ -129,7 +129,7 @@ Qᵢⱼ = (Dᵢⱼ / Lᵢⱼ)(pᵢ − pⱼ),   sink share of i = Gᵩᵢ · p�
 | synapse firing | grain density 2 → 40 grains/s |
 | full-scan rate | Geiger rate, `min(MAX_GEIGER_RATE, rate)` |
 | worst latency | drone root pitch bend of up to −1 semitone |
-| root control | 40–440 Hz; voices at 1×, 1.5× (healthy) or 1.414× (unhealthy), and 2× |
+| root control | 40–440 Hz; voices at 1×, 1.5× (health ≥ 0.6), 4/3× (health ≥ 0.3) or √2 ≈ 1.414× (below 0.3), and 2× |
 
 Audio graph: `voices + grains + clicks → bus → AnalyserNode → master gain (mute/volume) → DynamicsCompressor → destination`. One 25 ms scheduler interval plans grains and clicks 120 ms ahead on the `AudioContext` clock.
 
@@ -139,6 +139,8 @@ kiro-crew-app/
 ├── app.json                     manifest (App Kit reference)
 ├── README.md                    install, configure, trust
 ├── agents/chimera-architect.json
+├── agents/index-surgeon.json
+├── agents/deadlock-hunter.json
 ├── skills/bio-query-optimizer/SKILL.md
 ├── backend/__init__.py
 ├── backend/hooks.py             on_startup / on_shutdown (documented ctx API only)

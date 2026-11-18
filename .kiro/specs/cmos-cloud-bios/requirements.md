@@ -18,7 +18,7 @@ Glossary:
 3. WHILE the template is previewed, THE SYSTEM SHALL collapse Studio Hub chrome into a top-right jumper pin labelled `[ALT+G] GENUI STUDIO // EXPORT CMOS`.
 
 ## Requirement 2: 1994 VGA BIOS visual language
-1. THE SYSTEM SHALL restrict BIOS chrome to `#0000AA`, `#FFFF55`, `#FFFFFF`, `#00AAAA`, `#AA0000` and `#000000`.
+1. THE SYSTEM SHALL restrict BIOS chrome to `#0000AA`, `#FFFF55`, `#FFFFFF`, `#00AAAA`, `#AA0000`, `#000000` and `#AAAAAA` (VGA light grey).
 2. THE SYSTEM SHALL draw panels with double-line borders, zero border radius and `VT323` / `Space Mono` / `monospace` type.
 3. WHEN a menu item gains focus, THE SYSTEM SHALL invert it instantly with no transition.
 4. IF an alarm is shown visually, THEN THE SYSTEM SHALL flash it no more than 3 times per second.
@@ -142,7 +142,7 @@ Glossary:
 1. WHEN the user switches `[MODE: HARDWARE LANDING PAGE]`, THE SYSTEM SHALL render a DevTools SaaS landing page that embeds the live 3D board and an interactive BIOS widget.
 
 ## Requirement 16: GenUI catalog, remixes, PBT and marketplace
-1. THE SYSTEM SHALL register `PostBootSequence`, `AwardBiosMenuGrid`, `Motherboard3DTwin`, `HardwareTelemetryMonitor`, `IaCCodeCompilerOutput`, `AcousticModemOscilloscope` and `DevToolsHeroSection` with strict Zod props.
+1. THE SYSTEM SHALL register `CmosWorkstationShell`, `PostBootSequence`, `AwardBiosMenuGrid`, `Motherboard3DTwin`, `HardwareTelemetryMonitor`, `IaCCodeCompilerOutput`, `AcousticModemOscilloscope`, `DevToolsHeroSection` and `CmosRegisterPacket` with strict Zod props.
 2. THE SYSTEM SHALL offer three remix presets:
    - AI Agent Cluster Overclock
    - Zero-Cost Indie Hacker Undervolt

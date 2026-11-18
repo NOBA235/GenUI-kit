@@ -53,7 +53,7 @@ describe("@genui-studio/spatial-ops — Application #2 Verification Suite", () =
     expect(audit.missingDescriptions).toEqual([]);
   });
 
-  it("2. Formal Property-Based Testing (PBT) Suite: verifies INV-1 through INV-4 on the 14-component Spatial Catalog", () => {
+  it("2. Formal Property-Based Testing (PBT) Suite: verifies INV-PBT-01 through INV-PBT-04 on the 15-component Spatial Catalog", () => {
     const report = runCatalogInvariantSuite(spatialVerifiedCatalog, {
       numRuns: 20,
     });

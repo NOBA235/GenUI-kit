@@ -5,8 +5,8 @@
 ```mermaid
 flowchart TB
   Studio["apps/studio-hub (/preview/ninety9-archive)"] -->|"Scoped Theme + Collapse HUD"| Shell["Monochrome Workstation Shell [data-template-theme=ninety9-archive]"]
-  Shell -->|"SafeGenUIRenderer + Zod Catalog (M2)"| Catalog["ninety9-archive/catalog.ts"]
-  Shell -->|"Sub-Navigation State"| Views["Archive | Categories | Timeline | Dossier | About | Random Transmit"]
+  Shell -->|"SafeGenUIRenderer + Zod Catalog (M3)"| Catalog["ninety9-archive/catalog.ts"]
+  Shell -->|"Sub-Navigation State"| Views["home | archive | timeline | categories | about | dossier | random-transmit | arcade"]
   Views -->|"Decoupled Read-Only Calls"| API["lib/archive/api.ts (Search / Multi-Facet Filter / Related / Random)"]
   API -->|"Validated at Runtime & Build"| Schemas["lib/archive/types.ts (Zod Schemas + 5-Tone Tokens)"]
   API --> Data["content/{categories,entries,timeline-events}.ts (12 Cats, 34+ Entries 1990-1999)"]
@@ -17,7 +17,7 @@ flowchart TB
 
 ## 2. Module Layout & Milestone Boundaries
 
-### Milestone 1 (Current Phase — Data, Schemas, Query Engine & SVG Assets)
+### Milestone 1 (Complete — Data, Schemas, Query Engine & SVG Assets)
 - `packages/templates/src/ninety9-archive/lib/archive/types.ts` — Strict Zod schemas (`ArchiveEntrySchema`, `CategoryManifestSchema`, `TimelineMilestoneSchema`, `ArchiveQueryFilterSchema`, `CRTModeSchema`), palette constant `MONOCHROME_PALETTE`, and TypeScript inferred types.
 - `packages/templates/src/ninety9-archive/content/categories.ts` — All 12 numbered cultural categories (`01 — MUSIC` .. `12 — POP CULTURE`) with deep historical essays and decade shift notes.
 - `packages/templates/src/ninety9-archive/content/entries.ts` — 34 thoroughly researched editorial entries covering every year `1990–1999`, each with multi-section copy (`01 // ...`, `02 // ...`), 4-cell technical specs, pull quotes, Cultural Impact, Enduring Historical Legacy, verified citations, and motif assignments.
@@ -26,11 +26,11 @@ flowchart TB
 - `scripts/generate-ninety9-assets.ts` — Node.js script generating 46 bespoke 5-tone monochrome technical SVGs (`34` entries + `12` categories) under `public/images/ninety9/` with built-in hex allowlist auditing.
 - `packages/templates/src/__tests__/ninety9-archive.m1.test.ts` — Full Milestone 1 Zod, coverage, historical integrity, API query/fuzzy search, and SVG asset verification suite.
 
-### Milestone 2 (Pending M1 Sign-Off — Monochrome CSS, Workstation Components & Sub-Router)
-- `packages/templates/src/ninety9-archive/theme.css` — Scoped `[data-template-theme="ninety9-archive"]` CSS variables (`--n99-white: #FFFFFF`, `--n99-black: #000000`, `--n99-light: #D9D9D9`, `--n99-mid: #808080`, `--n99-dark: #292929`), CSS halftone patterns, brutalist shadows, and Paper-White CRT scanlines (`SUBTLE` / `ACTIVE` / `OFF`).
-- `packages/templates/src/ninety9-archive/components/` — Workstation top menu bar, collapsible directory tree / view switcher (`Archive`, `Categories`, `Timeline`, `Dossiers`, `About`, `Random Transmit`), CRT scanline toggle persisted in `localStorage`, full-bleed technical schematics viewer, and monochrome Studio corner pill (`[ALT+G] GENUI STUDIO // EXPORT ARCHIVE`).
+### Milestone 2 (Complete — Monochrome CSS, Workstation Components & Sub-Router)
+- `packages/templates/src/ninety9-archive/theme.css` — Scoped `[data-template-theme="ninety9-archive"]` CSS variables (`--n99-white: #FFFFFF`, `--n99-black: #000000`, `--n99-light: #D9D9D9`, `--n99-medium: #808080`, `--n99-dark: #292929`), CSS halftone patterns, brutalist shadows, and Paper-White CRT scanlines (`SUBTLE` / `ACTIVE` / `OFF`).
+- `packages/templates/src/ninety9-archive/components/` — Workstation top menu bar, collapsible directory tree / view switcher (`[00] HOME`, `[01] ARCHIVE`, `[02] TIMELINE`, `[03] CATEGORIES`, `[04] ABOUT`, `[05] ARCADE`, plus a `[RANDOM] 99.4 MHZ` button for `random-transmit`; `dossier` opens from archive content), CRT scanline toggle persisted in `localStorage`, full-bleed technical schematics viewer, and monochrome Studio corner pill (`[ALT+G] GENUI STUDIO // EXPORT ARCHIVE`).
 
-### Milestone 3 (Pending M2 Sign-Off — `@genui-studio/core` Catalog, Live Remix & PBT Suite)
+### Milestone 3 (Complete — `@genui-studio/core` Catalog, Live Remix & PBT Suite)
 - `packages/templates/src/ninety9-archive/catalog.ts`, `manifest.json`, `steering.md`, `index.ts` — Full `@genui-studio/core` Zod catalog integration, live monochrome remix synthesizer, `fast-check` PBT tests, and standalone Next.js `.zip` export packaging.
 
 ---
