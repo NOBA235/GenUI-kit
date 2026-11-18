@@ -13,6 +13,8 @@ out/
 
 # Testing & Coverage
 coverage/
+# Scratch project written by apps/studio-hub workbench-journey.e2e.test.tsx (removed after the run)
+apps/studio-hub/.e2e-export/
 
 # Environment variables
 .env

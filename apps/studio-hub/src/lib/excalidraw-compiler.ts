@@ -3,6 +3,8 @@ import {
   isDangerousKey,
   isSafeJsonPointer,
   sanitizeSpecGraph,
+  type GraphIssue,
+  type PropDiagnostic,
   type VerifiedCatalog,
 } from "@genui-studio/core";
 import type {
@@ -47,7 +49,16 @@ export interface CompiledNodeMapping {
     readonly height: number;
   };
   readonly parentSpecKey: string | null;
+  /**
+   * How the catalog component was chosen:
+   * - `tag`: explicit `customData.catalogComponent` / `genuiComponent` found in the catalog
+   * - `label`: matched from the shape's text label (exact name, keyword or description)
+   * - `fallback`: nothing matched; the default content component was used
+   */
+  readonly matchSource: WireframeMatchSource;
 }
+
+export type WireframeMatchSource = "tag" | "label" | "fallback";
 
 export interface CompiledStateBinding {
   readonly arrowId: string;
@@ -73,6 +84,10 @@ export interface ExcalidrawCompileResult {
   readonly mermaidDiagram: string;
   readonly warnings: readonly string[];
   readonly catalogHash: string | null;
+  /** Structural / catalog issues reported by `catalog.validateFull()` (or `sanitizeSpecGraph()` without a catalog). */
+  readonly validationIssues: readonly GraphIssue[];
+  /** Props healed or rejected at the catalog Zod boundary (status `"valid"` entries are omitted). */
+  readonly propDiagnostics: readonly PropDiagnostic[];
 }
 
 export interface CatalogLibraryBuildResult {
@@ -103,6 +118,7 @@ interface InternalVisualNode {
   readonly titleLine: string;
   readonly subtitleLine: string;
   readonly resolvedComponent: string;
+  readonly matchSource: WireframeMatchSource;
   readonly isContainerCandidate: boolean;
   parentSpecKey: string | null;
   readonly childKeys: string[];
@@ -524,7 +540,12 @@ function resolveCatalogComponent(
   componentNames: readonly string[],
   componentDescriptions: Readonly<Record<string, string>>,
   fallbackComponent: string,
-): { componentType: string; matchedExplicitly: boolean } {
+): {
+  componentType: string;
+  matchedExplicitly: boolean;
+  matchSource: WireframeMatchSource;
+  ignoredTag: string | null;
+} {
   const customComp =
     typeof customData?.catalogComponent === "string"
       ? customData.catalogComponent
@@ -532,16 +553,28 @@ function resolveCatalogComponent(
         ? customData.genuiComponent
         : null;
 
-  if (customComp && !isDangerousKey(customComp)) {
-    if (componentNames.length === 0 || componentNames.includes(customComp)) {
-      return { componentType: customComp, matchedExplicitly: true };
+  let ignoredTag: string | null = null;
+  if (customComp) {
+    if (
+      !isDangerousKey(customComp) &&
+      (componentNames.length === 0 || componentNames.includes(customComp))
+    ) {
+      return {
+        componentType: customComp,
+        matchedExplicitly: true,
+        matchSource: "tag",
+        ignoredTag: null,
+      };
     }
+    ignoredTag = customComp;
   }
 
   if (componentNames.length === 0) {
     return {
       componentType: titleLine || fallbackComponent,
       matchedExplicitly: Boolean(titleLine),
+      matchSource: titleLine ? "label" : "fallback",
+      ignoredTag,
     };
   }
 
@@ -562,7 +595,15 @@ function resolveCatalogComponent(
   return {
     componentType: bestScore > 0 ? bestName : fallbackComponent,
     matchedExplicitly: bestScore >= 300,
+    matchSource: bestScore > 0 ? "label" : "fallback",
+    ignoredTag,
   };
+}
+
+/** Printable, length-capped form of user-supplied text for compiler warnings. */
+function describeForWarning(raw: string): string {
+  const flat = raw.replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+  return flat.length > 48 ? `${flat.slice(0, 47)}…` : flat;
 }
 
 const HEADLINE_PROP_PRIORITY = [
@@ -770,6 +811,8 @@ export function compileExcalidrawToGenUI(
       ),
       warnings: ["Expected array of Excalidraw elements; initialized empty root spec."],
       catalogHash: catalog?.metadata.catalogHash ?? null,
+      validationIssues: [],
+      propDiagnostics: [],
     };
   }
 
@@ -884,7 +927,7 @@ export function compileExcalidrawToGenUI(
     const titleLine = textLines[0] ?? "";
     const subtitleLine = textLines.slice(1).join(" · ");
 
-    const { componentType } = resolveCatalogComponent(
+    const { componentType, matchSource, ignoredTag } = resolveCatalogComponent(
       titleLine,
       joinedText,
       customData,
@@ -892,6 +935,20 @@ export function compileExcalidrawToGenUI(
       componentDescriptions,
       fallbackContentComponent,
     );
+
+    if (ignoredTag !== null) {
+      warnings.push(
+        isDangerousKey(ignoredTag)
+          ? `Shape "${rawId}": rejected dangerous catalogComponent tag; resolved by label to ${componentType}.`
+          : `Shape "${rawId}": tag "${describeForWarning(ignoredTag)}" is not in the catalog; resolved by ${matchSource === "fallback" ? "fallback" : "label"} to ${componentType}.`,
+      );
+    } else if (matchSource === "fallback" && componentNames.length > 0) {
+      warnings.push(
+        titleLine
+          ? `Shape "${rawId}": label "${describeForWarning(titleLine)}" matched no catalog component; fell back to ${componentType}.`
+          : `Shape "${rawId}": unlabelled shape; fell back to ${componentType}. Add a label or a catalogComponent tag.`,
+      );
+    }
 
     const bbox = normalizeBoundingBox(el.x, el.y, el.width, el.height);
     const frameId =
@@ -910,6 +967,7 @@ export function compileExcalidrawToGenUI(
       titleLine,
       subtitleLine,
       resolvedComponent: componentType,
+      matchSource,
       isContainerCandidate:
         rawType === "frame" ||
         rawType === "magicframe" ||
@@ -1167,6 +1225,8 @@ export function compileExcalidrawToGenUI(
   };
 
   let finalSpec: Spec;
+  let validationIssues: readonly GraphIssue[];
+  let propDiagnostics: readonly PropDiagnostic[] = [];
   if (catalog) {
     const validated = catalog.validateFull(rawSpec, {
       maxDepth: 16,
@@ -1174,6 +1234,8 @@ export function compileExcalidrawToGenUI(
       pruneMissingChildren: true,
     });
     finalSpec = validated.sanitizedSpec;
+    validationIssues = validated.issues;
+    propDiagnostics = validated.propDiagnostics.filter((d) => d.status !== "valid");
   } else {
     const sanitized = sanitizeSpecGraph(rawSpec, {
       maxDepth: 16,
@@ -1181,6 +1243,7 @@ export function compileExcalidrawToGenUI(
       pruneMissingChildren: true,
     });
     finalSpec = sanitized.spec;
+    validationIssues = sanitized.inspection.issues;
   }
 
   const orderedMappings: CompiledNodeMapping[] = topLevelNodes.length
@@ -1203,6 +1266,8 @@ export function compileExcalidrawToGenUI(
     ),
     warnings,
     catalogHash: catalog?.metadata.catalogHash ?? null,
+    validationIssues,
+    propDiagnostics,
   };
 }
 
@@ -1229,6 +1294,7 @@ function flattenMappingsPreOrder(
         height: Math.round(node.bbox.height),
       },
       parentSpecKey: node.parentSpecKey,
+      matchSource: node.matchSource,
     });
 
     for (const childKey of node.childKeys) {
@@ -1246,7 +1312,12 @@ function flattenMappingsPreOrder(
   return result;
 }
 
-function createSkeletonRectAndText(options: {
+/**
+ * Builds a fully-formed Excalidraw rectangle + bound text label pair (deterministic ids,
+ * seeds and timestamps). Shared by the catalog library, the template starter scene and
+ * the sample wireframe.
+ */
+export function createSkeletonRectAndText(options: {
   idPrefix: string;
   x: number;
   y: number;
@@ -1275,7 +1346,7 @@ function createSkeletonRectAndText(options: {
     strokeWidth: 2,
     strokeStyle: "solid",
     roundness: { type: 3 },
-    roughness: 0,
+    roughness: 1,
     opacity: 100,
     seed: options.indexBase + 11,
     version: 1,
@@ -1299,13 +1370,13 @@ function createSkeletonRectAndText(options: {
     width: Math.max(80, options.width - 32),
     height: 44,
     angle: 0 as ExcalidrawTextElement["angle"],
-    strokeColor: "#0f172a",
+    strokeColor: "#0b1221",
     backgroundColor: "transparent",
     fillStyle: "solid",
     strokeWidth: 1,
     strokeStyle: "solid",
     roundness: null,
-    roughness: 0,
+    roughness: 1,
     opacity: 100,
     seed: options.indexBase + 29,
     version: 1,
@@ -1372,8 +1443,8 @@ export function catalogToExcalidrawLibrary(
       width: isContainer ? 440 : DEFAULT_CANVAS_WIDTH,
       height: isContainer ? 200 : DEFAULT_CANVAS_HEIGHT,
       label: `${componentName}\n${shortDesc}`,
-      strokeColor: isContainer ? "#0891b2" : "#2563eb",
-      backgroundColor: isContainer ? "#ecfeff" : "#eff6ff",
+      strokeColor: "#0b1221",
+      backgroundColor: isContainer ? "#f8fafc" : "#ffffff",
       customData: {
         genuiComponent: componentName,
         catalogComponent: componentName,
@@ -1427,8 +1498,8 @@ export function specToInitialExcalidrawElements(
         width: DEFAULT_CANVAS_WIDTH,
         height: DEFAULT_CANVAS_HEIGHT,
         label: name,
-        strokeColor: "#0284c7",
-        backgroundColor: "#f0f9ff",
+        strokeColor: "#0b1221",
+        backgroundColor: "#ffffff",
         customData: { genuiComponent: name, catalogComponent: name },
         indexBase: idx + 1,
       }),
@@ -1463,13 +1534,13 @@ export function specToInitialExcalidrawElements(
     width: DEFAULT_CANVAS_WIDTH + 100,
     height: frameHeight,
     angle: 0 as ExcalidrawFrameElement["angle"],
-    strokeColor: "#64748b",
+    strokeColor: "#0b1221",
     backgroundColor: "transparent",
     fillStyle: "solid",
     strokeWidth: 2,
     strokeStyle: "solid",
     roundness: null,
-    roughness: 0,
+    roughness: 1,
     opacity: 100,
     seed: 1,
     version: 1,
@@ -1507,8 +1578,8 @@ export function specToInitialExcalidrawElements(
       width: DEFAULT_CANVAS_WIDTH,
       height: DEFAULT_CANVAS_HEIGHT,
       label,
-      strokeColor: "#0284c7",
-      backgroundColor: "#f0f9ff",
+      strokeColor: "#0b1221",
+      backgroundColor: "#ffffff",
       customData: {
         genuiComponent: el.type,
         catalogComponent: el.type,
@@ -1540,13 +1611,13 @@ export function specToInitialExcalidrawElements(
       width: 24,
       height: gapY,
       angle: 0 as ExcalidrawArrowElement["angle"],
-      strokeColor: "#10b981",
+      strokeColor: "#2563eb",
       backgroundColor: "transparent",
       fillStyle: "solid",
       strokeWidth: 2,
       strokeStyle: "dashed",
       roundness: { type: 2 },
-      roughness: 0,
+      roughness: 1,
       opacity: 100,
       seed: 777,
       version: 1,

@@ -61,7 +61,7 @@ export const StudioHud: React.FC<StudioHudProps> = ({
           type="button"
           onClick={onToggleFullscreen}
           data-testid="exit-fullscreen-btn"
-          className="rounded-full border border-slate-700/80 bg-slate-950/90 px-3.5 py-1.5 font-mono text-xs text-slate-200 shadow-xl backdrop-blur hover:border-cyan-400/60 hover:text-cyan-300 transition cursor-pointer"
+          className="inline-flex min-h-[34px] items-center rounded-full border border-white/25 bg-[#0B1324]/95 px-4 py-1.5 font-mono text-xs font-medium text-white shadow-xl backdrop-blur hover:bg-[#0B1324] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
         >
           Exit Fullscreen ✕
         </button>
@@ -73,15 +73,18 @@ export const StudioHud: React.FC<StudioHudProps> = ({
     return (
       <div
         data-testid="studio-hud-collapsed"
-        className="fixed top-3 right-3 z-40 flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-950/95 px-3 py-1.5 font-mono text-xs text-slate-200 shadow-2xl backdrop-blur"
+        className="fixed top-3 right-3 z-40 flex items-center gap-2.5 rounded-full border border-[#CBD5E1] bg-white/95 px-3.5 py-1.5 font-mono text-xs text-[#0B1221] shadow-lg backdrop-blur"
       >
-        <span className="h-2 w-2 rounded-full bg-cyan-400" />
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 rounded-full bg-[#2563EB]"
+        />
         <span className="font-semibold">{manifest.slug}</span>
         <button
           type="button"
           onClick={onToggleCollapsed}
           data-testid="expand-hud-btn"
-          className="rounded-full bg-cyan-500/20 px-2.5 py-0.5 text-cyan-300 hover:bg-cyan-500/30 transition cursor-pointer"
+          className="min-h-[28px] rounded-full bg-[#0B1324] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
         >
           Expand Studio HUD
         </button>
@@ -98,45 +101,69 @@ export const StudioHud: React.FC<StudioHudProps> = ({
   return (
     <header
       data-testid="studio-hud"
-      className="sticky top-0 z-40 border-b border-slate-800/90 bg-slate-950/95 text-slate-100 backdrop-blur-md"
+      className="sticky top-0 z-40 border-b border-[#E8EDF5] bg-white/95 text-[#0B1221] backdrop-blur-md"
     >
-      <div className="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-        {/* Left: Back to Hub + Template Identity + Multi-page Selector */}
-        <div className="flex flex-wrap items-center gap-2.5">
+      <div className="mx-auto flex max-w-[1760px] flex-col gap-2 px-3 py-2.5 sm:px-6 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-3">
+        {/* Group 1: Navigation & Project Identity */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={onNavigateHome}
             data-testid="hud-back-hub-btn"
-            className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 font-mono text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            aria-label="Back to Studio Hub"
+            className="inline-flex min-h-[34px] shrink-0 items-center border border-[#CBD5E1] bg-white px-3.5 py-1.5 font-mono text-xs font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-            ← Marketplace
+            ←<span className="hidden sm:inline">&nbsp;Studio Hub</span>
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-100">
+
+          <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none lg:flex-wrap">
+            <span className="truncate text-sm font-bold text-[#0B1221]">
               {manifest.title}
             </span>
             <span
-              className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase ${
+              className={`hidden shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase sm:inline ${
                 manifest.mode === "standalone"
-                  ? "border border-amber-500/40 bg-amber-500/15 text-amber-300"
-                  : "border border-cyan-500/40 bg-cyan-500/15 text-cyan-300"
+                  ? "border-[#D97706]/40 bg-[#FEF3C7] text-[#92400E]"
+                  : "border-[#E2E8F0] bg-[#F8FAFC] text-[#5B6B82]"
               }`}
             >
-              {manifest.mode === "standalone" ? "Mode B · Standalone" : "Mode A · Native"}
+              {manifest.mode === "standalone"
+                ? "Mode B · Standalone"
+                : "Mode A · Native"}
             </span>
+            {isStreaming && (
+              <span className="shrink-0 rounded-full border border-[#2563EB]/30 bg-[#EFF4FF] px-2.5 py-0.5 font-mono text-[10px] font-semibold text-[#2563EB]">
+                Streaming<span className="hidden sm:inline"> JSONL</span>
+              </span>
+            )}
           </div>
 
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            title="Collapse Studio HUD"
+            aria-label="Collapse Studio HUD"
+            className="inline-flex min-h-[34px] shrink-0 items-center border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 font-mono text-xs text-[#5B6B82] hover:border-[#94A3B8] hover:text-[#0B1221] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer lg:hidden"
+          >
+            ▲
+          </button>
+
           {manifest.pages.length > 1 && (
-            <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900 p-0.5 font-mono text-[11px]">
+            <div
+              role="group"
+              aria-label="Template pages"
+              className="hub-scroll-row basis-full items-center gap-0.5 rounded-[24px] border border-[#E2E8F0] bg-[#F8FAFC] p-0.5 font-mono text-[11px] lg:basis-auto lg:flex-wrap"
+            >
               {manifest.pages.map((p) => (
                 <button
                   key={p.id}
                   type="button"
+                  aria-pressed={activePageId === p.id}
                   onClick={() => onSelectPage(p.id)}
-                  className={`rounded px-2 py-0.5 transition cursor-pointer ${
+                  className={`min-h-[28px] rounded-full px-2.5 py-0.5 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
                     activePageId === p.id
-                      ? "bg-cyan-500/20 text-cyan-300"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-[#0B1324] text-white font-semibold"
+                      : "text-[#5B6B82] hover:text-[#0B1221]"
                   }`}
                 >
                   {p.route}
@@ -146,12 +173,12 @@ export const StudioHud: React.FC<StudioHudProps> = ({
           )}
         </div>
 
-        {/* Center: Viewport Switcher + Pop-Out Fullscreen */}
-        <div className="flex items-center gap-2 font-mono text-xs">
+        {/* Group 2: Viewport & Fullscreen Controls (viewport presets only matter on wider screens) */}
+        <div className="hidden flex-wrap items-center gap-2 font-mono text-xs md:flex">
           <div
             role="group"
             aria-label="Viewport size selector"
-            className="flex items-center rounded-lg border border-slate-800 bg-slate-900 p-0.5"
+            className="inline-flex items-center rounded-full border border-[#CBD5E1] bg-[#F8FAFC] p-0.5"
           >
             {(
               [
@@ -166,10 +193,10 @@ export const StudioHud: React.FC<StudioHudProps> = ({
                 onClick={() => onChangeViewport(vp)}
                 data-testid={`viewport-btn-${vp}`}
                 aria-pressed={viewport === vp}
-                className={`rounded px-2.5 py-1 transition cursor-pointer ${
+                className={`min-h-[30px] rounded-full px-3 py-1 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
                   viewport === vp
-                    ? "bg-cyan-500 text-slate-950 font-semibold"
-                    : "text-slate-400 hover:text-slate-100"
+                    ? "bg-[#0B1324] text-white font-semibold"
+                    : "text-[#5B6B82] hover:text-[#0B1221]"
                 }`}
               >
                 {label}
@@ -181,7 +208,7 @@ export const StudioHud: React.FC<StudioHudProps> = ({
             type="button"
             onClick={onToggleFullscreen}
             data-testid="toggle-fullscreen-btn"
-            className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300 transition cursor-pointer"
+            className="inline-flex min-h-[34px] items-center rounded-full border border-[#CBD5E1] bg-white px-3 py-1 text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
             ⛶ Fullscreen
           </button>
@@ -191,60 +218,68 @@ export const StudioHud: React.FC<StudioHudProps> = ({
             target="_blank"
             rel="noreferrer"
             title="Pop out clean full-screen preview (?fullscreen=true)"
-            className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300 transition"
+            className="hub-cta inline-flex min-h-[34px] items-center border border-[#CBD5E1] bg-white px-3 py-1 text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition"
           >
             Pop Out ↗
           </a>
         </div>
 
-        {/* Right: Remix Bar Toggle + X-Ray PBT + Export Website + Collapse */}
-        <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-          <button
-            type="button"
-            onClick={onToggleRemix}
-            data-testid="toggle-remix-bar-btn"
-            aria-expanded={isRemixOpen}
-            className={`rounded-lg border px-3 py-1.5 font-semibold transition cursor-pointer ${
-              isRemixOpen
-                ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-200"
-                : "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
-            }`}
-          >
-            ✨ GenUI Live Remix
-          </button>
-
+        {/* Group 3: Authoring & Inspection Tools (one scrollable row on phones) */}
+        <div className="hub-scroll-row -mx-3 items-center gap-2 px-3 pb-0.5 font-mono text-xs sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0">
           {onToggleWireframe && (
             <button
               type="button"
               onClick={onToggleWireframe}
               data-testid="toggle-wireframe-btn"
               aria-pressed={isWireframeMode}
-              className={`rounded-lg border px-3 py-1.5 font-semibold transition cursor-pointer ${
+              className={`inline-flex min-h-[34px] items-center rounded-full border px-3.5 py-1.5 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer ${
                 isWireframeMode
-                  ? "border-sky-400/70 bg-sky-500/25 text-sky-100"
-                  : "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                  ? "border-[#2563EB] bg-[#EFF4FF] text-[#1D4ED8]"
+                  : "border-[#CBD5E1] bg-white text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC]"
               }`}
             >
-              📐 Wireframe Architect
+              📐 Wireframe<span className="hidden sm:inline">&nbsp;Architect</span>
             </button>
           )}
 
           <button
             type="button"
+            onClick={onToggleRemix}
+            data-testid="toggle-remix-bar-btn"
+            aria-expanded={isRemixOpen}
+            className={`inline-flex min-h-[34px] items-center rounded-full border px-3.5 py-1.5 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer ${
+              isRemixOpen
+                ? "border-[#2563EB] bg-[#EFF4FF] text-[#1D4ED8]"
+                : "border-[#CBD5E1] bg-white text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC]"
+            }`}
+          >
+            ✨ <span className="hidden sm:inline">GenUI Live&nbsp;</span>Remix
+          </button>
+
+          <button
+            type="button"
             onClick={onOpenXRay}
             data-testid="open-hub-xray-btn"
-            className="rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-3 py-1.5 font-semibold text-cyan-200 hover:bg-cyan-500/25 transition cursor-pointer"
+            className="inline-flex min-h-[34px] items-center rounded-full border border-[#CBD5E1] bg-white px-3.5 py-1.5 font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-            🔬 X-Ray & PBT ({patchCount})
+            🔬 X-Ray<span className="hidden sm:inline">&nbsp;&amp; PBT</span> ({patchCount})
           </button>
 
           <button
             type="button"
             onClick={onOpenExport}
             data-testid="open-hub-export-btn"
-            className="rounded-lg border border-purple-400/60 bg-purple-500/20 px-3 py-1.5 font-semibold text-purple-200 hover:bg-purple-500/30 transition cursor-pointer"
+            className="inline-flex min-h-[34px] items-center rounded-full bg-[#0B1324] px-4 py-1.5 font-semibold text-white hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-            📦 Export Website
+            📦 Export
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            className="inline-flex min-h-[34px] items-center border border-[#CBD5E1] bg-white px-3 py-1 text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer md:hidden"
+          >
+            ⛶ Fullscreen
           </button>
 
           <button
@@ -252,7 +287,7 @@ export const StudioHud: React.FC<StudioHudProps> = ({
             onClick={onToggleCollapsed}
             data-testid="collapse-hud-btn"
             title="Collapse Studio HUD"
-            className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-slate-400 hover:text-slate-100 transition cursor-pointer"
+            className="hidden min-h-[34px] items-center border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-[#5B6B82] hover:border-[#94A3B8] hover:text-[#0B1221] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer lg:inline-flex"
           >
             ▲ Collapse
           </button>
@@ -263,13 +298,13 @@ export const StudioHud: React.FC<StudioHudProps> = ({
       {isRemixOpen && (
         <div
           data-testid="genui-remix-bar"
-          className="border-t border-slate-800/80 bg-slate-900/80 px-4 py-3"
+          className="border-t border-[#E8EDF5] bg-[#F8FAFC] px-4 py-3 sm:px-6"
         >
-          <div className="mx-auto max-w-[1680px] space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
-                  GenUI Live Remix Presets:
+          <div className="mx-auto max-w-[1760px] space-y-2.5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="hub-scroll-row items-center gap-2 sm:flex-wrap">
+                <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#5B6B82]">
+                  <span className="hidden sm:inline">GenUI Live Remix </span>Presets:
                 </span>
                 {(manifest.remixPresets ?? []).map((preset) => (
                   <button
@@ -279,7 +314,7 @@ export const StudioHud: React.FC<StudioHudProps> = ({
                       setRemixInput(preset.prompt);
                       onSubmitRemixPrompt(preset.prompt);
                     }}
-                    className="rounded border border-slate-700 bg-slate-950 px-2.5 py-1 font-mono text-[11px] text-slate-300 hover:border-cyan-400/50 hover:text-cyan-200 transition cursor-pointer"
+                    className="min-h-[30px] rounded-full border border-[#CBD5E1] bg-white px-3 py-1 font-mono text-[11px] text-[#0B1221] hover:border-[#2563EB] hover:text-[#2563EB] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
                   >
                     {preset.label}
                   </button>
@@ -290,33 +325,36 @@ export const StudioHud: React.FC<StudioHudProps> = ({
                   type="button"
                   disabled={!canUndo}
                   onClick={onUndo}
-                  className="rounded border border-slate-700 bg-slate-950 px-2.5 py-1 text-slate-300 disabled:opacity-40 hover:bg-slate-800 cursor-pointer"
+                  className="min-h-[30px] rounded-full border border-[#CBD5E1] bg-white px-3 py-1 text-[#0B1221] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
                 >
                   ↶ Undo
                 </button>
                 <button
                   type="button"
                   onClick={onResetSpec}
-                  className="rounded border border-slate-700 bg-slate-950 px-2.5 py-1 text-slate-300 hover:bg-slate-800 cursor-pointer"
+                  className="min-h-[30px] rounded-full border border-[#CBD5E1] bg-white px-3 py-1 text-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
                 >
                   ↺ Reset
                 </button>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-wrap sm:flex-nowrap gap-2"
+            >
               <input
                 type="text"
                 value={remixInput}
                 onChange={(e) => setRemixInput(e.target.value)}
                 aria-label="GenUI Live Remix prompt"
-                placeholder="Stream layout/prop mutations via @genui-studio/core (e.g., 'Switch to editorial headline and launch CTA')..."
-                className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                placeholder="Stream layout or prop mutations via @genui-studio/core..."
+                className="min-h-[38px] w-full flex-1 min-w-0 rounded-full border sm:min-w-[200px] border-[#CBD5E1] bg-white px-4 py-1.5 text-sm text-[#0B1221] placeholder:text-[#64748B] focus:border-[#2563EB] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1"
               />
               <button
                 type="submit"
                 data-testid="submit-remix-btn"
-                className="rounded-lg bg-emerald-500 px-4 py-1.5 font-mono text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition cursor-pointer"
+                className="min-h-[38px] w-full bg-[#0B1324] px-5 py-1.5 font-mono text-xs font-semibold text-white sm:w-auto hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
               >
                 {isStreaming ? "Streaming JSONL..." : "Stream Remix ↵"}
               </button>

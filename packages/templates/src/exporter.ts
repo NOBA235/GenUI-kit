@@ -9,7 +9,7 @@ import {
   type ShadcnRegistryItem,
 } from "@genui-studio/core";
 import { mergeTemplateWithNextjsShell } from "./base-shell.js";
-import type { DualModeTemplateEntry } from "./types.js";
+import type { DualModeTemplateEntry, TemplateWireframeExport } from "./types.js";
 
 function mapToCorePackCategory(category: string, tags: readonly string[]): PackCategory {
   const lower = `${category} ${tags.join(" ")}`.toLowerCase();
@@ -116,11 +116,16 @@ describe("${manifest.slug} Invariant Suite", () => {
  */
 export async function generateTemplateZip(
   entry: DualModeTemplateEntry,
-  options: { projectName?: string } = {},
+  options: {
+    projectName?: string;
+    /** Embed a compiled Wireframe Architect Spec + design.md instead of the template default page. */
+    wireframe?: TemplateWireframeExport | null;
+  } = {},
 ): Promise<Uint8Array> {
   const zip = new JSZip();
   const merged = mergeTemplateWithNextjsShell(entry, {
     projectName: options.projectName ?? `${entry.manifest.slug}-website`,
+    wireframe: options.wireframe ?? null,
   });
 
   const base64Targets = new Set(

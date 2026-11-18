@@ -28,7 +28,9 @@ import {
   TemplateXRayDrawer,
   type HubPatchLogItem,
 } from "../components/TemplateXRayDrawer.js";
+import type { WireframeInitialScene } from "../components/WireframeArchitectCanvas.js";
 import type { ExcalidrawCompileResult } from "../lib/excalidraw-compiler.js";
+import { buildWireframeExport } from "../lib/wireframe-export.js";
 
 const LazyWireframeArchitectCanvas = React.lazy(() =>
   import("../components/WireframeArchitectCanvas.js").then((mod) => ({
@@ -44,6 +46,8 @@ export interface PreviewPageProps {
   readonly onNavigateHome: () => void;
   readonly instantStreamForTest?: boolean;
   readonly initialWireframeMode?: boolean;
+  /** Scene Wireframe Architect starts from (`?wireframe=sample` selects `sample`). */
+  readonly initialWireframeScene?: WireframeInitialScene;
 }
 
 const VIEWPORT_WIDTH_CLASS: Record<ViewportPreset, string> = {
@@ -107,6 +111,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   onNavigateHome,
   instantStreamForTest = false,
   initialWireframeMode = false,
+  initialWireframeScene = "template",
 }) => {
   const template = useMemo(() => getTemplateBySlug(slug), [slug]);
 
@@ -215,6 +220,13 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
 
   const compilerRef = useRef<GuardrailedStreamCompiler | null>(null);
   const patchIdRef = useRef(0);
+  // Bumped whenever a new spec source takes over the preview (template stream or wireframe
+  // compile) so an in-flight line-by-line stream stops overwriting it.
+  const streamGenerationRef = useRef(0);
+  const [wireframeSnapshot, setWireframeSnapshot] = useState<{
+    readonly result: ExcalidrawCompileResult;
+    readonly sceneElements: readonly unknown[];
+  } | null>(null);
   const [currentSpec, setCurrentSpec] = useState<Spec | null>(() => {
     if ((!instantStreamForTest && !isImmersiveTemplate) || !template) {
       return null;
@@ -264,6 +276,13 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
         .map((l) => l.trim())
         .filter(Boolean);
 
+      if (!isChaos) {
+        // A template / remix stream replaces the preview, so the last wireframe compile
+        // is no longer what the user sees and must not be exported.
+        setWireframeSnapshot(null);
+      }
+      const generation = ++streamGenerationRef.current;
+
       if (instantStreamForTest || isChaos || isImmersiveTemplate) {
         const step = compiler.push(jsonl);
         const finalStep = isChaos ? step : compiler.finalize();
@@ -285,6 +304,9 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       setPatchLog([]);
       let idx = 0;
       const pushNext = () => {
+        if (generation !== streamGenerationRef.current) {
+          return;
+        }
         if (idx >= lines.length) {
           const finalStep = compiler.finalize();
           applyStep(finalStep);
@@ -354,10 +376,19 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   };
 
   const handleWireframeCompiled = useCallback(
-    (result: ExcalidrawCompileResult) => {
+    (result: ExcalidrawCompileResult, sceneElements: readonly unknown[]) => {
+      streamGenerationRef.current += 1;
+      setIsStreaming(false);
+      setWireframeSnapshot({ result, sceneElements });
       const next = { ...result.spec };
       setCurrentSpec(next);
-      setHealedDiagnostics({});
+      // Surface props the catalog healed during compile as <DiagnosticHealedBadge /> in the preview.
+      const healedByElement: Record<string, (typeof result.propDiagnostics)[number][]> = {};
+      for (const d of result.propDiagnostics) {
+        if (d.status !== "healed") continue;
+        (healedByElement[d.elementKey] ??= []).push(d);
+      }
+      setHealedDiagnostics(healedByElement);
       setSpecHistory((prev) => [...prev.slice(-24), next]);
       if (result.spec.state?.wireframeBindings) {
         timeTravelStore.set(
@@ -380,6 +411,19 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ]);
     },
     [timeTravelStore],
+  );
+
+  const wireframeExport = useMemo(
+    () =>
+      wireframeSnapshot && template
+        ? buildWireframeExport({
+            result: wireframeSnapshot.result,
+            sceneElements: wireframeSnapshot.sceneElements,
+            slug: template.manifest.slug,
+            title: template.manifest.title,
+          })
+        : null,
+    [wireframeSnapshot, template],
   );
 
   const handleInjectChaosPacket = useCallback(() => {
@@ -428,20 +472,23 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
 
   if (!template) {
     return (
-      <div className="min-h-dvh bg-[#060911] text-slate-100 flex items-center justify-center p-8">
+      <div className="min-h-dvh bg-[#F8FAFC] text-[#0B1221] flex items-center justify-center p-4 sm:p-8">
         <div
           data-testid="template-not-found"
-          className="max-w-md rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-4"
+          className="hub-bento-card w-full max-w-md p-6 text-center space-y-4 sm:p-8"
         >
-          <h1 className="text-xl font-bold">Template &quot;{slug}&quot; Not Found</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-xl font-bold text-[#0B1221]">
+            Template &quot;{slug}&quot; Not Found
+          </h1>
+          <p className="text-sm text-[#5B6B82]">
             No Mode A native website or Mode B standalone project is registered
-            under slug <code className="text-cyan-300">{slug}</code>.
+            under slug{" "}
+            <code className="font-mono text-xs text-[#2563EB]">{slug}</code>.
           </p>
           <button
             type="button"
             onClick={onNavigateHome}
-            className="rounded-lg bg-cyan-500 px-4 py-2 font-mono text-xs font-semibold text-slate-950 hover:bg-cyan-400 transition cursor-pointer"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#0B1324] px-5 py-2 font-mono text-xs font-semibold text-white hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
             ← Return to Marketplace
           </button>
@@ -471,7 +518,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           ? isMonochromeArchive
             ? "bg-[#FFFFFF] text-[#000000]"
             : "bg-[#000000] text-zinc-100"
-          : "bg-[#060911] text-slate-100"
+          : "bg-[#F8FAFC] text-[#0B1221]"
       }`}
     >
       {!isImmersedHidden ? (
@@ -502,6 +549,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ) : isCmosBios ? (
         <div
           data-testid="immersion-hud-indicator"
+          data-hub-own-design=""
           className="fixed top-2 right-2 z-40 flex max-w-[calc(100vw-1rem)] items-center border-4 border-double border-[#FFFFFF] bg-[#0000AA] px-2 py-0.5 font-mono text-[11px] uppercase text-[#FFFF55] shadow-[4px_4px_0px_#000000]"
         >
           <button
@@ -520,6 +568,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ) : isChimeraLab ? (
         <div
           data-testid="immersion-hud-indicator"
+          data-hub-own-design=""
           className="fixed bottom-3 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-center rounded-full border border-[rgba(0,245,184,0.25)] bg-[rgba(2,18,24,0.78)] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#00F5B8] backdrop-blur-md sm:text-[11px]"
         >
           <button
@@ -538,6 +587,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ) : isMonochromeArchive ? (
         <div
           data-testid="immersion-hud-indicator"
+          data-hub-own-design=""
           className="fixed bottom-3 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 border-2 border-[#000000] bg-[#FFFFFF] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#000000] shadow-[2px_2px_0px_#000000] sm:text-[11px]"
         >
           <button
@@ -555,6 +605,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       ) : (
         <div
           data-testid="immersion-hud-indicator"
+          data-hub-own-design=""
           className="fixed bottom-3 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-wrap items-center gap-2 rounded-full border border-zinc-800/75 bg-black/75 px-3 py-1 font-mono text-[10px] text-zinc-400 backdrop-blur-sm transition hover:border-red-900/70 hover:text-zinc-200"
         >
           <button
@@ -582,74 +633,85 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
 
       <main
         className={`flex-1 flex justify-center min-w-0 ${
-          isFullBleedViewport ? "p-0" : "p-2 sm:p-4 md:p-6 bg-slate-950/60"
+          isFullBleedViewport ? "p-0" : "p-3 sm:p-5 lg:p-6 bg-[#F8FAFC]"
         }`}
       >
         <div
           className={
             isWireframeMode
-              ? "grid w-full max-w-[1800px] grid-cols-1 xl:grid-cols-2 gap-4 items-start"
+              ? "grid w-full max-w-[1760px] grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-5 items-start"
               : "contents"
           }
         >
           {isWireframeMode && (
-            <Suspense
-              fallback={
-                <div
-                  data-testid="wireframe-architect-loading"
-                  className="flex min-h-[640px] items-center justify-center rounded-2xl border border-slate-800 bg-slate-950 font-mono text-xs text-cyan-300"
-                >
-                  Loading Wireframe Architect (@excalidraw/excalidraw)...
-                </div>
-              }
-            >
-              <LazyWireframeArchitectCanvas
-                slug={template.manifest.slug}
-                templateTitle={template.manifest.title}
-                catalog={template.catalog}
-                baseSpec={templateBaseSpec}
-                colorScheme={
-                  lightModeRestored
-                    ? "light"
-                    : template.manifest.theme.defaultColorScheme
+            <div className="xl:col-span-6 min-w-0">
+              <Suspense
+                fallback={
+                  <div
+                    data-testid="wireframe-architect-loading"
+                    className="hub-bento-card flex min-h-[640px] items-center justify-center font-mono text-xs text-[#2563EB]"
+                  >
+                    Loading Wireframe Architect (@excalidraw/excalidraw)...
+                  </div>
                 }
-                onCompiledSpec={handleWireframeCompiled}
-              />
-            </Suspense>
+              >
+                <LazyWireframeArchitectCanvas
+                  slug={template.manifest.slug}
+                  templateTitle={template.manifest.title}
+                  catalog={template.catalog}
+                  baseSpec={templateBaseSpec}
+                  colorScheme={
+                    lightModeRestored
+                      ? "light"
+                      : template.manifest.theme.defaultColorScheme
+                  }
+                  initialScene={initialWireframeScene}
+                  onCompiledSpec={handleWireframeCompiled}
+                />
+              </Suspense>
+            </div>
           )}
 
           <div
-            data-testid="viewport-stage"
-            data-viewport={
-              isFullscreen
-                ? "fullscreen"
-                : isImmersedHidden
-                  ? "immersion"
-                  : viewport
+            className={
+              isWireframeMode
+                ? "xl:col-span-6 flex justify-center min-w-0 w-full"
+                : "contents"
             }
-            className={`studio-viewport-stage min-w-0 overflow-hidden ${
-              isFullBleedViewport
-                ? "w-full min-h-dvh"
-                : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-2xl border border-slate-800 shadow-2xl`
-            }`}
           >
-            <ScopedTemplateContainer
-              slug={template.manifest.slug}
-              themeCss={template.themeCss}
-              theme={template.manifest.theme}
-              colorSchemeOverride={lightModeRestored ? "light" : undefined}
+            <div
+              data-testid="viewport-stage"
+              data-viewport={
+                isFullscreen
+                  ? "fullscreen"
+                  : isImmersedHidden
+                    ? "immersion"
+                    : viewport
+              }
+              className={`studio-viewport-stage min-w-0 overflow-hidden ${
+                isFullBleedViewport
+                  ? "w-full min-h-dvh"
+                  : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-2xl border border-[#DCE4F0] shadow-[0_24px_60px_-15px_rgba(15,23,42,0.14)]`
+              }`}
             >
-              <JSONUIProvider registry={safeRegistry} store={timeTravelStore}>
-                <SafeGenUIRenderer
-                  spec={currentSpec}
-                  registry={safeRegistry}
-                  catalog={template.catalog}
-                  loading={isStreaming}
-                  telemetryTracker={telemetryTracker}
-                  healedDiagnostics={healedDiagnostics}
-                />
-              </JSONUIProvider>
-            </ScopedTemplateContainer>
+              <ScopedTemplateContainer
+                slug={template.manifest.slug}
+                themeCss={template.themeCss}
+                theme={template.manifest.theme}
+                colorSchemeOverride={lightModeRestored ? "light" : undefined}
+              >
+                <JSONUIProvider registry={safeRegistry} store={timeTravelStore}>
+                  <SafeGenUIRenderer
+                    spec={currentSpec}
+                    registry={safeRegistry}
+                    catalog={template.catalog}
+                    loading={isStreaming}
+                    telemetryTracker={telemetryTracker}
+                    healedDiagnostics={healedDiagnostics}
+                  />
+                </JSONUIProvider>
+              </ScopedTemplateContainer>
+            </div>
           </div>
         </div>
       </main>
@@ -670,6 +732,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         template={template}
+        wireframeExport={wireframeExport}
       />
     </div>
   );

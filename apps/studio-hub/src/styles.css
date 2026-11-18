@@ -1,21 +1,136 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --hub-bg: #060911;
-  --hub-surface: #0d1320;
-  --hub-elevated: #141c2f;
-  --hub-border: rgba(148, 163, 184, 0.16);
-  --hub-text: #f1f5f9;
-  --hub-muted: #94a3b8;
-  --hub-accent: #22d3ee;
+  color-scheme: light;
+  --hub-bg: #FFFFFF;
+  --hub-surface: #FFFFFF;
+  --hub-surface-subtle: #F8FAFC;
+  --hub-surface-tint: #F3F7FF;
+  --hub-border: #E8EDF5;
+  --hub-border-strong: #94A3B8;
+  --hub-ink: #0B1221;
+  --hub-muted: #5B6B82;
+  --hub-navy: #0B1324;
+  --hub-navy-deep: #070D19;
+  --hub-accent: #2563EB;
+  --hub-accent-hover: #1D4ED8;
+  --hub-accent-soft: #EFF4FF;
+  /* Shared shape for every Studio Hub button / CTA */
+  --hub-control-radius: 24px;
+}
+
+/*
+ * Studio Hub buttons & CTAs: 24px radius with squircle corners.
+ *
+ * Unlayered on purpose so it wins over Tailwind's `rounded-*` utilities (which live in
+ * `@layer utilities`), with zero specificity (`:where`) so a component can still opt into
+ * a different shape explicitly. Featured applications keep their own design, so the rule
+ * skips anything inside a template container (`[data-template-theme]`), Excalidraw's own
+ * UI, and elements marked `data-hub-own-design` (template-branded HUD indicators).
+ */
+:where(button, [role="button"], .hub-cta):not(
+    :where([data-template-theme], [data-hub-own-design], .excalidraw, .excalidraw-modal-container) *,
+    [data-hub-own-design]
+  ) {
+  border-radius: var(--hub-control-radius);
+}
+
+@supports (corner-shape: squircle) {
+  :where(button, [role="button"], .hub-cta):not(
+      :where([data-template-theme], [data-hub-own-design], .excalidraw, .excalidraw-modal-container) *,
+      [data-hub-own-design]
+    ) {
+    corner-shape: squircle;
+  }
+}
+
+/*
+ * Horizontally scrollable control rows on narrow screens (tabs, toolbars, filter chips).
+ * In the components layer so responsive utilities (`sm:flex-wrap`, `lg:overflow-visible`)
+ * can switch it back to a wrapping row on wider screens.
+ */
+@layer components {
+  .hub-scroll-row {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hub-scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hub-scroll-row > * {
+    flex-shrink: 0;
+  }
 }
 
 body {
   margin: 0;
   background-color: var(--hub-bg);
-  color: var(--hub-text);
+  color: var(--hub-ink);
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scoped editorial & studio display typography (max <= 2.5x min per modern-web-guidance) */
+.hub-display-heading {
+  font-size: clamp(2.125rem, 1.45rem + 2.6vw, 3.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.hub-section-heading {
+  font-size: clamp(1.75rem, 1.25rem + 1.8vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.hub-body-copy {
+  text-wrap: pretty;
+}
+
+/* Soft floating bento card surface inspired by modern AI design studios */
+.hub-bento-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E8EDF5;
+  border-radius: 1.5rem;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 18px 42px -14px rgba(15, 23, 42, 0.06);
+}
+
+.hub-bento-card-tinted {
+  background: linear-gradient(180deg, #F3F7FF 0%, #FFFFFF 68%);
+  border: 1px solid #E4ECFB;
+  border-radius: 1.5rem;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 18px 42px -14px rgba(37, 99, 235, 0.07);
+}
+
+/* Deep midnight navy feature card & code surface with explicit color-scheme */
+.hub-dark-bento {
+  color-scheme: only dark;
+  background: linear-gradient(180deg, #0D182E 0%, #070D19 100%);
+  color: #F8FAFC;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 24px 54px -16px rgba(7, 13, 25, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hub-code-surface {
+  color-scheme: only dark;
+  background-color: #0B1528;
+  color: #F1F5F9;
 }
 
 /* Studio Hub viewport frame supports container queries for responsive template testing */
@@ -24,8 +139,14 @@ body {
   transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Native <dialog> backdrop styling per modern-web-guidance light-dismiss-a-dialog */
+/* Native <dialog> scroll containment & soft backdrop per modern-web-guidance */
+dialog.studio-dialog:modal {
+  overscroll-behavior: contain;
+}
+
 dialog.studio-dialog::backdrop {
-  background-color: rgba(2, 6, 14, 0.78);
-  backdrop-filter: blur(5px);
+  background-color: rgba(11, 18, 33, 0.45);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  overscroll-behavior: contain;
 }

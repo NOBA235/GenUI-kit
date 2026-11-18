@@ -1,4 +1,8 @@
-import type { DualModeTemplateEntry, TemplateSourceFile } from "./types.js";
+import type {
+  DualModeTemplateEntry,
+  TemplateSourceFile,
+  TemplateWireframeExport,
+} from "./types.js";
 
 /**
  * Browser-safe copy of `packages/templates/base-nextjs-shell/` so Next.js .ZIP exports
@@ -155,7 +159,16 @@ function isExcludedExportPath(relPath: string): boolean {
 
 export interface MergedShellOptions {
   readonly projectName?: string;
+  /**
+   * Compiled Wireframe Architect output. When set, the export writes
+   * `src/template/wireframe.spec.json`, `.kiro/specs/<slug>/design.md` and (optionally)
+   * `wireframe/<slug>.excalidraw.json`, and the home route renders the wireframe Spec.
+   */
+  readonly wireframe?: TemplateWireframeExport | null;
 }
+
+/** Path of the exported wireframe Spec, relative to the project root. */
+export const WIREFRAME_SPEC_EXPORT_PATH = "src/template/wireframe.spec.json";
 
 function buildNextjsRoutePage(
   componentName: string,
@@ -203,6 +216,99 @@ export default function ${componentName}() {
 `;
 }
 
+/** Home route that renders the exported wireframe Spec (seeding its `state` into the store). */
+function buildWireframeRoutePage(componentName: string, slug: string): string {
+  return `"use client";
+import React, { useMemo } from "react";
+import type { Spec } from "@json-render/core";
+import { JSONUIProvider } from "@json-render/react";
+import {
+  createTelemetryTracker,
+  createTimeTravelStateStore,
+  SafeGenUIRenderer,
+  wrapRegistryWithTelemetry,
+} from "@genui-studio/core";
+import { verifiedCatalog } from "../src/template/catalog";
+import { templateComponents } from "../src/template/components";
+import wireframeSpecJson from "../src/template/wireframe.spec.json";
+
+// Compiled in GenUI Studio Wireframe Architect. Source sketch: wireframe/${slug}.excalidraw.json
+const wireframeSpec = wireframeSpecJson as unknown as Spec;
+
+export default function ${componentName}() {
+  const store = useMemo(
+    () => createTimeTravelStateStore((wireframeSpec.state ?? {}) as Record<string, unknown>),
+    [],
+  );
+  const tracker = useMemo(() => createTelemetryTracker(), []);
+  const safeRegistry = useMemo(
+    () =>
+      wrapRegistryWithTelemetry(verifiedCatalog, templateComponents, {
+        telemetryTracker: tracker,
+      }),
+    [tracker],
+  );
+
+  return (
+    <main data-template-theme=${JSON.stringify(slug)} className="min-h-screen">
+      <JSONUIProvider registry={safeRegistry} store={store}>
+        <SafeGenUIRenderer
+          spec={wireframeSpec}
+          registry={safeRegistry}
+          catalog={verifiedCatalog}
+          telemetryTracker={tracker}
+        />
+      </JSONUIProvider>
+    </main>
+  );
+}
+`;
+}
+
+/**
+ * Re-validates a wireframe export against the template catalog and returns the files to
+ * add to the project. The Spec passes through `catalog.validateFull()` (DAG sanitizer,
+ * unsafe-URI / prototype-pollution blocking, Zod prop healing) before it is written.
+ */
+function buildWireframeExportFiles(
+  entry: DualModeTemplateEntry,
+  wireframe: TemplateWireframeExport,
+  specPath: string,
+): Record<string, string> {
+  const { manifest, catalog } = entry;
+  const validated = catalog.validateFull(wireframe.spec, {
+    maxDepth: 16,
+    maxElements: 500,
+    pruneMissingChildren: true,
+  });
+  const files: Record<string, string> = {
+    [specPath]: `${JSON.stringify(validated.sanitizedSpec, null, 2)}\n`,
+    [`.kiro/specs/${manifest.slug}/design.md`]: wireframe.designMd.endsWith("\n")
+      ? wireframe.designMd
+      : `${wireframe.designMd}\n`,
+  };
+  if (wireframe.excalidrawJson !== undefined) {
+    let scene: unknown;
+    try {
+      scene = JSON.parse(wireframe.excalidrawJson);
+    } catch {
+      throw new Error("wireframe.excalidrawJson is not valid JSON");
+    }
+    files[`wireframe/${manifest.slug}.excalidraw.json`] = `${JSON.stringify(scene, null, 2)}\n`;
+  }
+  return files;
+}
+
+const WIREFRAME_README_SECTION = (slug: string, specPath: string): string => `
+## Wireframe
+
+This project was exported from GenUI Studio's Wireframe Architect.
+
+- \`${specPath}\`: the compiled GenUI Spec rendered by \`app/page.tsx\`
+- \`.kiro/specs/${slug}/design.md\`: Mermaid component and state-binding graph
+- \`wireframe/${slug}.excalidraw.json\`: the source sketch (open it at excalidraw.com)
+`;
+
 /**
  * Merges `base-nextjs-shell` with a Mode A (Internal Native) or Mode B (Ingested Standalone)
  * template into a complete, runnable Next.js 15 project file map.
@@ -242,6 +348,13 @@ export function mergeTemplateWithNextjsShell(
     out["ASSET_MANIFEST.md"] =
       assetDoc?.content ??
       `# ${manifest.title} — Asset Manifest\n\nAll procedural meshes, styles, and catalog blocks for \`${manifest.slug}\`.\n`;
+    if (options.wireframe) {
+      // Standalone projects keep their own app entry; the wireframe ships beside the bridge.
+      Object.assign(
+        out,
+        buildWireframeExportFiles(entry, options.wireframe, "genui/wireframe.spec.json"),
+      );
+    }
     return out;
   }
 
@@ -355,7 +468,18 @@ Exported from **GenUI Studio** (Mode: \`${manifest.mode}\`, Slug: \`${manifest.s
 pnpm install
 pnpm dev
 \`\`\`
-`;
+${options.wireframe ? WIREFRAME_README_SECTION(manifest.slug, WIREFRAME_SPEC_EXPORT_PATH) : ""}`;
+
+  if (options.wireframe) {
+    Object.assign(
+      mergedFiles,
+      buildWireframeExportFiles(entry, options.wireframe, WIREFRAME_SPEC_EXPORT_PATH),
+    );
+    mergedFiles["app/page.tsx"] = buildWireframeRoutePage(
+      `${toPascalCase(manifest.slug)}WireframePage`,
+      manifest.slug,
+    );
+  }
 
   return mergedFiles;
 }

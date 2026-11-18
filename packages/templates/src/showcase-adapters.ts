@@ -10,6 +10,7 @@ import {
   type AgentReadyPackManifest,
 } from "@genui-studio/core";
 import { generateStarterThemeCss } from "./css-isolation.js";
+import { buildShowcaseStarterSourceFiles } from "./showcase-starter-source.js";
 import type { DualModeTemplateEntry, TemplateThemeConfig } from "./types.js";
 
 /**
@@ -102,12 +103,11 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
               React.createElement(
                 "span",
                 {
-                  className: "px-2.5 py-1 text-xs font-mono font-bold",
+                  className: "px-3 py-1 text-xs font-mono font-bold rounded-full",
                   style: {
                     backgroundColor:
-                      "color-mix(in srgb, var(--tpl-accent) 18%, transparent)",
+                      "color-mix(in srgb, var(--tpl-accent) 16%, transparent)",
                     color: "var(--tpl-accent)",
-                    borderRadius: "var(--tpl-radius)",
                   },
                 },
                 props.badge,
@@ -115,7 +115,7 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
               React.createElement(
                 "strong",
                 {
-                  className: "text-base font-bold tracking-tight",
+                  className: "text-base font-extrabold tracking-tight",
                   style: { fontFamily: "var(--tpl-font-display)" },
                 },
                 props.brandName,
@@ -133,18 +133,18 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
         React.createElement(
           "section",
           {
-            className: "p-6 md:p-8 border space-y-4",
+            className: "p-6 md:p-8 border space-y-4 shadow-xs",
             style: {
               backgroundColor: "var(--tpl-surface)",
               borderRadius: "var(--tpl-radius)",
               borderColor:
-                "color-mix(in srgb, var(--tpl-fg) 14%, transparent)",
+                "color-mix(in srgb, var(--tpl-fg) 12%, transparent)",
             },
           },
           React.createElement(
             "div",
             {
-              className: "text-xs font-mono uppercase tracking-widest",
+              className: "text-xs font-mono font-bold uppercase tracking-widest",
               style: { color: "var(--tpl-accent)" },
             },
             props.eyebrow,
@@ -152,7 +152,7 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
           React.createElement(
             "h1",
             {
-              className: "text-3xl md:text-4xl font-bold tracking-tight",
+              className: "text-3xl md:text-4xl font-extrabold tracking-tight",
               style: { fontFamily: "var(--tpl-font-display)" },
             },
             props.headline,
@@ -169,11 +169,10 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
               "button",
               {
                 type: "button",
-                className: "px-4 py-2 text-xs font-semibold cursor-pointer",
+                className: "px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-full cursor-pointer",
                 style: {
                   backgroundColor: "var(--tpl-accent)",
-                  color: "#06090f",
-                  borderRadius: "var(--tpl-radius)",
+                  color: "#ffffff",
                 },
               },
               props.primaryCta,
@@ -182,11 +181,10 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
               ? React.createElement(
                   "span",
                   {
-                    className: "px-4 py-2 text-xs font-mono border opacity-85",
+                    className: "px-4 py-2 text-xs font-mono border rounded-full opacity-85",
                     style: {
-                      borderRadius: "var(--tpl-radius)",
                       borderColor:
-                        "color-mix(in srgb, var(--tpl-fg) 22%, transparent)",
+                        "color-mix(in srgb, var(--tpl-fg) 20%, transparent)",
                     },
                   },
                   props.secondaryCta,
@@ -200,7 +198,7 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
           { className: "space-y-3" },
           React.createElement(
             "div",
-            { className: "text-xs font-mono uppercase tracking-wider opacity-70" },
+            { className: "text-xs font-mono font-bold uppercase tracking-wider opacity-70" },
             props.heading,
           ),
           React.createElement(
@@ -209,48 +207,48 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
             React.createElement(
               "div",
               {
-                className: "p-4 border",
+                className: "p-5 border shadow-2xs",
                 style: {
                   backgroundColor: "var(--tpl-surface)",
                   borderRadius: "var(--tpl-radius)",
                   borderColor:
-                    "color-mix(in srgb, var(--tpl-fg) 14%, transparent)",
+                    "color-mix(in srgb, var(--tpl-fg) 12%, transparent)",
                 },
               },
-              React.createElement("div", { className: "text-xs opacity-70" }, props.primaryLabel),
+              React.createElement("div", { className: "text-xs font-medium opacity-70" }, props.primaryLabel),
               React.createElement(
                 "div",
-                { className: "text-2xl font-bold mt-1", style: { color: "var(--tpl-accent)" } },
+                { className: "text-2xl font-extrabold mt-1", style: { color: "var(--tpl-accent)" } },
                 props.primaryValue,
               ),
             ),
             React.createElement(
               "div",
               {
-                className: "p-4 border",
+                className: "p-5 border shadow-2xs",
                 style: {
                   backgroundColor: "var(--tpl-surface)",
                   borderRadius: "var(--tpl-radius)",
                   borderColor:
-                    "color-mix(in srgb, var(--tpl-fg) 14%, transparent)",
+                    "color-mix(in srgb, var(--tpl-fg) 12%, transparent)",
                 },
               },
-              React.createElement("div", { className: "text-xs opacity-70" }, props.secondaryLabel),
-              React.createElement("div", { className: "text-2xl font-bold mt-1" }, props.secondaryValue),
+              React.createElement("div", { className: "text-xs font-medium opacity-70" }, props.secondaryLabel),
+              React.createElement("div", { className: "text-2xl font-extrabold mt-1" }, props.secondaryValue),
             ),
             React.createElement(
               "div",
               {
-                className: "p-4 border",
+                className: "p-5 border shadow-2xs",
                 style: {
                   backgroundColor: "var(--tpl-surface)",
                   borderRadius: "var(--tpl-radius)",
                   borderColor:
-                    "color-mix(in srgb, var(--tpl-fg) 14%, transparent)",
+                    "color-mix(in srgb, var(--tpl-fg) 12%, transparent)",
                 },
               },
-              React.createElement("div", { className: "text-xs opacity-70" }, "Verified Uptime / SLO"),
-              React.createElement("div", { className: "text-2xl font-bold mt-1" }, `${props.uptimePercent}%`),
+              React.createElement("div", { className: "text-xs font-medium opacity-70" }, "Verified Uptime / SLO"),
+              React.createElement("div", { className: "text-2xl font-extrabold mt-1" }, `${props.uptimePercent}%`),
             ),
           ),
         ),
@@ -261,7 +259,7 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
           React.createElement(
             "h2",
             {
-              className: "text-lg font-semibold",
+              className: "text-lg font-extrabold tracking-tight",
               style: { fontFamily: "var(--tpl-font-display)" },
             },
             props.sectionTitle,
@@ -279,20 +277,20 @@ const { registry: showcaseBaseRegistry } = defineRegistry(
                 "article",
                 {
                   key: `${item.title}-${idx}`,
-                  className: "p-4 border space-y-1.5",
+                  className: "p-5 border space-y-1.5 shadow-2xs",
                   style: {
                     backgroundColor: "var(--tpl-surface)",
                     borderRadius: "var(--tpl-radius)",
                     borderColor:
-                      "color-mix(in srgb, var(--tpl-fg) 14%, transparent)",
+                      "color-mix(in srgb, var(--tpl-fg) 12%, transparent)",
                   },
                 },
                 React.createElement(
                   "h3",
-                  { className: "text-sm font-semibold", style: { color: "var(--tpl-accent)" } },
+                  { className: "text-sm font-bold", style: { color: "var(--tpl-accent)" } },
                   item.title,
                 ),
-                React.createElement("p", { className: "text-xs opacity-80" }, item.detail),
+                React.createElement("p", { className: "text-xs opacity-80 leading-relaxed" }, item.detail),
               ),
             ),
           ),
@@ -317,14 +315,14 @@ const PACK_SHOWCASE_CONFIG: Record<
     tags: ["3D / WebGL", "GenUI Verified"],
     theme: {
       defaultColorScheme: "dark",
-      accentColor: "#a855f7",
-      surfaceBg: "#060812",
-      surfaceElevated: "#111629",
-      textColor: "#f1f5f9",
+      accentColor: "#2563eb",
+      surfaceBg: "#070d19",
+      surfaceElevated: "#0f172a",
+      textColor: "#f8fafc",
       mutedColor: "#94a3b8",
-      displayFont: '"Space Grotesk", "Inter", system-ui, sans-serif',
-      bodyFont: '"Inter", system-ui, sans-serif',
-      borderRadius: "0.5rem",
+      displayFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      bodyFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      borderRadius: "1.25rem",
     },
     metricPrimary: ["16 Nodes", "3D Mesh Topology"],
     metricSecondary: ["60 FPS", "Zero-Alloc WebGL"],
@@ -333,15 +331,15 @@ const PACK_SHOWCASE_CONFIG: Record<
     category: "3D / WebGL",
     tags: ["3D / WebGL", "GenUI Verified"],
     theme: {
-      defaultColorScheme: "dark",
-      accentColor: "#34d399",
-      surfaceBg: "#040d0a",
-      surfaceElevated: "#0a1c16",
-      textColor: "#ecfdf5",
-      mutedColor: "#a7f3d0",
-      displayFont: '"JetBrains Mono", monospace',
-      bodyFont: '"Inter", system-ui, sans-serif',
-      borderRadius: "0.375rem",
+      defaultColorScheme: "light",
+      accentColor: "#2563eb",
+      surfaceBg: "#f8fafc",
+      surfaceElevated: "#ffffff",
+      textColor: "#0b1221",
+      mutedColor: "#5b6b82",
+      displayFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      bodyFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      borderRadius: "1.25rem",
     },
     metricPrimary: ["5 Nodes", "Starter WebGL"],
     metricSecondary: ["< 1ms", "Validation Latency"],
@@ -408,15 +406,15 @@ function adaptPackToDualModeEntry(
     category: "B2B SaaS",
     tags: ["B2B SaaS", "GenUI Verified"],
     theme: {
-      defaultColorScheme: "dark",
-      accentColor: "#22d3ee",
-      surfaceBg: "#070b14",
-      surfaceElevated: "#0f172a",
-      textColor: "#f8fafc",
-      mutedColor: "#94a3b8",
-      displayFont: '"Inter", system-ui, sans-serif',
-      bodyFont: '"Inter", system-ui, sans-serif',
-      borderRadius: "0.75rem",
+      defaultColorScheme: "light",
+      accentColor: "#2563eb",
+      surfaceBg: "#f8fafc",
+      surfaceElevated: "#ffffff",
+      textColor: "#0b1221",
+      mutedColor: "#5b6b82",
+      displayFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      bodyFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      borderRadius: "1.25rem",
     },
     metricPrimary: ["100%", "Compliance"],
     metricSecondary: [`${pack.components.length}`, "Components"],
@@ -484,6 +482,8 @@ function adaptPackToDualModeEntry(
           | "catalog"
           | "component",
       })),
+      // catalog.ts + components/ that the exported app/page.tsx imports.
+      ...buildShowcaseStarterSourceFiles({ home: homeSpec }),
       { path: "theme.css", content: themeCss, kind: "theme" },
       { path: "steering.md", content: pack.agentSkill.steeringRules, kind: "steering" },
     ],

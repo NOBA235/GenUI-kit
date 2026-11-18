@@ -1,32 +1,68 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { getTemplateBySlug } from "@genui-studio/templates";
 import { MarketplacePage } from "./pages/MarketplacePage.js";
 import { PreviewPage } from "./pages/PreviewPage.js";
+import type { WireframeInitialScene } from "./components/WireframeArchitectCanvas.js";
+import {
+  SAMPLE_WIREFRAME_FALLBACK_SLUG,
+  SAMPLE_WIREFRAME_SLUG,
+} from "./lib/workbench-entry.js";
+
+/** `null` = Wireframe Architect closed on entry; otherwise the scene it opens with. */
+export type WireframeRouteMode = WireframeInitialScene | null;
 
 export interface AppRouteState {
   readonly path: string;
   readonly fullscreen: boolean;
+  readonly wireframe: WireframeRouteMode;
+}
+
+function parseWireframeParam(raw: string | null): WireframeRouteMode {
+  if (raw === "sample") return "sample";
+  if (raw === "true" || raw === "template") return "template";
+  return null;
 }
 
 function readWindowRoute(): AppRouteState {
   if (typeof window === "undefined") {
-    return { path: "/", fullscreen: false };
+    return { path: "/", fullscreen: false, wireframe: null };
   }
   const params = new URLSearchParams(window.location.search);
   return {
     path: window.location.pathname || "/",
     fullscreen: params.get("fullscreen") === "true",
+    wireframe: parseWireframeParam(params.get("wireframe")),
   };
+}
+
+function buildRouteUrl(path: string, fullscreen: boolean, wireframe: WireframeRouteMode): string {
+  const params = new URLSearchParams();
+  if (fullscreen) params.set("fullscreen", "true");
+  if (wireframe === "sample") params.set("wireframe", "sample");
+  else if (wireframe === "template") params.set("wireframe", "true");
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+/** Slug the "Open Sample Wireframe" call-to-action opens. */
+export function resolveSampleWireframeSlug(): string {
+  return getTemplateBySlug(SAMPLE_WIREFRAME_SLUG)
+    ? SAMPLE_WIREFRAME_SLUG
+    : SAMPLE_WIREFRAME_FALLBACK_SLUG;
 }
 
 export interface StudioHubAppProps {
   readonly initialPath?: string;
   readonly initialFullscreen?: boolean;
+  /** Test/SSR override for the `?wireframe=` query (`"sample"`, `"template"`). */
+  readonly initialWireframe?: WireframeRouteMode;
   readonly instantStreamForTest?: boolean;
 }
 
 export const App: React.FC<StudioHubAppProps> = ({
   initialPath,
   initialFullscreen,
+  initialWireframe = null,
   instantStreamForTest = false,
 }) => {
   const [route, setRoute] = useState<AppRouteState>(() => {
@@ -34,6 +70,7 @@ export const App: React.FC<StudioHubAppProps> = ({
       return {
         path: initialPath,
         fullscreen: Boolean(initialFullscreen),
+        wireframe: initialWireframe,
       };
     }
     return readWindowRoute();
@@ -46,13 +83,15 @@ export const App: React.FC<StudioHubAppProps> = ({
     return () => window.removeEventListener("popstate", onPopState);
   }, [initialPath]);
 
-  const navigate = useCallback((nextPath: string, fullscreen = false) => {
-    const url = fullscreen ? `${nextPath}?fullscreen=true` : nextPath;
-    if (typeof window !== "undefined") {
-      window.history.pushState({}, "", url);
-    }
-    setRoute({ path: nextPath, fullscreen });
-  }, []);
+  const navigate = useCallback(
+    (nextPath: string, fullscreen = false, wireframe: WireframeRouteMode = null) => {
+      if (typeof window !== "undefined") {
+        window.history.pushState({}, "", buildRouteUrl(nextPath, fullscreen, wireframe));
+      }
+      setRoute({ path: nextPath, fullscreen, wireframe });
+    },
+    [],
+  );
 
   const previewMatch = /^\/preview\/([^/?#]+)(?:\/(.*))?$/.exec(route.path);
   if (previewMatch && previewMatch[1]) {
@@ -69,10 +108,13 @@ export const App: React.FC<StudioHubAppProps> = ({
           navigate(
             subPath ? `/preview/${slug}/${subPath}` : `/preview/${slug}`,
             !route.fullscreen,
+            route.wireframe,
           )
         }
         onNavigateHome={() => navigate("/", false)}
         instantStreamForTest={instantStreamForTest}
+        initialWireframeMode={route.wireframe !== null}
+        initialWireframeScene={route.wireframe ?? "template"}
       />
     );
   }
@@ -80,6 +122,9 @@ export const App: React.FC<StudioHubAppProps> = ({
   return (
     <MarketplacePage
       onOpenPreview={(slug) => navigate(`/preview/${encodeURIComponent(slug)}`, false)}
+      onOpenSampleWireframe={() =>
+        navigate(`/preview/${encodeURIComponent(resolveSampleWireframeSlug())}`, false, "sample")
+      }
     />
   );
 };

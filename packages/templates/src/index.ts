@@ -12,6 +12,7 @@ export {
   type TemplateRemixPreset,
   type TemplateSourceFile,
   type TemplateThemeConfig,
+  type TemplateWireframeExport,
 } from "./types.js";
 
 export {
@@ -32,6 +33,7 @@ export {
   BASE_NEXTJS_SHELL_FILES,
   mapFilesRecordToSourceFiles,
   mergeTemplateWithNextjsShell,
+  WIREFRAME_SPEC_EXPORT_PATH,
   type MergedShellOptions,
 } from "./base-shell.js";
 

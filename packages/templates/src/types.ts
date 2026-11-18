@@ -117,6 +117,19 @@ export interface DualModeTemplateEntry {
   readonly buildChaosPackets?: (rootKey: string) => readonly string[];
 }
 
+/**
+ * A wireframe compiled in Studio Hub's Wireframe Architect, embedded into a Next.js export
+ * so the starter renders the user's layout instead of the template default.
+ */
+export interface TemplateWireframeExport {
+  /** Compiled GenUI Spec; re-validated against the template catalog before it is written. */
+  readonly spec: Spec;
+  /** Full `.kiro/specs/<slug>/design.md` content (Mermaid graph + traceability tables). */
+  readonly designMd: string;
+  /** Optional Excalidraw v2 scene JSON, written to `wireframe/<slug>.excalidraw.json`. */
+  readonly excalidrawJson?: string;
+}
+
 export interface TemplateRegistryFilter {
   readonly mode?: TemplateMode | "all";
   readonly tag?: string | "all";

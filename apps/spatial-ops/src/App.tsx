@@ -701,7 +701,10 @@ export const App: React.FC<AppProps> = ({
       };
       const mappedAction = actionMap[entry.actionType];
       if (mappedAction) {
-        telemetryBridge.executeRemediation({
+        // executeSreMutation already wrote this action (and its audit entry) in one store update.
+        // Going through telemetryBridge.executeRemediation would append a duplicate audit entry,
+        // i.e. a second history snapshot, so one Undo click would only remove the duplicate.
+        liveMeshSimulator.executeRemediation({
           action: mappedAction,
           targetServiceId: entry.targetServiceId,
           operator: entry.operator,
