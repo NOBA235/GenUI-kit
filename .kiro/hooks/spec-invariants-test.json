@@ -1,12 +1,16 @@
 {
   "version": "v1",
-  "enabled": true,
-  "name": "Auto-PBT Verification Hook",
-  "description": "Runs the fast-check property-based testing suite whenever a catalog schema or core parser/sanitizer file is modified.",
-  "trigger": "PostFileSave",
-  "matcher": "(packages/genui-core|apps/spatial-ops)/src/.*(catalog|stream|state|boundary|testing).*\\.(ts|tsx)$",
-  "action": {
-    "type": "command",
-    "command": "node .kiro/hooks/scripts/run-pbt-suite.mjs"
-  }
+  "hooks": [
+    {
+      "name": "Auto-PBT Verification Hook",
+      "trigger": "PostFileSave",
+      "description": "Runs the @genui-studio/core fast-check invariant suite (pnpm --filter @genui-studio/core test:fuzz) when a catalog, stream, state, boundary or testing source file changes.",
+      "matcher": "(packages[\\\\/]genui-core|apps[\\\\/]spatial-ops)[\\\\/]src[\\\\/].*(catalog|stream|state|boundary|testing).*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/scripts/run-pbt-suite.mjs",
+        "timeout": 120
+      }
+    }
+  ]
 }

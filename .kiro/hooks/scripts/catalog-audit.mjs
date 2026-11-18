@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
  * Kiro Hook Script: Catalog Sync & Audit Hook
- * Executed automatically via `.kiro/hooks/catalog-schema-sync.json` on PostFileSave
+ * Executed via `.kiro/hooks/catalog-schema-sync.json` (PostFileSave), by CI,
  * or manually via `node .kiro/hooks/scripts/catalog-audit.mjs`.
  *
- * Scans workspace packages (`packages/genui-core`, `apps/workbench`, `apps/spatial-ops`)
- * to verify:
- * 1. Core skeleton build & TypeScript contract integrity (`tsc --noEmit`).
- * 2. Every `defineCatalog` / `createVerifiedCatalog` component entry defines a `props` Zod schema
- *    and a non-empty `description`.
- * 3. Every catalog component has a matching registry renderer and fallback error boundary coverage.
+ * Scans `packages/genui-core/src` and `apps/spatial-ops/src` and:
+ * 1. Fails on `dangerouslySetInnerHTML` or `eval(` in non-test sources (Invariant 1).
+ * 2. Counts files that define catalogs (`defineCatalog` / `createVerifiedCatalog`) and files that use
+ *    the safe boundary (`wrapRegistryWithTelemetry` / `SafeGenUIRenderer`). These counts are reported, not enforced.
+ * 3. Fails if a required core skeleton file is missing.
+ *
+ * It does not typecheck and does not compare catalogs with registries. Catalog-registry parity
+ * (components, descriptions, actions) is enforced by `auditCatalogRegistryParity` in
+ * `apps/spatial-ops/src/__tests__/spatial-app.test.tsx`, which runs in `pnpm -r test`.
  */
 
 import fs from "node:fs";

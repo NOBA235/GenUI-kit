@@ -1,12 +1,16 @@
 {
   "version": "v1",
-  "enabled": true,
-  "name": "Catalog Sync & Audit Hook",
-  "description": "Scans registered UI components and catalogs, validates that every component has a matching Zod schema, description, and fallback boundary state, and flags drift.",
-  "trigger": "PostFileSave",
-  "matcher": "(packages/genui-core|apps/spatial-ops)/src/.*\\.(ts|tsx)$",
-  "action": {
-    "type": "command",
-    "command": "node .kiro/hooks/scripts/catalog-audit.mjs"
-  }
+  "hooks": [
+    {
+      "name": "Catalog Sync & Audit Hook",
+      "trigger": "PostFileSave",
+      "description": "Runs catalog-audit.mjs: fails on dangerouslySetInnerHTML or eval() in core and SpatialOps sources and on missing core skeleton files; reports catalog and safe-boundary usage counts. Catalog-registry parity is enforced by spatial-app.test.tsx.",
+      "matcher": "(packages[\\\\/]genui-core|apps[\\\\/]spatial-ops)[\\\\/]src[\\\\/].*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/scripts/catalog-audit.mjs",
+        "timeout": 60
+      }
+    }
+  ]
 }
