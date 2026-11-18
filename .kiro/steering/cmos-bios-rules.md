@@ -8,7 +8,7 @@ fileMatchPattern: "packages/templates/src/cmos-cloud-bios/**"
 Applies only to Flagship Website #3 (`packages/templates/src/cmos-cloud-bios/**`). It adds to, and never overrides, `genui-invariants.md`, `spatial-3d-rules.md` and `tech.md`.
 
 ## 1. Scope & Isolation
-1. Keep every template file inside `packages/templates/src/cmos-cloud-bios/`. Do not edit root `src/app/` or other steering files.
+1. Keep every template file inside `packages/templates/src/cmos-cloud-bios/`. Do not edit the Studio Hub shell (`apps/studio-hub/src`), the exported Next.js shell (`packages/templates/base-nextjs-shell/`), or other steering files.
 2. The template renders at `/preview/cmos-cloud-bios`. All styles stay inside `[data-template-theme="cmos-cloud-bios"]`.
 3. Studio Hub chrome collapses to a top-right jumper pin reading `[ALT+G] GENUI STUDIO // EXPORT CMOS`.
 
@@ -21,7 +21,7 @@ Applies only to Flagship Website #3 (`packages/templates/src/cmos-cloud-bios/**`
    - Selected/Danger Red `#AA0000` (selection bar, alarms)
    - Shadow Black `#000000` (drop shadows, dialogs)
 2. Borders use double-line box drawing (`╔═╗ ║ ╚═╝`) or `border-style: double`. `border-radius` is always `0`.
-3. Typography: `VT323`, then `Space Mono`, then `monospace`. Self-host fonts or fall back to system monospace; no font CDN requests.
+3. Typography: `VT323`, then `Space Mono`, then `monospace`. The template itself makes no font CDN requests: it uses the fonts the host page already loads (Studio Hub's `index.html` loads VT323 and Space Mono from Google Fonts) or falls back to system monospace.
 4. Selection inverts colours instantly. No transitions, easing or blur on BIOS chrome.
 5. Alarm visuals never flash more than 3 times per second (WCAG 2.3.1).
 

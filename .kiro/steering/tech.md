@@ -13,12 +13,16 @@ All packages in this monorepo target the verified exports of the `@json-render` 
 | `@json-render/core/store-utils` | `^0.22.0` | `createStoreAdapter`, `immutableSetByPath`, `flattenToPointers` |
 | `@json-render/react` | `^0.22.0` | `defineRegistry`, `Renderer`, `JSONUIProvider`, `StateProvider`, `ActionProvider`, `VisibilityProvider`, `ValidationProvider`, `createRenderer`, `useStateStore`, `useStateValue`, `useBoundProp`, `useIsVisible`, `useActions`, `useAction`, `useFieldValidation`, `useUIStream`, `useChatUI` |
 | `@json-render/react/schema` | `^0.22.0` | `schema`, `elementTreeSchema`, `ReactSchema`, `ReactSpec` |
-| `@json-render/shadcn` | `^0.22.0` | `shadcnComponents` (from root), `shadcnComponentDefinitions` (from `@json-render/shadcn/catalog`) |
-| `@json-render/react-three-fiber` | `^0.22.0` | `ThreeCanvas`, `ThreeRenderer`, `threeComponents`, `threeComponentDefinitions`, `vector3Schema`, `materialSchema`, `transformProps`, `shadowProps` |
-| `@json-render/mcp` | `^0.22.0` | `createMcpApp`, `registerJsonRenderTool`, `registerJsonRenderResource`, `useJsonRenderApp` (`@json-render/mcp/app`), `buildAppHtml` (`@json-render/mcp/build-app-html`) |
+| `@json-render/shadcn` | `^0.22.0` | Declared by `apps/spatial-ops`, not imported by any source file. Available exports: `shadcnComponents` (from root), `shadcnComponentDefinitions` (from `@json-render/shadcn/catalog`) |
+| `@json-render/react-three-fiber` | `^0.22.0` | Declared by `apps/spatial-ops`, not imported by any source file (SpatialOps renders with `@react-three/fiber` directly). Available exports: `ThreeCanvas`, `ThreeRenderer`, `threeComponents`, `threeComponentDefinitions`, `vector3Schema`, `materialSchema`, `transformProps`, `shadowProps` |
+| `@json-render/mcp` | not installed | Not a dependency of any package. Its `0.22.0` exports are `createMcpApp`, `registerJsonRenderTool`, `registerJsonRenderResource` (root), `useJsonRenderApp` + `buildAppHtml` (`@json-render/mcp/app`) and `buildAppHtml` (`@json-render/mcp/build-app-html`) |
+| `@modelcontextprotocol/sdk` | `^1.32.2` | `McpServer`, `StdioServerTransport` (`packages/genui-mcp`); `Client`, `StdioClientTransport` (`scripts/verify-mcp.mjs`) |
+| `@react-three/fiber` / `@react-three/drei` / `three` | `^9.0.0` / `^10.0.0` / `^0.173.0` | `Canvas`, `useFrame`; `Html`, `OrbitControls` (SpatialOps scene and template 3D views) |
+| `react` / `react-dom` | `^19.0.0` | Peer dependency of `@genui-studio/core` and `@genui-studio/templates` (`^18 \|\| ^19`) |
 | `zod` | `^4.3.6` | `z.object`, `z.string`, `z.number`, `z.boolean`, `z.enum`, `z.array`, `z.nullable`, `z.union` |
 | `fast-check` | `^4.10.2` | `fc.assert`, `fc.property`, `fc.record`, `fc.dictionary`, `fc.oneof`, `fc.constantFrom`, `fc.letrec`, `fc.array`, `fc.tuple` |
 | `vitest` | `^3.0.0` | `describe`, `it`, `expect`, `vi` (in-process test & fuzz runner) |
+| Tooling | Node `>=22.18.0`, `pnpm@9.15.0`, TypeScript `^5.7.2`, ESLint `^10.15.0` | Root `.ts` scripts (e.g. the templates `prebuild`, `scripts/sync-templates.ts`) run with Node's built-in type stripping, so Node 20 cannot build the repo. Every package exposes `build`, `typecheck`, `lint`, `test`. |
 
 ---
 
@@ -102,5 +106,5 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
 ## 3. Hardware & Resource Discipline
 1. **In-Process Execution:** Run all unit tests, `fast-check` property-based fuzzing suites, and stream benchmarks in-process via `vitest run` without spawning Docker containers or external databases.
-2. **Bounded Fuzzing Runs:** Default `fast-check` `numRuns` to `100` in standard CI/Vitest runs (completing in `< 1.5s`) with configurable high-intensity seeds (`1,000+` runs) on demand.
-3. **Memory-Safe Streaming:** Stream buffers and state history ring buffers must enforce strict upper bounds (default max `256` snapshots, max `500` elements per spec, max tree depth `16`).
+2. **Bounded Fuzzing Runs:** Default `fast-check` `numRuns` to `100` in standard CI/Vitest runs (completing in `< 1.5s`) with configurable high-intensity seeds (`1,000+` runs) on demand. `runCatalogInvariantSuite()` uses `50` runs per theorem when no `numRuns` is passed; callers pass their own (`invariants.fuzz.test.ts` uses `100`).
+3. **Memory-Safe Streaming:** Stream buffers and state history ring buffers must enforce strict upper bounds (default max `128` snapshots via `maxHistory`, max `500` elements per spec, max tree depth `16`).
