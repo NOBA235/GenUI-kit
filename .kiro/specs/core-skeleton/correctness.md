@@ -29,7 +29,7 @@ Here $\text{CompileBatch}(L)$ is a single `push(L)` followed by `finalize()` on 
 
 **What this tests:**
 - Line buffering inside `GuardrailedStreamCompiler` is invariant to arbitrary network packet fragmentation, 1-byte drips, `\r\n` vs `\n` line endings, and missing trailing newlines at EOF (`invariants.fuzz.test.ts` "Invariant 1", which asserts both equivalences). SSE `data:` framing and the byte caps are covered separately in `hardening.test.ts`.
-- The reusable suite theorem `INV-PBT-01` in `runCatalogInvariantSuite` checks the first equivalence (chunked ≡ batch) only.
+- The reusable suite property `INV-PBT-01` in `runCatalogInvariantSuite` checks the first equivalence (chunked ≡ batch) only.
 
 ---
 
@@ -59,7 +59,7 @@ Let $\mathcal{M}_1, \mathcal{M}_2$ be two independent `TimeTravelStateStore` ins
 3. **Structural Sharing & Isolation:** Mutating $\mathcal{M}_1$ at path `/a/b` never mutates $\mathcal{M}_2$ and preserves strict `===` object reference equality on all disjoint branches `/c` in $\mathcal{M}_1$.
 4. **Time-Travel Invertibility:** Performing $k$ mutations followed by $k$ `undo()` calls restores a snapshot deeply equal to $S_0$, and $k$ subsequent `redo()` calls restore the exact terminal snapshot.
 
-All four sub-properties are asserted by `invariants.fuzz.test.ts` "Invariant 3". The reusable suite theorem `INV-PBT-03` covers 1, 2 and session isolation; it does not check `===` sharing or undo/redo.
+All four sub-properties are asserted by `invariants.fuzz.test.ts` "Invariant 3". The reusable suite property `INV-PBT-03` covers 1, 2 and session isolation; it does not check `===` sharing or undo/redo.
 
 ---
 
@@ -71,7 +71,7 @@ $$\land \quad \text{createVerifiedCatalog}(\mathcal{C}_A).\text{prompt}(\text{op
 
 **What this tests:**
 - System prompt compilation and synchronous FIPS 180-4 SHA-256 schema fingerprinting over canonical UTF-8 JSON are deterministic and immune to V8 key-insertion order variance (`invariants.fuzz.test.ts` "Invariant 4" permutes component, prop and action keys; `hardening.test.ts` checks hash order invariance and SHA-256 against `node:crypto`).
-- The reusable suite theorem `INV-PBT-04` is narrower: it reverses the `customRules` order on one catalog and checks that every component name appears in the prompt. No test asserts that every prop key and action name appears in the prompt.
+- The reusable suite property `INV-PBT-04` is narrower: it reverses the `customRules` order on one catalog and checks that every component name appears in the prompt. No test asserts that every prop key and action name appears in the prompt.
 
 ---
 

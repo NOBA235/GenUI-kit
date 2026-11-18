@@ -57,7 +57,7 @@ The `@genui-studio/core` package provides the foundational Generative UI skeleto
 ---
 
 ### Requirement 5: Property-Based Fuzzing & Formal Verification (`fast-check`)
-**User Story:** As a Verification Engineer, I want automated `fast-check` Arbitraries that generate thousands of valid, edge-case, and adversarial `Spec` trees and JSONL patch streams to mathematically prove our rendering invariants.
+**User Story:** As a Verification Engineer, I want automated `fast-check` Arbitraries that generate valid, edge-case, and adversarial `Spec` trees and JSONL patch streams to empirically test our rendering invariants across randomized inputs.
 
 1. **REQ-FUZ-01 (Ubiquitous):** THE SYSTEM SHALL export `fast-check` Arbitraries (`zodTypeToArbitrary`, `catalogToElementArbitrary`, `catalogToSpecArbitrary`, `arbitraryAdversarialSpec`, `arbitraryCorruptedJsonlStream`), the chunking helper `splitStreamByCutPoints`, and the runner `runCatalogInvariantSuite` from `@genui-studio/core/testing`.
 2. **REQ-FUZ-02 (Event-Driven):** WHEN the invariant test suite executes via `vitest run`, THE SYSTEM SHALL verify via `fc.assert(fc.property(...))` that:

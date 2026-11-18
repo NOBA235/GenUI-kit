@@ -2,7 +2,7 @@
   "name": "genui-studio-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "GenUI Studio: Commercial-Grade Generative UI Skeleton Framework & Verification Workbench powered by @json-render and orchestrated by Kiro.",
+  "description": "GenUI Studio: Excalidraw-to-GenUI Workbench & Guardrailed UI Compiler powered by @json-render and orchestrated by Kiro.",
   "license": "MIT",
   "packageManager": "pnpm@9.15.0",
   "engines": {

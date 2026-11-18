@@ -106,5 +106,5 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
 ## 3. Hardware & Resource Discipline
 1. **In-Process Execution:** Run all unit tests, `fast-check` property-based fuzzing suites, and stream benchmarks in-process via `vitest run` without spawning Docker containers or external databases.
-2. **Bounded Fuzzing Runs:** Default `fast-check` `numRuns` to `100` in standard CI/Vitest runs (completing in `< 1.5s`) with configurable high-intensity seeds (`1,000+` runs) on demand. `runCatalogInvariantSuite()` uses `50` runs per theorem when no `numRuns` is passed; callers pass their own (`invariants.fuzz.test.ts` uses `100`).
+2. **Bounded Fuzzing Runs:** Default `fast-check` `numRuns` to `100` in standard CI/Vitest runs (completing in `< 1.5s`) with configurable high-intensity seeds (`1,000+` runs) on demand. `runCatalogInvariantSuite()` uses `50` runs per property when no `numRuns` is passed; callers pass their own (`invariants.fuzz.test.ts` uses `100`).
 3. **Memory-Safe Streaming:** Stream buffers and state history ring buffers must enforce strict upper bounds (default max `128` snapshots via `maxHistory`, max `500` elements per spec, max tree depth `16`).

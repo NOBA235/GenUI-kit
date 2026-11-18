@@ -1,152 +1,137 @@
 # Kiroween 2026 Hackathon Submission: GenUI Studio (`GenUI-kit`)
 
-**Project Name:** GenUI Studio (`GenUI-kit`)  
+**Product:** GenUI Studio — The Excalidraw-to-GenUI Workbench  
+**One-Sentence Promise:** **Turn a wireframe into a validated, interactive UI preview—and export a usable React starter.**  
 **Track:** Developer Tools / AI Agent Frameworks (Skeleton Crew)  
 **License:** Open Source (MIT)  
 **Repository:** [github.com/NOBA235/GenUI-kit](https://github.com/NOBA235/GenUI-kit)  
 **Runtime Prerequisites:** `Node.js >= 22.18.0`, `pnpm@9.15.0` (zero external API keys required)  
-**Local Showcase Ports:**
-- **Studio Hub & Wireframe Workbench (`apps/studio-hub`):** `http://localhost:5175` (`/` storefront and `/preview/:slug` + `?fullscreen=true` workbench)
-- **Aegis SpatialOps (`apps/spatial-ops`):** `http://localhost:5174` (live local OTLP/HTTP JSON collector on `http://localhost:4318/v1/{traces,logs,metrics}`; opt-in `--demo` simulator)
+**Primary Workbench URL:** `http://localhost:5175` (`pnpm dev:hub` → click **"Open Sample Wireframe in Workbench"**)
 
 ---
 
-## 🎯 One-Sentence Thesis & Four-Stage Architecture Spine
+## 🎯 Why We Focused on One Clear Product
 
-> **One-Sentence Thesis:** **GenUI Studio** is a guardrailed Generative UI compiler, verification engine, and Kiro-orchestrated workbench (`@genui-studio/core`, built on `@json-render` `v0.22.0`) that compiles spatial wireframes and streamed RFC 6902 JSONL patches into DAG-sanitized, property-tested, crash-isolated React and 3D WebGL interfaces across **GenUI Studio Core → Studio Hub & Wireframe Workbench → Aegis SpatialOps → Stress-Tested Catalog Packs**.
+AI coding tools and prompt-to-UI generators frequently emit fragile JSX or unvalidated JSON specs that fail silently on unknown components, out-of-range props, cyclic parent-child references, or hook-order mismatches.
+
+**GenUI Studio** solves one specific developer job end-to-end:
+
+> **Sketch a wireframe in Excalidraw → deterministically compile it into a validated `@json-render` `Spec` → inspect actionable validation and prop-healing diagnostics → preview the interactive UI live → export a runnable Next.js/React starter.**
 
 ```mermaid
-flowchart TD
-    subgraph Stage1["1. GenUI Studio Core (packages/genui-core · genui-cli · genui-mcp)"]
-        CoreEngine["@genui-studio/core\nVerifiedCatalog · 3-Color DFS DAG Sanitizer\nGuardrailedStreamCompiler · TimeTravelStateStore\nSafeGenUIRenderer · fast-check PBT (INV-PBT-01..04)"]
-        CLI["genui-studio CLI\n(validate · list · add · export)"]
-        MCP["@genui-studio/mcp (stdio JSON-RPC)\n3 Catalog/Spec/Fuzz Tools + 3 OTLP Snapshot Tools"]
-        CoreEngine --- CLI
-        CoreEngine --- MCP
-    end
-
-    subgraph Stage2["2. Studio Hub & Wireframe Workbench (apps/studio-hub · :5175)"]
-        Wireframe["Excalidraw Wireframe Architect (compileExcalidrawToGenUI)\n① Blocks · ② Links · ③ Tags → Deterministic Spec + Mermaid"]
-        PreviewHUD["Scoped /preview/:slug Workbench\nLive JSONL Remix · X-Ray PBT Drawer · Next.js .zip Export"]
-        Wireframe --> CoreEngine
-        CoreEngine --> PreviewHUD
-    end
-
-    subgraph Stage3["3. Aegis SpatialOps (apps/spatial-ops · :5174 / OTLP :4318)"]
-        OTLP["Local OTLP/HTTP Collector (:4318)\n~/.spatial-ops/otlp-snapshot.json (SPATIAL_OPS_OTLP_SNAPSHOT)"]
-        SpatialUI["Synchronized 3D R3F Topology + 2D Incident HUD\nShared TimeTravelStateStore (15 Catalog Components)"]
-        OTLP --> SpatialUI
-        OTLP -.-> MCP
-        CoreEngine --> SpatialUI
-    end
-
-    subgraph Stage4["4. Stress-Tested Catalog Packs (packages/templates)"]
-        Packs["ninety9-archive · afterdark-horror\ncmos-cloud-bios · neuro-chimera-synth\n(+ spatial-mesh-starter & spatial-ops-3d-pro)"]
-        Packs --> PreviewHUD
-        Packs --> CLI
-    end
+flowchart LR
+    Sketch["1. Sketch Wireframe\n① Blocks · ② Links · ③ Tags\n(Excalidraw Canvas)"] --> Compile["2. Deterministic Compile\ncompileExcalidrawToGenUI\n(Spec + Mermaid · Zero LLM)"]
+    Compile --> Validate["3. Validate & Diagnose\nVerifiedCatalog.validateFull\nWireframeDiagnosticsStrip"]
+    Validate --> Preview["4. Interactive Preview\nSafeGenUIRenderer +\nTimeTravelStateStore ($state)"]
+    Preview --> Export["5. Export Runnable Starter\ngenerateTemplateZip (.zip)\napp/page.tsx + wireframe.spec.json"]
 ```
 
 ---
 
-## 📊 `@json-render` (`v0.22.0`) vs. `@genui-studio/core`
-
-`@json-render/core` and `@json-render/react` (`v0.22.0`) are the upstream packages imported by source (`@json-render/shadcn` and `@json-render/react-three-fiber` are declared in `apps/spatial-ops/package.json` but not imported; `apps/spatial-ops` renders its 3D WebGL scene directly with `@react-three/fiber` and `@react-three/drei`). `@genui-studio/core`, `genui-studio` CLI, `@genui-studio/mcp`, and `apps/studio-hub` add the surrounding visual compiler, runtime defense-in-depth, and verification pipeline:
-
-| Capability / Boundary | Upstream `@json-render/core` & `@json-render/react` (`v0.22.0`) | Added by `@genui-studio/core` & GenUI Studio |
-| :--- | :--- | :--- |
-| **Visual Wireframe Authoring** | JSON / code-authored `Spec` trees | **Excalidraw Wireframe Architect** (`compileExcalidrawToGenUI` → deterministic `Spec` + `.kiro` Mermaid diagram; zero LLM/network calls inside `compileExcalidrawToGenUI`) |
-| **Catalog & Prompt Synchronizer** | `defineCatalog()`, `defineRegistry()`, `catalog.prompt()` | **`createVerifiedCatalog()`** with FIPS 180-4 SHA-256 `catalogHash`, 1:1 schema-to-registry parity check, and deterministic key sorting |
-| **Cyclic Graph & Recursion Caps** | `validateSpec()`, `autoFixSpec()` | **3-Color DFS DAG Sanitizer (`sanitizeSpecGraph`)** severing back-edges (`A -> B -> A`) and sibling aliasing, enforcing `maxDepth`, `maxElements`, `maxValueDepth`, and `maxValueNodes` |
-| **Prototype Pollution & URI Guard** | Relies on caller hygiene | **RFC 6901 Pointer & String Guard** (`isDangerousKey`, `isSafeJsonPointer`, `isSafeUrl`) blocking `__proto__`, `constructor`, `prototype`, `javascript:`, `vbscript:`, and `data:text/html` |
-| **Prop Healing & Float Normalization** | Strict Zod validation | **Semantic Case/Separator Enum Healing, Numeric Clamping, `-0 -> 0` / `NaN` / `±Infinity` Healing & `<DiagnosticHealedBadge />`** |
-| **Hook-Safe Fault Isolation** | `<Renderer>`, `StateProvider`, `VisibilityProvider`, `ActionProvider` | **`<SafeGenUIRenderer>` (`<SafeElementInvoker>` + `<GenUIElementErrorBoundary>`)** isolating component throws to `<ElementFaultCard />` while keeping React hook order invariant |
-| **Chunk-Invariant Streaming** | `parseSpecStreamLine()`, `applySpecStreamPatch()`, `diffToPatches()` | **`createGuardrailedStreamCompiler()`** with bounded buffers (`maxBufferBytes`, `maxLineLength`, `maxTotalStreamBytes`, `maxPatches`), accepting JSONL, SSE (`data:`/`[DONE]`), or full Spec snapshots across arbitrary byte boundaries |
-| **Immutable Time-Travel State** | `StateStore` interface, `getByPath`, `immutableSetByPath`, `flattenToPointers` | **`createTimeTravelStateStore()`** with depth-sorted batch pointer mutations (`/a` before `/a/b`), `deepFreezeValue`, bounded ring buffer (`maxHistory` default `128`), `undo()`/`redo()`/`jumpToSnapshot()`, and watch cascade circuit breaker |
-| **CI CLI, MCP & PBT Fuzzing** | Core schema/spec utilities | **`genui-studio` CLI**, **`@genui-studio/mcp`** (`@modelcontextprotocol/sdk` stdio server), and **`@genui-studio/core/testing`** (`fast-check` Arbitraries + `runCatalogInvariantSuite`) |
-
----
-
-## 🏛️ How the Four Stages Work Together
-
-### Stage 1 — GenUI Studio Core (`packages/genui-core`, `packages/genui-cli`, `packages/genui-mcp`)
-- **`@genui-studio/core`:** Provides `createVerifiedCatalog`, `sanitizeSpecGraph` (3-color DFS cycle & sibling-aliasing severance), `createGuardrailedStreamCompiler`, `createTimeTravelStateStore`, `<SafeGenUIRenderer>`, and `@genui-studio/core/testing` (`INV-PBT-01..04`).
-- **`genui-studio` CLI (`packages/genui-cli`):** Validates `.json`/`.jsonl`/`.sse` streams in CI (`validate --strict --json`) and lists, scaffolds, or exports template packs (`list`, `add`, `export`).
-- **`@genui-studio/mcp` (`packages/genui-mcp`):** Exposes `list_catalog_components`, `validate_ui_spec`, `fuzz_test_catalog`, `query_telemetry_metrics`, `fetch_trace_spans`, and `execute_remediation` over stdio JSON-RPC.
-
-### Stage 2 — Studio Hub & Wireframe Workbench (`apps/studio-hub`, `:5175`)
-- **Scoped Multi-Viewport Preview & HUD:** Inspect template packs across `Desktop`, `Tablet`, `Mobile`, and `?fullscreen=true` viewports inside `ScopedTemplateContainer`, stream live RFC 6902 JSONL remixes, run `runCatalogInvariantSuite` in the X-Ray Drawer, and export runnable Next.js `.zip` archives.
-- **3-Primitive Deterministic Wireframe Architect ([`WireframeArchitectCanvas.tsx`](./apps/studio-hub/src/components/WireframeArchitectCanvas.tsx) & [`excalidraw-compiler.ts`](./apps/studio-hub/src/lib/excalidraw-compiler.ts)):**
-  1. **① Catalog Blocks:** Drawn shapes (`rectangle`, `diamond`, `ellipse`, `frame`) and bound text labels resolve against the active `VerifiedCatalog` via exact component names, keyword synonyms, and containment geometry (`>= 0.75`), sorted top-to-bottom / left-to-right by `(minY, minX)` with UTF-16 code-point tie-breaking (`compareCodePoints`).
-  2. **② Directed Interaction Links (`arrow`):** Drawn arrows with `startBinding` and `endBinding` compile into safe RFC 6901 state pointers (`/wireframeBindings/<slug>`), injecting `{ "$state": "/wireframeBindings/<slug>" }` onto the target block's summary prop, seeding `spec.state.wireframeBindings`, and adding a dashed `-.->` edge to the `.kiro/specs/<slug>/design.md` Mermaid diagram.
-  3. **③ Tags & Guardrails:** Explicit `customData.catalogComponent` tags override label heuristics only when the component exists in the catalog; unknown components, `isDeleted` shapes, `__proto__`/`constructor` keys, and cycles are stripped before passing through `catalog.validateFull()` / `sanitizeSpecGraph()`.
-  - **Strict Scope of Zero-LLM / Zero-Network Claim:** Strictly scoped to `compileExcalidrawToGenUI`, compilation is a synchronous, pure in-memory function making **zero LLM, network, clock, or randomness calls**—verified by [`wireframe-proof.test.ts`](./apps/studio-hub/src/__tests__/wireframe-proof.test.ts) and [`audit-wireframe-compiler.mjs`](./apps/studio-hub/scripts/audit-wireframe-compiler.mjs).
-
-### Stage 3 — Aegis SpatialOps (`apps/spatial-ops`, `:5174` / OTLP `:4318`)
-- **Live OTLP Ingestion + Synchronized 3D/2D State:** Ingests standard OTLP/HTTP JSON (`POST /v1/{traces,logs,metrics}`) on `:4318`, driving a 3D WebGL microservice topology (`SpatialSceneCanvas.tsx`) and a 2D incident HUD (`15` catalog components) over a single shared `TimeTravelStateStore`.
-- **Shared Snapshot Contract:** Both the SpatialOps collector (`apps/spatial-ops/server/otlp-collector.ts`) and the MCP server (`packages/genui-mcp/src/tools/otlp-snapshot-provider.ts`) read and write `~/.spatial-ops/otlp-snapshot.json` by default and honour `SPATIAL_OPS_OTLP_SNAPSHOT`.
-
-### Stage 4 — Stress-Tested Catalog Packs (`packages/templates` & `@genui-studio/core/registry`)
-- **`ninety9-archive`:** 1997 monochrome workstation archive (`34` dossiers, COBOL CRT boot gate, 5-tone monochrome token law).
-- **`afterdark-horror`:** Procedural 3D cemetery/crypt exploration (`THREE.InstancedMesh`, AABB+circle sliding collision solver, procedural Web Audio, WCAG flash limits, Swiss editorial convergence).
-- **`cmos-cloud-bios`:** 1994 Award BIOS setup utility + 3D motherboard digital twin + deterministic IaC compiler (`docker-compose.yml`, `vercel.json`, `main.tf` with FNV-1a checksum).
-- **`neuro-chimera-synth` (`CHIMERA // LAB`):** Bio-synthetic Physarum SQL query optimizer, recursive-descent SQL parser/cost planner, Web Audio sonifier, and offline `kiro-crew-app/` bundle.
-- **Registry Packs (`@genui-studio/core/registry`):** `spatial-mesh-starter` and `spatial-ops-3d-pro`.
-
----
-
-## 🤖 5-Layer Kiro Integration Matrix
-
-| Kiro Layer | Artifacts in Repository | What It Enforces / Provides | Verification Command / Evidence |
-| :--- | :--- | :--- | :--- |
-| **1. Specs (EARS)** | [`.kiro/specs/core-skeleton/`](./.kiro/specs/core-skeleton/), [`app-spatial-warroom/`](./.kiro/specs/app-spatial-warroom/), [`ninety9-archive/`](./.kiro/specs/ninety9-archive/), [`afterdark/`](./.kiro/specs/afterdark/), [`cmos-cloud-bios/`](./.kiro/specs/cmos-cloud-bios/), [`neuro-chimera-synth/`](./.kiro/specs/neuro-chimera-synth/) | EARS requirements (`WHEN/WHILE/IF ... SHALL`), architecture design docs, `INV-PBT-01..04` correctness theorems, and honest task checklists | `pnpm -r test` (`22` test files, `151` passing tests) |
-| **2. Steering** | [`.kiro/steering/`](./.kiro/steering/) (`product.md`, `tech.md`, `structure.md`, `genui-invariants.md`, `spatial-3d-rules.md`, `ninety9-monochrome-rules.md`, `afterdark-3d-horror.md`, `cmos-bios-rules.md`, `chimera-frankenstein-rules.md`) | Global monorepo/invariant rules (`inclusion: always`) + domain-specific 3D, monochrome, BIOS, and bio-solver laws (`inclusion: fileMatch`) | `pnpm -r lint` (shared [`eslint.config.mjs`](./eslint.config.mjs) enforces Invariants 1 & 7 statically) |
-| **3. Hooks** | [`.kiro/hooks/`](./.kiro/hooks/) (`catalog-schema-sync.json`, `spec-invariants-test.json`, `raw-jsx-guard.json`, `standalone-dropin-ingest.json`) + `.kiro/hooks/scripts/*.mjs` | Event-driven catalog-to-registry parity audit, `fast-check` PBT invariant runner, raw JSX/HTML guard, and standalone drop-in ingestion | `node .kiro/hooks/scripts/catalog-audit.mjs` & `node .kiro/hooks/scripts/run-pbt-suite.mjs` |
-| **4. Powers & Skills** | [`.kiro/powers/json-render-power/`](./.kiro/powers/json-render-power/) (`POWER.md`, `mcp.json`, `steering/*.md`) + per-pack `POWER.md` & `SKILL.md` | 5 Golden Rules for converting React/Three.js components into guardrailed catalogs + reusable agent playbooks | Verified against `@json-render` `v0.22.0` types |
-| **5. MCP Server & Kiro Crew** | [`packages/genui-mcp/`](./packages/genui-mcp/), [`.kiro/settings/mcp.json`](./.kiro/settings/mcp.json), [`packages/templates/src/neuro-chimera-synth/kiro-crew-app/`](./packages/templates/src/neuro-chimera-synth/kiro-crew-app/) | 6 stdio JSON-RPC MCP tools (3 catalog/spec/fuzz + 3 OTLP snapshot tools) + `chimera-lab@1.1.0` Kiro Crew bundle (`app.json`, 3 agents, skill, UI bundle, Python hooks) | `node scripts/verify-mcp.mjs` (stdio MCP client) & `chimera-lab.pbt.test.ts` |
-
-### Real Bugs Caught by `fast-check` Shrinking & Determinism Audits
-| Bug / Audit | Minimal Counterexample | Real-World Impact | Engineering Fix |
-| :--- | :--- | :--- | :--- |
-| **`BUG-PBT-01`** | `fullStream.replace(/\n$/, "")` | Streams ending without a trailing `\n` dropped the final element. | `GuardrailedStreamCompiler.finalize()` flushes residual line buffers before final DAG sanitization. |
-| **`BUG-PBT-02`** | `{"count": -0}` and `NaN` | `-0` and `NaN` values failed strict canonical serialization equality checks. | `deepCloneAndSanitizeValue` normalizes `-0 -> 0`, heals `NaN`/`±Infinity`, and records diagnostics. |
-| **`BUG-PBT-03`** | `children: ["el-1", "el-1"]` & diamond aliasing | Sibling key duplication and shared node references caused React key collisions and DFS traversal loops. | `sanitizeSpecGraph` maintains a global `mountedNodes` set alongside the DFS recursion stack to enforce a strict tree DAG. |
-| **`BUG-PBT-04`** | `store.update({ "/a/b": 99, "/a": { b: 1 } })` | Out-of-order parent and child mutations in a single batch depended on object key order. | `TimeTravelStateStore.update()` sorts JSON Pointers by depth (shallowest first) before applying mutations. |
-| **`BUG-WF-LOCALE`** | Equal-coordinate blocks `"aa-note"` and `"zz-note"` under Danish (`da`) collation | `compareVisualNodes` used `localeCompare`, causing `"aa"` to sort after `"z"` in `da` vs. before `"z"` in `en-US`. | Replaced `localeCompare` with UTF-16 code-point ordering (`compareCodePoints`) in `excalidraw-compiler.ts`. |
-
----
-
-## ⚡ Reproducible Verification Commands
+## ⚡ 60-Second Judge Walkthrough ("The Hard Test")
 
 ```bash
-# 1. Install dependencies (Node.js >= 22.18.0, pnpm@9.15.0)
+# 1. Install and build workspace packages
 pnpm install --frozen-lockfile
+pnpm -r build
 
-# 2. Check workspace script completeness and run build, typecheck, lint, and tests
+# 2. Launch the Workbench on http://localhost:5175
+pnpm dev:hub
+```
+
+1. **Open a Sample Wireframe (`Step 1`):** Visit `http://localhost:5175` and click **"Open Sample Wireframe in Workbench"** (`/preview/spatial-mesh-starter?wireframe=sample`, `data-testid="hero-open-sample-wireframe"`).
+2. **Compile to a UI Spec (`Step 2`):** `compileExcalidrawToGenUI` ([`excalidraw-compiler.ts`](./apps/studio-hub/src/lib/excalidraw-compiler.ts)) compiles the Excalidraw scene (`① Catalog Blocks`, `② Directed Interaction Links`, `③ Tags & Guardrails`) into a validated GenUI `Spec` + `.kiro/specs/<slug>/design.md` Mermaid diagram with **zero LLM or network calls inside `compileExcalidrawToGenUI`**.
+3. **See Actionable Validation Diagnostics (`Step 3`):** `<WireframeDiagnosticsStrip />` ([`WireframeDiagnosticsStrip.tsx`](./apps/studio-hub/src/components/WireframeDiagnosticsStrip.tsx), `data-testid="wireframe-diagnostics-strip"`) immediately explains:
+   - `Shape "sample-pricing-rect": tag "PricingTable" is not in the catalog; resolved by label to FeatureGrid.`
+   - `MetricStrip.uptimePercent healed 140 → 100`
+   - Any blocked `javascript:` URIs, rejected `__proto__` tags, or invalid prop types.
+4. **Preview the Result (`Step 4`):** `<SafeGenUIRenderer>` ([`safe-renderer.tsx`](./packages/genui-core/src/boundary/safe-renderer.tsx)) renders the compiled `Spec` with `<DiagnosticHealedBadge />`, hook-safe fiber isolation (`<SafeElementInvoker>`), and live `$state` arrow bindings (`/wireframeBindings/selectedPlan`) over `TimeTravelStateStore`.
+5. **Export a Runnable Starter (`Step 5`):** Click **Export** → **Download Next.js Starter (.zip)** ([`exporter.ts`](./packages/templates/src/exporter.ts)). The archive embeds `src/template/wireframe.spec.json` (`WIREFRAME_SPEC_EXPORT_PATH`), `app/page.tsx`, `src/template/catalog.ts`, `wireframe/<slug>.excalidraw.json`, and `.kiro/specs/<slug>/design.md`.
+
+```bash
+# Run the automated E2E test of all 5 steps (unpacks the exported .zip to disk and renders its exported app/page.tsx):
+pnpm --filter @genui-studio/studio-hub test -- src/__tests__/workbench-journey.e2e.test.tsx
+```
+
+---
+
+## 🔧 How the Engine Extends `@json-render` (`v0.22.0`)
+
+`@json-render/core` and `@json-render/react` (`v0.22.0`) provide the upstream catalog, patch primitives, and React renderer. `@genui-studio/core`, `genui-studio` CLI, `@genui-studio/mcp`, and `apps/studio-hub` add the wireframe compiler, runtime safety boundaries, and verification tooling:
+
+| Capability / Boundary | Upstream `@json-render/core` & `@json-render/react` (`v0.22.0`) | Added by `@genui-studio/core` & GenUI Studio Workbench |
+| :--- | :--- | :--- |
+| **Visual Wireframe Authoring** | JSON / code-authored `Spec` trees | **Excalidraw Wireframe Architect** (`compileExcalidrawToGenUI`), `<WireframeDiagnosticsStrip />`, and runnable Next.js `.zip` export |
+| **Catalog & Prompt Synchronizer** | `defineCatalog()`, `defineRegistry()`, `catalog.prompt()` | **`createVerifiedCatalog()`** with SHA-256 `catalogHash`, 1:1 schema-to-registry parity audit, and deterministic key ordering |
+| **Cyclic Graph & Recursion Caps** | `validateSpec()`, `autoFixSpec()` | **3-Color DFS DAG Sanitizer (`sanitizeSpecGraph`)** severing back-edges (`A -> B -> A`) and sibling aliasing, enforcing `maxDepth`, `maxElements`, `maxValueDepth`, and `maxValueNodes` |
+| **Prototype Pollution & URI Guard** | Relies on caller hygiene | **RFC 6901 Pointer & String Guard** (`isDangerousKey`, `isSafeJsonPointer`, `isSafeUrl`) blocking `__proto__`, `constructor`, `prototype`, `javascript:`, `vbscript:`, and `data:text/html` |
+| **Prop Healing & Float Normalization** | Strict Zod validation | **Case/Separator Enum Healing, Numeric Clamping, `-0 -> 0` / `NaN` / `±Infinity` Healing & `<DiagnosticHealedBadge />`** |
+| **SSR + Client Fault Isolation** | `<Renderer>`, `StateProvider`, `VisibilityProvider`, `ActionProvider` | **`<SafeGenUIRenderer>` (`<SafeElementInvoker>` + `<GenUIElementErrorBoundary>`)** isolating component faults to `<ElementFaultCard />` while keeping React hook order invariant across SSR and client hydration |
+| **Chunk-Invariant Streaming** | `parseSpecStreamLine()`, `applySpecStreamPatch()`, `diffToPatches()` | **`createGuardrailedStreamCompiler()`** with bounded buffers (`maxBufferBytes`, `maxLineLength`, `maxTotalStreamBytes`, `maxPatches`), accepting JSONL, SSE (`data:`/`[DONE]`), or full Spec snapshots |
+| **Immutable Time-Travel State** | `StateStore` interface, `getByPath`, `immutableSetByPath`, `flattenToPointers` | **`createTimeTravelStateStore()`** with depth-sorted batch pointer updates (`/a` before `/a/b`), `deepFreezeValue`, `undo()`/`redo()`, and watch cascade circuit breaker |
+| **CI CLI, MCP & Property Testing** | Core schema/spec utilities | **`genui-studio` CLI**, **`@genui-studio/mcp`** (`@modelcontextprotocol/sdk` stdio server), and **`@genui-studio/core/testing`** (`fast-check` Arbitraries + `runCatalogInvariantSuite`) |
+
+---
+
+## 🤖 How Kiro Improved Development: Concrete End-to-End Case Study
+
+Instead of adding Kiro files for volume, we used Kiro's **Specs → Steering → Hooks/ESLint → MCP** workflow to design, implement, and verify our core features. Below is one concrete trace showing how Kiro artifacts prevented real regressions:
+
+### Case Study: SSR Hook-Safe Rendering & Wireframe-to-Starter Export
+1. **Spec Requirement ([`.kiro/specs/core-skeleton/requirements.md`](./.kiro/specs/core-skeleton/requirements.md) & [`design.md`](./.kiro/specs/core-skeleton/design.md)):** Specified that `<SafeGenUIRenderer>` must isolate per-element faults without violating React's Rules of Hooks across valid, invalid, and SSR/hydration transitions.
+2. **Steering Law ([`.kiro/steering/genui-invariants.md`](./.kiro/steering/genui-invariants.md)):** Enforced Invariant 1 (no raw HTML/JSX injection such as `dangerouslySetInnerHTML` or `innerHTML` assignment) and Invariant 7 (hook-order stability via `<SafeElementInvoker>`).
+3. **What the Hooks & Linter Caught in Real Time:**
+   - **Caught Defect #1 (`safe-renderer.tsx`):** `SafeElementInvoker` previously called `callable(renderProps)` as a plain function during SSR after `useSyncExternalStore`. That ran child hooks on `SafeElementInvoker`'s fiber and broke `React.memo` components. Replacing `callable(renderProps)` with `<ComponentToRender {...renderProps} />` fixed SSR hook execution and `hydrateRoot` parity ([`safe-renderer-dom.test.tsx`](./packages/genui-core/src/__tests__/safe-renderer-dom.test.tsx)).
+   - **Caught Defect #2 (`eslint.config.mjs` Invariant 1):** While writing the `hydrateRoot` test in `safe-renderer-dom.test.tsx`, `pnpm -r lint` immediately rejected `container.innerHTML = ssrHtml` under the Invariant 1 AST rule, prompting a safe `DOMParser` + `replaceChildren` implementation.
+   - **Caught Defect #3 (`catalog-audit.mjs`):** `.kiro/hooks/scripts/catalog-audit.mjs` (`catalog-schema-sync.json`) scanned `40` source files across `9` catalog definitions and `10` `<SafeGenUIRenderer>` boundaries to ensure zero schema/registry drift.
+4. **Verified Result ([`workbench-journey.e2e.test.tsx`](./apps/studio-hub/src/__tests__/workbench-journey.e2e.test.tsx)):** Step 4 renders a custom `HookHero` component (`useState`, `useId`, `useMemo`) through `SafeGenUIRenderer` in SSR, mutates `/wireframeBindings/selectedPlan` on `TimeTravelStateStore`, and Step 5 unpacks the exported `.zip` and renders the exported `app/page.tsx`.
+
+### Workflow Friction & Iteration Log (What We Changed After Review)
+| Issue Identified | User / Reviewer Impact | Concrete Engineering Fix |
+| :--- | :--- | :--- |
+| **Competing product identities** | Visitors couldn't tell if the repo was a UI engine, wireframe tool, marketplace, or SRE dashboard. | Made the **Excalidraw-to-GenUI Workbench** the primary product and front door; demoted `apps/spatial-ops` and the themed packs to optional reference demos and stress-test fixtures. |
+| **Static starter export** | Exporting a `.zip` previously exported the template's initial spec rather than the user's compiled wireframe. | Added `buildWireframeExport` (`wireframe-export.ts`) and updated `generateTemplateZip` (`exporter.ts`) to write `src/template/wireframe.spec.json` (`WIREFRAME_SPEC_EXPORT_PATH`) and wire `app/page.tsx` to render it. |
+| **Silent wireframe fallbacks** | Unknown component tags or clamped numbers healed silently without explaining why. | Added `<WireframeDiagnosticsStrip />` (`WireframeDiagnosticsStrip.tsx`) and `matchSource` / `propDiagnostics` / `validationIssues` on `ExcalidrawCompileResult`. |
+| **Locale-dependent tie-breaking** | `compileExcalidrawToGenUI` used `localeCompare` when sorting equal-coordinate shapes (`"aa"` vs. `"z"` in Danish `da`). | Replaced `localeCompare` with UTF-16 code-point ordering (`compareCodePoints`) in `excalidraw-compiler.ts` ([`wireframe-proof.test.ts`](./apps/studio-hub/src/__tests__/wireframe-proof.test.ts)). |
+| **Collector gzip bomb & exposure risk** | `otlp-collector.ts` checked compressed size before `gunzipSync`, used wildcard CORS `*`, and lacked remote-bind/auth guards. | Enforced `gunzipSync(buf, { maxOutputLength: maxBodyBytes })` (`413`), loopback bind guard (`--allow-remote`), loopback CORS reflection, and `SPATIAL_OPS_AUTH_TOKEN` Bearer auth ([`otlp-topology.test.ts`](./apps/spatial-ops/src/__tests__/otlp-topology.test.ts) Test #10). |
+
+---
+
+## 🔒 Threat Model & Supported Deployment Modes
+
+- **Supported Deployment Modes:**
+  1. **Local Developer Workbench (`apps/studio-hub` on `:5175`):** Interactive wireframe sketching, compilation, diagnostics, preview, and Next.js `.zip` starter export.
+  2. **In-App React Runtime (`@genui-studio/core`):** Client DOM (`createRoot` / `hydrateRoot`) and SSR (`renderToString` / `renderToStaticMarkup`) rendering of untrusted or LLM-streamed `Spec` trees against a trusted developer-defined `ComponentRegistry`.
+  3. **CI Spec Linter & Local MCP Server (`genui-studio` CLI & `@genui-studio/mcp`):** Offline CI validation (`genui-studio validate`) and local coding-agent stdio MCP server (`pnpm mcp`).
+  4. **Local OTLP Receiver (`apps/spatial-ops` on `127.0.0.1:4318`):** Localhost telemetry visualization. Refuses non-loopback binding unless `--allow-remote` / `SPATIAL_OPS_ALLOW_REMOTE=1` is set; reflects only loopback `Origin` headers by default; caps decompressed gzip payloads at `maxBodyBytes` (`413`); enforces optional `SPATIAL_OPS_AUTH_TOKEN` Bearer auth on `POST /v1/*`, `/api/reset`, and `/api/demo/trace`.
+- **Non-Goals / Out of Scope:**
+  - Not a multi-tenant public SaaS backend.
+  - SpatialOps remediation (`execute_remediation`) is a **local state simulation / advisory tool** (`executionMode: "LOCAL_SIMULATION"` or `"LOCAL_OTLP_SNAPSHOT_ADVISORY"`), never a live cloud control plane.
+
+---
+
+## ✅ Reproducible Verification Commands & Honest Status Table
+
+```bash
+pnpm install --frozen-lockfile
 node scripts/check-workspace-scripts.mjs
 pnpm -r build
 pnpm -r typecheck
 pnpm -r lint
 pnpm -r test
-
-# 3. Execute Kiro hook scripts, real stdio MCP client verification, and Wireframe bundle audit
 node .kiro/hooks/scripts/catalog-audit.mjs
 node .kiro/hooks/scripts/run-pbt-suite.mjs
 node scripts/verify-mcp.mjs
 node apps/studio-hub/scripts/audit-wireframe-compiler.mjs
 ```
 
----
-
-## ✅ Honest Verified vs. Unverified Status
-
-| Verification Item | Status | Evidence / Reason |
+| Verification Item | Status | Evidence / Scope Boundary |
 | :--- | :--- | :--- |
-| **Workspace Build, Typecheck, Lint & Tests (All 6 Packages)** | **Verified** | `pnpm -r build`, `pnpm -r typecheck`, `pnpm -r lint`, and `pnpm -r test` all exit `0` (`22` test files, `151` passing tests; enforced in `.github/workflows/ci.yml`). |
-| **External Package-Consumer Tarball Verification** | **Verified** | `@genui-studio/core`, `@genui-studio/templates`, `genui-studio`, and `@genui-studio/mcp` packed via `pnpm pack`, installed into a clean external project, and verified for ESM imports, `@genui-studio/core/testing` + `fast-check`, NodeNext TypeScript declarations (`--skipLibCheck false`), and CLI `bin` execution. |
-| **Wireframe Architect Deterministic Compilation (`compileExcalidrawToGenUI`)** | **Verified** | Excalidraw v2 fixture → golden `Spec` + Mermaid snapshots, 50-run determinism, Danish locale collation invariance, runtime network/clock/randomness tripwires (`wireframe-proof.test.ts`), and static Rollup bundle scan (`audit-wireframe-compiler.mjs`). |
-| **MCP Server (`@genui-studio/mcp`) & OTLP `:4318` Snapshot Contract** | **Verified** | All 6 MCP tools verified over stdio JSON-RPC (`scripts/verify-mcp.mjs`); collector and MCP server share `~/.spatial-ops/otlp-snapshot.json` and honour `SPATIAL_OPS_OTLP_SNAPSHOT`. |
-| **Kiro Crew (`neuro-chimera-synth/kiro-crew-app`) — State 1: Offline Packaging & Manifest Validation** | **Verified** | `validateCrewBundle` validates all 13 files of `chimera-lab@1.1.0` (`app.json`, 3 agents, `SKILL.md` without BOM, 3 paused crons, hook specs) and rejects malformed manifests with field paths (`chimera-lab.pbt.test.ts`). |
-| **Kiro Crew (`neuro-chimera-synth/kiro-crew-app`) — State 2: ESM Bundle & Python Hook Compilation** | **Verified** | `cd ui && npm install && npm run build` produces `dist/index.mjs` (`3,980` bytes; externalizes `react`, `@kirocrew/app-sdk`, `@kirocrew/app-sdk/ui`); `python -m py_compile backend/hooks.py backend/__init__.py` exits `0` and offline `on_startup`/`on_shutdown` checks pass. |
-| **Kiro Crew (`neuro-chimera-synth/kiro-crew-app`) — State 3: Live Kiro Crew Gateway Installation & Runtime** | **Unverified** | `kirocrew app install` / `enable`, live dashboard mounting inside a running Kiro Crew host, gateway hook execution, and cron triggers are **unverified** because the `kirocrew` CLI and gateway are not installed in this environment (recorded as `[ ]` in [`.kiro/specs/neuro-chimera-synth/tasks.md`](./.kiro/specs/neuro-chimera-synth/tasks.md#L30)). |
-| **External Cloud Control-Plane Mutations & Hosted License Billing** | **Unverified / Local Simulation by Design** | SpatialOps `execute_remediation` and runbook actions mutate local `TimeTravelStateStore` / OTLP state only; `validateLicenseToken` defaults to offline `"local-format-demo"` unless a custom `LicenseVerifier` is supplied. |
+| **5-Step Workbench User Journey (`Sketch → Compile → Validate → Preview → Export`)** | **Verified** | End-to-end test ([`workbench-journey.e2e.test.tsx`](./apps/studio-hub/src/__tests__/workbench-journey.e2e.test.tsx)) compiles the sample sketch, verifies `<WireframeDiagnosticsStrip />` warnings and hostile-input error states, renders hook components + live `$state` bindings, unpacks the exported `.zip`, and renders the exported `app/page.tsx`. |
+| **SSR + Client Hydration with Hook-Using & `React.memo` Components** | **Verified** | Tested with `renderToString`, `renderToStaticMarkup`, `hydrateRoot`, and `createRoot` in [`safe-renderer-dom.test.tsx`](./packages/genui-core/src/__tests__/safe-renderer-dom.test.tsx). |
+| **Deterministic Zero-LLM Wireframe Compilation (`compileExcalidrawToGenUI`)** | **Verified** | Golden `Spec` + Mermaid snapshots, 50-run determinism, Danish (`da`) collation invariance, runtime network/clock/randomness tripwires ([`wireframe-proof.test.ts`](./apps/studio-hub/src/__tests__/wireframe-proof.test.ts)), and static Rollup bundle audit ([`audit-wireframe-compiler.mjs`](./apps/studio-hub/scripts/audit-wireframe-compiler.mjs)). |
+| **Property-Based Tests (`fast-check`) & Workspace CI** | **Verified** | `pnpm -r build/typecheck/lint/test` passes across all 6 packages (`23` test files, `159` passing tests; enforced in `.github/workflows/ci.yml`). `fast-check` suites (`50`–`500` runs per property) provide empirical randomized test coverage, not mathematical proof. |
+| **External Package-Consumer Tarball Verification (`pnpm pack`)** | **Verified** | `@genui-studio/core`, `@genui-studio/templates`, `genui-studio`, and `@genui-studio/mcp` installed from `.tgz` tarballs in a clean external project; ESM runtime, `@genui-studio/core/testing` + `fast-check`, NodeNext declarations (`--skipLibCheck false`), and CLI `bin` verified. |
+| **OTLP Collector Security Guards (`:4318`) & MCP Snapshot Contract** | **Verified** | Loopback bind guard, loopback CORS reflection, `gunzipSync` `maxOutputLength` decompression bomb cap (`413`), Bearer token auth (`401`), and shared `~/.spatial-ops/otlp-snapshot.json` (`SPATIAL_OPS_OTLP_SNAPSHOT`) verified in [`otlp-topology.test.ts`](./apps/spatial-ops/src/__tests__/otlp-topology.test.ts) and [`verify-mcp.mjs`](./scripts/verify-mcp.mjs). |
+| **SpatialOps Remediation & Offline CLI License Check** | **Simulated by Design** | `execute_remediation` and SpatialOps runbooks mutate local `TimeTravelStateStore` / in-memory simulation state only (`LOCAL_SIMULATION` / `LOCAL_OTLP_SNAPSHOT_ADVISORY`); `validateLicenseToken` defaults to offline `"local-format-demo"`. |
+| **Kiro Crew (`neuro-chimera-synth/kiro-crew-app`)** | **State 1 & 2 Verified · State 3 Unverified** | **State 1** (offline manifest validation via `validateCrewBundle`) and **State 2** (`dist/index.mjs` 3,980-byte ESM bundle + `hooks.py` `py_compile`) are **verified**. **State 3** (live `kirocrew app install` / gateway runtime) is **unverified** (`[ ]` in [`.kiro/specs/neuro-chimera-synth/tasks.md`](./.kiro/specs/neuro-chimera-synth/tasks.md#L30)) because the `kirocrew` CLI/gateway is not installed in this environment. |
