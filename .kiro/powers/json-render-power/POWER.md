@@ -61,14 +61,21 @@ export const catalog = defineCatalog(schema, {
 In `@json-render/react`, `children`, `slots`, `visible`, `on`, `repeat`, and `watch` are **top-level fields** on `UIElement`. Component `props` schemas must only describe domain data and presentation attributes.
 
 ### Rule 3: Two-Way Data Binding Uses `useBoundProp` + `bindings`
-When converting controlled form inputs (`<input>`, `<select>`, `<slider>`, `<switch>`), accept the resolved value from `props` and the bound path from `bindings`:
+When converting controlled form inputs (`<input>`, `<select>`, `<slider>`, `<switch>`), accept the resolved value from `props` and the bound path from `bindings`. `defineRegistry` only accepts components the catalog declares, so first add the component next to `StatusBanner` in the Rule 1 catalog:
+```typescript
+ThresholdInput: {
+  props: z.object({ label: z.string(), value: z.number().nullable() }),
+  description: "Numeric threshold input bound to a state path.",
+},
+```
+Then implement it. `useBoundProp` takes `T | undefined`, so map the nullable prop with `?? undefined`:
 ```tsx
 import { defineRegistry, useBoundProp } from "@json-render/react";
 
 const { registry } = defineRegistry(catalog, {
   components: {
     ThresholdInput: ({ props, bindings }) => {
-      const [value, setValue] = useBoundProp<number>(props.value, bindings?.value);
+      const [value, setValue] = useBoundProp<number>(props.value ?? undefined, bindings?.value);
       return (
         <input
           type="number"
@@ -91,8 +98,8 @@ In the JSON spec, the LLM binds the prop via:
 }
 ```
 
-### Rule 4: Event Dispatch Uses `emit("eventName")` or `on("eventName")`
-Never pass raw JS callback strings from JSON specs. Instead, components fire semantic events via `emit("press")` or `on("click")`, and the `UIElement.on` map binds those events to catalog or built-in actions (`setState`, `pushState`, `removeState`, `validateForm`):
+### Rule 4: Event Dispatch Uses `emit("eventName")`
+Never pass raw JS callback strings from JSON specs. Instead, components fire semantic events with `emit("press")`, and the `UIElement.on` map binds those events to catalog or built-in actions (`setState`, `pushState`, `removeState`, `validateForm`). `on("press")` does not fire anything: it returns an `EventHandle` (`{ emit(), shouldPreventDefault, bound }`) for when you need to know whether the event is bound or should call `preventDefault()` before `handle.emit()`. As in Rule 3, `ActionButton` must be declared in the catalog:
 ```tsx
 ActionButton: ({ props, emit }) => (
   <button type="button" onClick={() => emit("press")}>
@@ -102,7 +109,7 @@ ActionButton: ({ props, emit }) => (
 ```
 
 ### Rule 5: Wrap Registries in `@genui-studio/core` Telemetry & DAG Sanitization
-Always pass streaming or untrusted specs through `GuardrailedStreamCompiler` / `sanitizeSpecGraph` and wrap registries with `wrapRegistryWithTelemetry()` so cyclic element references or bad props degrade gracefully to an `<ElementFaultCard>` instead of crashing React.
+Always pass streaming or untrusted specs through `createGuardrailedStreamCompiler()` or `sanitizeSpecGraph()` (render with `<SafeGenUIRenderer>`, which applies `sanitizeSpecGraph` itself), and wrap registries with `wrapRegistryWithTelemetry(verifiedCatalog, registry)`. Cyclic element references are severed before rendering (counted as `severedCyclesCount`); props that still fail validation after healing, render exceptions, and unknown component types degrade to an `<ElementFaultCard>` for that element instead of crashing React.
 
 ---
 

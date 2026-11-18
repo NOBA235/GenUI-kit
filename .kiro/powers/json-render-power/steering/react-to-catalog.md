@@ -38,7 +38,7 @@ export function ServiceNodeCard({
 
 #### Step A: Catalog Definition (`catalog.ts`)
 - Replace `React.ReactNode` props (`headerActions`) with named `slots: ["default", "headerActions"]`.
-- Replace callback props (`onRestart`) with semantic events (`events: ["restart"]`) bound via `UIElement.on`.
+- Replace callback props (`onRestart`) with semantic events (`events: ["restart"]`) bound via `UIElement.on`. `catalog.prompt()` lists `events` so the model knows which `on` keys exist; the React renderer does not check `on` keys against it.
 - Replace optional `?` primitives with `.nullable()` for LLM structured-output compatibility.
 
 ```typescript
