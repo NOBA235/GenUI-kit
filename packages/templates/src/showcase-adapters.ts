@@ -310,9 +310,9 @@ const PACK_SHOWCASE_CONFIG: Record<
     metricSecondary: [string, string];
   }
 > = {
-  "spatial-ops-3d-pro": {
-    category: "3D / WebGL",
-    tags: ["3D / WebGL", "GenUI Verified"],
+  "saas-dashboard-starter": {
+    category: "B2B SaaS",
+    tags: ["B2B SaaS", "GenUI Verified"],
     theme: {
       defaultColorScheme: "dark",
       accentColor: "#2563eb",
@@ -324,12 +324,12 @@ const PACK_SHOWCASE_CONFIG: Record<
       bodyFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
       borderRadius: "1.25rem",
     },
-    metricPrimary: ["16 Nodes", "3D Mesh Topology"],
-    metricSecondary: ["60 FPS", "Zero-Alloc WebGL"],
+    metricPrimary: ["$48.2K", "Monthly Recurring Revenue"],
+    metricSecondary: ["18.4ms", "Median API Latency"],
   },
-  "spatial-mesh-starter": {
-    category: "3D / WebGL",
-    tags: ["3D / WebGL", "GenUI Verified"],
+  "product-landing-starter": {
+    category: "B2B SaaS",
+    tags: ["B2B SaaS", "E-Commerce", "GenUI Verified"],
     theme: {
       defaultColorScheme: "light",
       accentColor: "#2563eb",
@@ -341,7 +341,7 @@ const PACK_SHOWCASE_CONFIG: Record<
       bodyFont: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
       borderRadius: "1.25rem",
     },
-    metricPrimary: ["5 Nodes", "Starter WebGL"],
+    metricPrimary: ["12,400+", "Active Teams"],
     metricSecondary: ["< 1ms", "Validation Latency"],
   },
 };

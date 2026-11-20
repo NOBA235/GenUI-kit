@@ -28,4 +28,4 @@
 - [x] 12. Studio Hub: `[ALT+G] GENUI STUDIO // EXPORT CMOS` jumper pin in `PreviewPage.tsx`; flagship banner in `MarketplacePage.tsx`. _Req 1.3_
 - [x] 13. `__tests__/cmos-bios.pbt.test.ts`: compile validity over 500 random configs (strict YAML-subset reader, JSON parse, HCL balance, no inline secrets), power/price/cost monotonicity, adversarial catalog props (direct and streamed), preset streaming, fail-safe recovery, SSR in both modes, `.zip` export. _Req 16.3_
 - [x] 14. Marketplace registration via `pnpm sync:templates`, `SKILL.md`, `POWER.md`, template `steering.md`. _Req 16.4_
-- [x] 15. Workspace typecheck, build and tests run. The earlier `apps/spatial-ops` typecheck/build failure from a stray edit outside this template (`SpatialSceneCanvas.tsx` line 104) has been resolved; spatial-ops typecheck and build pass.
+- [x] 15. Promoted into standalone Skeleton Crew application folder `apps/cmos-cloud-bios/` (`@genui-studio/app-cmos-cloud-bios`); workspace build, typecheck, lint, and tests pass across all 6 packages.

@@ -348,23 +348,23 @@ describe("Dual-Mode Template Architecture & Registry Engine", () => {
       const saasTagged = listTemplates({ tag: "B2B SaaS" });
       expect(saasTagged.length).toBeGreaterThan(0);
 
-      expect(getTemplateBySlug("spatial-ops-3d-pro")).toBeDefined();
+      expect(getTemplateBySlug("saas-dashboard-starter")).toBeDefined();
       expect(getTemplateBySlug("quantum-dex-standalone")).toBeDefined();
     });
 
     it("merges Mode A templates with base-nextjs-shell into a valid Next.js 15 .zip and enforces Pro Shadcn license gating", async () => {
-      const template = getTemplateBySlug("spatial-ops-3d-pro")!;
+      const template = getTemplateBySlug("saas-dashboard-starter")!;
       expect(template).toBeDefined();
 
       const mergedFiles = mergeTemplateWithNextjsShell(template, {
-        projectName: "spatial-ops-next-export",
+        projectName: "saas-dashboard-next-export",
       });
-      expect(mergedFiles["package.json"]).toContain('"spatial-ops-next-export"');
+      expect(mergedFiles["package.json"]).toContain('"saas-dashboard-next-export"');
       expect(mergedFiles["next.config.mjs"]).toContain("@genui-studio/core");
       expect(mergedFiles["app/layout.tsx"]).toContain("RootLayout");
       expect(mergedFiles["app/page.tsx"]).toBeDefined();
       expect(mergedFiles["SKILL.md"]).toBeDefined();
-      expect(mergedFiles[".kiro/powers/spatial-ops-3d-pro/POWER.md"]).toBeDefined();
+      expect(mergedFiles[".kiro/powers/saas-dashboard-starter/POWER.md"]).toBeDefined();
 
       const zipBytes = await generateTemplateZip(template);
       const parsedZip = await JSZip.loadAsync(zipBytes);

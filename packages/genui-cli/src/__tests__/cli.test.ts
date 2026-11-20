@@ -10,6 +10,7 @@ import {
 } from "@genui-studio/core";
 import {
   clearRuntimeTemplates,
+  handleDualModeRegistryRequest,
   registerRuntimeTemplate,
   SHOWCASE_PACK_TEMPLATES,
 } from "@genui-studio/templates";
@@ -72,43 +73,60 @@ describe("GenUI Studio Template Pack Registry & Installer", () => {
   });
 
   describe("Registry API Endpoint (shadcn-compatible)", () => {
-    it("returns free starter pack without license authentication", () => {
-      const res = handleRegistryApiRequest("spatial-mesh-starter");
+    it("returns free starter packs without license authentication", () => {
+      const res = handleRegistryApiRequest("product-landing-starter");
       expect(res.success).toBe(true);
       expect(res.requiresLicense).toBe(false);
       expect(res.item?.type).toBe("registry:block");
-      expect(res.item?.name).toBe("spatial-mesh-starter");
+      expect(res.item?.name).toBe("product-landing-starter");
+
+      const saasRes = handleRegistryApiRequest("saas-dashboard-starter");
+      expect(saasRes.success).toBe(true);
+      expect(saasRes.item?.name).toBe("saas-dashboard-starter");
+      expect(saasRes.item?.files.length).toBeGreaterThanOrEqual(4);
+      expect(saasRes.item?.files.some((f) => f.path.includes("SKILL.md"))).toBe(true);
+      expect(saasRes.item?.files.some((f) => f.path.includes("POWER.md"))).toBe(true);
     });
 
-    it("blocks Pro pack request when Bearer token is missing", () => {
-      const res = handleRegistryApiRequest("spatial-ops-3d-pro");
-      expect(res.success).toBe(false);
-      expect(res.requiresLicense).toBe(true);
-      expect(res.licenseValid).toBe(false);
-      expect(res.error).toContain("Authentication required");
-    });
-
-    it("serves Pro pack in shadcn format when valid Bearer license key is supplied", () => {
-      const res = handleRegistryApiRequest("spatial-ops-3d-pro", {
-        authHeader: "Bearer kiroween-2026-judge-pass",
+    it("blocks a Pro-tier template request when Bearer token is missing and serves it when valid", () => {
+      const base = SHOWCASE_PACK_TEMPLATES[0]!;
+      registerRuntimeTemplate({
+        ...base,
+        manifest: {
+          ...base.manifest,
+          slug: "custom-pro-fixture",
+          id: "custom-pro-fixture",
+          name: "custom-pro-fixture",
+          title: "Custom Pro Fixture",
+          tier: "pro",
+          priceUsd: 49,
+        },
       });
-      expect(res.success).toBe(true);
-      expect(res.licenseValid).toBe(true);
-      expect(res.item?.name).toBe("spatial-ops-3d-pro");
-      expect(res.item?.files.length).toBeGreaterThanOrEqual(4);
+      try {
+        const blocked = handleDualModeRegistryRequest("custom-pro-fixture");
+        expect(blocked.success).toBe(false);
+        expect(blocked.requiresLicense).toBe(true);
+        expect(blocked.licenseValid).toBe(false);
+        expect(blocked.error).toContain("Authentication required");
 
-      // Verify AI Agent Skills are packaged in registry files
-      const hasSkill = res.item?.files.some((f) => f.path.includes("SKILL.md"));
-      const hasPower = res.item?.files.some((f) => f.path.includes("POWER.md"));
-      expect(hasSkill).toBe(true);
-      expect(hasPower).toBe(true);
+        const allowed = handleDualModeRegistryRequest("custom-pro-fixture", {
+          authHeader: "Bearer kiroween-2026-judge-pass",
+        });
+        expect(allowed.success).toBe(true);
+        expect(allowed.licenseValid).toBe(true);
+        expect(allowed.item?.name).toBe("custom-pro-fixture");
+        expect(allowed.item?.files.some((f) => f.path.includes("SKILL.md"))).toBe(true);
+        expect(allowed.item?.files.some((f) => f.path.includes("POWER.md"))).toBe(true);
+      } finally {
+        clearRuntimeTemplates();
+      }
     });
   });
 
   describe("CLI Installer: installPack()", () => {
-    it("installs free pack in dryRun mode without license", async () => {
+    it("installs free starter packs in dryRun mode without license", async () => {
       const result = await installPack({
-        packId: "spatial-mesh-starter",
+        packId: "product-landing-starter",
         dryRun: true,
       });
 
@@ -116,36 +134,53 @@ describe("GenUI Studio Template Pack Registry & Installer", () => {
       expect(result.licenseStatus.required).toBe(false);
       expect(result.filesWritten.length).toBeGreaterThan(0);
       expect(result.instructions.claudeSkillPath).toContain("SKILL.md");
+      expect(result.filesWritten).toContain(".kiro/powers/product-landing-starter/POWER.md");
+      expect(result.filesWritten).toContain("__tests__/product-landing-starter.fuzz.test.ts");
     });
 
-    it("throws clear error when attempting to install Pro pack without license", async () => {
-      await expect(
-        installPack({
-          packId: "spatial-ops-3d-pro",
-          dryRun: true,
-        }),
-      ).rejects.toThrow("License Verification Failed");
-    });
-
-    it("successfully installs Pro pack with valid license token", async () => {
-      const result = await installPack({
-        packId: "spatial-ops-3d-pro",
-        licenseToken: "kiroween-2026-judge-pass",
-        dryRun: true,
+    it("enforces license verification when installing a Pro-tier custom pack", async () => {
+      const base = SHOWCASE_PACK_TEMPLATES[0]!;
+      registerRuntimeTemplate({
+        ...base,
+        manifest: {
+          ...base.manifest,
+          slug: "pro-gated-fixture",
+          id: "pro-gated-fixture",
+          name: "pro-gated-fixture",
+          title: "Pro Gated Fixture",
+          tier: "pro",
+          priceUsd: 49,
+        },
       });
+      try {
+        await expect(
+          installPack({
+            packId: "pro-gated-fixture",
+            dryRun: true,
+          }),
+        ).rejects.toThrow("License Verification Failed");
 
-      expect(result.success).toBe(true);
-      expect(result.licenseStatus.required).toBe(true);
-      expect(result.licenseStatus.valid).toBe(true);
-      expect(result.filesWritten).toContain("SKILL.md");
-      expect(result.filesWritten).toContain(".kiro/powers/spatial-ops-3d-pro/POWER.md");
-      expect(result.filesWritten).toContain("__tests__/spatial-ops-3d-pro.fuzz.test.ts");
+        const result = await installPack({
+          packId: "pro-gated-fixture",
+          licenseToken: "kiroween-2026-judge-pass",
+          dryRun: true,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.licenseStatus.required).toBe(true);
+        expect(result.licenseStatus.valid).toBe(true);
+        expect(result.filesWritten).toContain("SKILL.md");
+        expect(result.filesWritten).toContain(".kiro/powers/pro-gated-fixture/POWER.md");
+        expect(result.filesWritten).toContain("__tests__/pro-gated-fixture.fuzz.test.ts");
+      } finally {
+        clearRuntimeTemplates();
+      }
     });
   });
 
   describe("In-Memory .ZIP Bundle Generation", () => {
     it("generates valid non-empty Uint8Array zip containing Next.js 15 project structure", async () => {
-      const pack = ALL_TEMPLATE_PACKS["spatial-ops-3d-pro"]!;
+      const pack = ALL_TEMPLATE_PACKS["saas-dashboard-starter"]!;
       const zipBytes = await generatePackZip(pack);
 
       expect(zipBytes).toBeInstanceOf(Uint8Array);

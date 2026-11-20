@@ -33,9 +33,9 @@ const scene = JSON.parse(fs.readFileSync(FIXTURE_URL, "utf8")) as {
 
 // Same catalog + base Spec the Studio Hub preview hands to <WireframeArchitectCanvas>.
 const template = SHOWCASE_PACK_TEMPLATES.find(
-  (t) => t.manifest.slug === "spatial-ops-3d-pro",
+  (t) => t.manifest.slug === "saas-dashboard-starter",
 );
-if (!template) throw new Error("spatial-ops-3d-pro showcase template missing");
+if (!template) throw new Error("saas-dashboard-starter showcase template missing");
 const catalog = template.catalog;
 const baseSpec = Object.values(template.pageSpecs)[0] ?? null;
 const compileOptions = { catalog, baseSpec, slug: template.manifest.slug } as const;

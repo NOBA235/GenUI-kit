@@ -251,13 +251,13 @@ const vectorShards: ScenarioSpec = {
   ],
 };
 
-/* ═══════════════════════════ 4. Overnight Kiro Crew refactor ═══════════════════════════ */
+/* ═══════════════════════════ 4. Overnight autonomous PR refactor ═══════════════════════════ */
 
 const crewRefactor: ScenarioSpec = {
-  id: "kiro-crew-overnight-refactor",
-  title: "Overnight Kiro Crew Autonomous PR Refactor",
+  id: "autonomous-overnight-refactor",
+  title: "Overnight Autonomous PR Refactor",
   summary:
-    "Four Crew agents refactor a monorepo overnight. The refactor agent looks up call sites one symbol at a time, and symbol_refs has no index on symbol_id.",
+    "Four parallel coding agents refactor a monorepo overnight. The refactor agent looks up call sites one symbol at a time, and symbol_refs has no index on symbol_id.",
   datasets: {
     "code-index": dataset(
       "code-index",
@@ -280,7 +280,7 @@ const crewRefactor: ScenarioSpec = {
     ),
   },
   nodes: [
-    { id: "crew-gateway", label: "Kiro Crew Gateway", kind: "gateway", x: 0.06, y: 0.5 },
+    { id: "crew-gateway", label: "Agent Gateway", kind: "gateway", x: 0.06, y: 0.5 },
     { id: "planner-agent", label: "Planner Agent", kind: "agent", x: 0.32, y: 0.14 },
     { id: "refactor-agent", label: "Refactor Agent", kind: "agent", x: 0.32, y: 0.4 },
     { id: "test-agent", label: "Test Agent", kind: "agent", x: 0.32, y: 0.64 },

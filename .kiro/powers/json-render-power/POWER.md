@@ -1,14 +1,12 @@
 ---
 name: "json-render-power"
 displayName: "Vercel json-render & GenUI Studio Architect Power"
-description: "Equips coding agents with deep expertise in converting React and React Three Fiber components into guardrailed @json-render v0.22.0 Zod catalogs, type-safe registries, RFC 6902 JSONL stream compilers, bidirectional $bindState stores, and MCP Apps."
+description: "Equips coding agents with deep expertise in converting React and React Three Fiber components into guardrailed @json-render v0.22.0 Zod catalogs, type-safe registries, RFC 6902 JSONL stream compilers, and bidirectional $bindState stores."
 keywords:
   - "json-render"
   - "@json-render/core"
   - "@json-render/react"
-  - "@json-render/shadcn"
   - "@json-render/react-three-fiber"
-  - "@json-render/mcp"
   - "defineCatalog"
   - "defineRegistry"
   - "useBoundProp"
@@ -29,7 +27,6 @@ Activate this power whenever the user or task involves:
 - Authoring or modifying `defineCatalog()` schemas, `defineRegistry()` mappings, or `ActionProvider` handlers.
 - Streaming RFC 6902 JSONL UI patches (`createSpecStreamCompiler`, `parseSpecStreamLine`, `applySpecPatch`) or validating specs (`validateSpec`, `autoFixSpec`, `sanitizeSpecGraph`).
 - Wiring two-way state bindings (`$state`, `$bindState`, `$bindItem`, `useBoundProp`, `watch`) or visibility conditions (`VisibilityCondition`).
-- Serving generative UIs over Model Context Protocol (`@json-render/mcp`).
 
 ---
 
@@ -115,4 +112,4 @@ Always pass streaming or untrusted specs through `createGuardrailedStreamCompile
 
 ## 3. Steering Files Included in This Power
 - [`steering/react-to-catalog.md`](./steering/react-to-catalog.md): Step-by-step transformation recipes for converting containers, slots, repeat lists, and form controls into `@json-render/react` catalog entries.
-- [`steering/three-and-mcp-patterns.md`](./steering/three-and-mcp-patterns.md): Patterns for 3D scene generation (`@json-render/react-three-fiber`) and MCP App packaging (`@json-render/mcp`).
+- [`steering/three-and-mcp-patterns.md`](./steering/three-and-mcp-patterns.md): Patterns for 3D scene generation (`@json-render/react-three-fiber`) and dual-viewport shared state stores.

@@ -664,7 +664,7 @@ ${depList || "- None declared"}
 ${fileTreePreview}
 
 ## GenUI Catalog Bridge
-Use \`genui/catalog.ts\` (\`verifiedCatalog\`) when streaming live UI patches into Studio Hub or validating specs via \`@genui-studio/mcp\`.
+Use \`genui/catalog.ts\` (\`verifiedCatalog\`) when streaming live UI patches into Studio Hub or validating specs via \`npx genui-studio validate\`.
 `;
 
   const kiroPowerMd = `---

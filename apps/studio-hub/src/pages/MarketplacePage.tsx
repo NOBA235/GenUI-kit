@@ -1,5 +1,19 @@
 import React, { useMemo, useState } from "react";
 import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Copy,
+  Cpu,
+  Download,
+  ExternalLink,
+  PackageCheck,
+  Search,
+  ShieldCheck,
+  Terminal,
+  X,
+} from "lucide-react";
+import {
   getTemplateBySlug,
   getTemplateCounts,
   listTemplates,
@@ -8,7 +22,8 @@ import {
   type MarketplaceFilterTag,
   type TemplateMode,
 } from "@genui-studio/templates";
-import { TemplateExportDialog } from "../components/TemplateExportDialog";
+import { HeroWorkbenchDemo } from "../components/HeroWorkbenchDemo.js";
+import { TemplateExportDialog } from "../components/TemplateExportDialog.js";
 import {
   SAMPLE_WIREFRAME_FALLBACK_SLUG,
   SAMPLE_WIREFRAME_SLUG,
@@ -20,27 +35,247 @@ export interface MarketplacePageProps {
   onOpenSampleWireframe?: () => void;
 }
 
-const FIRST_SUCCESS_STEPS: readonly { readonly title: string; readonly detail: string }[] = [
-  { title: "Open sample wireframe", detail: "A sketch with blocks, a state arrow and two deliberate faults" },
-  { title: "Compile to Spec", detail: "Deterministic Excalidraw → GenUI Spec + Mermaid, no LLM call" },
-  { title: "Inspect diagnostics", detail: "Block mappings, $state bindings, healed props and warnings" },
-  { title: "Preview interactive UI", detail: "Rendered through SafeGenUIRenderer with fault isolation" },
-  { title: "Export React starter", detail: "Runnable Next.js .zip with the catalog and Kiro spec" },
+const PIPELINE_STEPS: readonly {
+  readonly title: string;
+  readonly detail: string;
+}[] = [
+  {
+    title: "Sketch blocks",
+    detail: "Draw catalog-backed frames, blocks, and state arrows in Excalidraw",
+  },
+  {
+    title: "Compile to Spec",
+    detail: "Deterministic Excalidraw → GenUI Spec + Mermaid with zero LLM calls",
+  },
+  {
+    title: "Inspect diagnostics",
+    detail: "Block provenance, $state pointers, healed props, and schema checks",
+  },
+  {
+    title: "Preview safely",
+    detail: "Per-element fault isolation in SafeGenUIRenderer + time-travel state",
+  },
+  {
+    title: "Export Next.js starter",
+    detail: "Self-contained Next.js 15 .zip with catalog, spec, and Kiro docs",
+  },
 ];
 
 const FLAGSHIP_SLUGS = [
   "afterdark-horror",
   "ninety9-archive",
   "cmos-cloud-bios",
+  "neuro-chimera-synth",
 ] as const;
 
-const FLAGSHIP_DEMONSTRATIONS: Record<string, string> = {
+const FLAGSHIP_ARCHITECTURAL_NOTES: Record<string, string> = {
   "afterdark-horror":
-    "Demonstrates 60 FPS Three.js instanced WebGL worlds, procedural Web Audio synthesis, and instant dark-to-light theme restoration inside a scoped GenUI container.",
+    "5 WebGL cemetery & crypt scenes via THREE.InstancedMesh, procedural Web Audio synthesis, and dark-to-light theme restoration inside a scoped container.",
   "ninety9-archive":
-    "Demonstrates strict 5-tone monochrome token governance, multi-page route state (/ , /archive, /dossiers, /system), and deterministic live JSONL layout remixes.",
+    "Strict 5-tone monochrome token governance, 6 multi-page routes, 34 indexed 1990s dossiers, playable 1-bit arcade, and deterministic live JSONL remixes.",
   "cmos-cloud-bios":
-    "Demonstrates keyboard-first BIOS state machines, 3D PCB thermal telemetry, and live client-side Terraform + Docker Compose compilation.",
+    "Keyboard-first 1994 Award BIOS state machine, 3D PCB thermal twin, FSK modem audio, and deterministic Terraform, Docker Compose, and Vercel IaC compilation.",
+  "neuro-chimera-synth":
+    "Physarum bio-SQL network simulator, recursive-descent SQL parser with EXPLAIN cost planner, 3 local deterministic optimizer agents, and Web Audio FM synth.",
+};
+
+const CORE_PILLARS: readonly {
+  readonly icon: typeof Cpu;
+  readonly title: string;
+  readonly summary: string;
+  readonly metric: string;
+}[] = [
+  {
+    icon: Cpu,
+    title: "Deterministic Excalidraw compiler",
+    summary:
+      "Pure synchronous compilation with containment hierarchy, UTF-16 code-point ordering, and RFC 6901 $state arrow bindings. Zero network or LLM dependency.",
+    metric: "0 LLM calls · 50-run verified",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Schema healing & fault quarantine",
+    summary:
+      "3-color DFS DAG cycle severance, prototype/URI sanitization, Zod range clamping, and per-node React error boundaries keep siblings interactive.",
+    metric: "fast-check PBT · SSR + hydration",
+  },
+  {
+    icon: PackageCheck,
+    title: "Runnable Next.js 15 & Kiro export",
+    summary:
+      "Exports your compiled wireframe into a clean Next.js 15 App Router .zip with catalog.ts, wireframe.spec.json, .excalidraw.json, SKILL.md, and design.md.",
+    metric: "MIT license · zero lock-in",
+  },
+];
+
+/**
+ * Restrained, high-craft miniature UI previews tailored to each of the 4 reference apps.
+ * Pure declarative JSX (zero raw HTML, zero fake decorative charts).
+ */
+const ShowcaseThumbnail: React.FC<{ readonly slug: string }> = ({ slug }) => {
+  if (slug === "afterdark-horror") {
+    return (
+      <div
+        aria-hidden="true"
+        className="relative h-40 w-full overflow-hidden border-b border-[#E4E4E7] bg-[#070709] p-4 font-mono text-[0.625rem] text-zinc-400 select-none"
+      >
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 75% 25%, rgba(220,38,38,0.18), transparent 55%)",
+          }}
+        />
+        <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
+          <span className="text-red-400 font-semibold tracking-wider">
+            SIGNAL LOST // 02:17 AM
+          </span>
+          <span className="rounded bg-white/5 px-1.5 py-0.5 text-[0.5625rem] text-zinc-400">
+            WebGL · 5 Zones
+          </span>
+        </div>
+        <div className="relative mt-4 grid grid-cols-12 gap-2.5 items-end">
+          <div className="col-span-7 space-y-1.5">
+            <div className="text-sm font-semibold tracking-tight text-zinc-100">
+              AFTERDARK 2.0
+            </div>
+            <div className="text-[0.625rem] text-zinc-400 leading-snug">
+              InstancedMesh crypt · Web Audio · 10-stage Light Mode transition
+            </div>
+          </div>
+          <div className="col-span-5 rounded-md border border-red-500/25 bg-black/70 p-2 space-y-1">
+            <div className="flex justify-between text-[0.5625rem] text-zinc-500">
+              <span>CLUES</span>
+              <span className="text-zinc-200 tabular-nums">3/3</span>
+            </div>
+            <div className="flex justify-between text-[0.5625rem] text-zinc-500">
+              <span>BREAKER</span>
+              <span className="text-red-400">ZONE E</span>
+            </div>
+            <div className="h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
+              <div className="h-full w-3/4 bg-red-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (slug === "ninety9-archive") {
+    return (
+      <div
+        aria-hidden="true"
+        className="relative h-40 w-full overflow-hidden border-b border-[#E4E4E7] bg-[#FFFFFF] p-4 font-mono text-[0.625rem] text-[#09090B] select-none"
+      >
+        <div className="flex items-center justify-between border-b-2 border-[#09090B] pb-1.5 font-bold">
+          <span>NINETY9 // 1997 WORKSTATION</span>
+          <span className="bg-[#09090B] px-1.5 py-0.5 text-[0.5625rem] text-white">
+            5-TONE MONO
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-12 gap-2">
+          <div className="col-span-5 border border-[#09090B] p-2 space-y-1">
+            <div className="text-[0.5625rem] text-[#52525B]">ROUTES (6)</div>
+            <div className="text-[0.625rem] font-bold">/archive · /timeline</div>
+            <div className="text-[0.625rem] text-[#52525B]">/categories · /arcade</div>
+          </div>
+          <div className="col-span-7 border border-[#09090B] bg-[#F4F4F5] p-2 space-y-1.5">
+            <div className="flex justify-between border-b border-[#D4D4D8] pb-1 text-[0.5625rem]">
+              <span className="font-bold">DOSSIER INDEX</span>
+              <span className="tabular-nums">34 RECORDS</span>
+            </div>
+            <div className="space-y-1 text-[0.5625rem] text-[#3F3F46]">
+              <div className="flex justify-between">
+                <span>01 · NeXTSTEP 3.3</span>
+                <span>1995</span>
+              </div>
+              <div className="flex justify-between">
+                <span>02 · BeOS PR2</span>
+                <span>1997</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (slug === "cmos-cloud-bios") {
+    return (
+      <div
+        aria-hidden="true"
+        className="relative h-40 w-full overflow-hidden border-b border-[#E4E4E7] bg-[#0000AA] p-4 font-mono text-[0.625rem] text-[#FFFFFF] select-none"
+      >
+        <div className="border-2 border-double border-white/90 h-full p-2.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-white/40 pb-1 text-[#FFFF55] font-bold">
+            <span>AWARD MODULAR BIOS v4.51PG</span>
+            <span>3D PCB</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[0.5625rem]">
+            <div className="space-y-0.5">
+              <div className="bg-[#AA0000] px-1 text-[#FFFF55]">
+                &gt; Standard CMOS Setup
+              </div>
+              <div className="px-1 text-white/90">PC Health &amp; Thermal</div>
+              <div className="px-1 text-white/90">Cloud IaC Compiler</div>
+            </div>
+            <div className="border-l border-white/30 pl-2 space-y-0.5 text-white/90">
+              <div>docker-compose.yml</div>
+              <div>vercel.json</div>
+              <div>main.tf · FSK audio</div>
+            </div>
+          </div>
+          <div className="flex justify-between border-t border-white/40 pt-1 text-[0.5625rem] text-[#FFFF55]">
+            <span>F10: Save &amp; Compile</span>
+            <span>ESC: Exit</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      className="relative h-40 w-full overflow-hidden border-b border-[#E4E4E7] bg-[#041016] p-4 font-mono text-[0.625rem] text-teal-100 select-none"
+    >
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 20% 80%, rgba(0,245,184,0.16), transparent 55%)",
+        }}
+      />
+      <div className="relative flex items-center justify-between border-b border-teal-400/20 pb-1.5">
+        <span className="font-semibold text-[#00F5B8]">
+          CHIMERA // LAB · BIO-SQL
+        </span>
+        <span className="text-[0.5625rem] text-amber-300">3 Local Agents</span>
+      </div>
+      <div className="relative mt-3 grid grid-cols-12 gap-2">
+        <div className="col-span-7 rounded border border-teal-400/25 bg-black/50 p-2 space-y-1">
+          <div className="text-[0.5625rem] text-teal-300">SELECT node, latency</div>
+          <div className="text-[0.5625rem] text-zinc-400">
+            FROM physarum_mesh WHERE cost &lt; 12
+          </div>
+          <div className="pt-1 flex items-center gap-1.5 text-[0.5625rem] text-[#00F5B8]">
+            <span>EXPLAIN COST: 4.18</span>
+            <span>·</span>
+            <span>FM AUDIO</span>
+          </div>
+        </div>
+        <div className="col-span-5 rounded border border-teal-400/20 bg-black/40 p-2 flex flex-col justify-between">
+          <div className="text-[0.5625rem] text-zinc-400">PHYSARUM FLUX</div>
+          <div className="flex items-end gap-1 h-10">
+            <span className="w-1/4 h-4 bg-teal-400/40 rounded-xs" />
+            <span className="w-1/4 h-7 bg-teal-400/65 rounded-xs" />
+            <span className="w-1/4 h-5 bg-amber-300/75 rounded-xs" />
+            <span className="w-1/4 h-9 bg-[#00F5B8] rounded-xs" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const MarketplacePage: React.FC<MarketplacePageProps> = ({
@@ -48,9 +283,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
   onOpenSampleWireframe,
 }) => {
   const [modeFilter, setModeFilter] = useState<"all" | TemplateMode>("all");
-  const [tierFilter, setTierFilter] = useState<"all" | "free" | "pro">("all");
   const [activeTag, setActiveTag] = useState<"all" | MarketplaceFilterTag>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [exportTemplate, setExportTemplate] =
     useState<DualModeTemplateEntry | null>(null);
 
@@ -61,10 +296,10 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
       listTemplates({
         mode: modeFilter,
         tag: activeTag,
-        tier: tierFilter,
+        tier: "all",
         searchQuery,
       }),
-    [modeFilter, activeTag, tierFilter, searchQuery],
+    [modeFilter, activeTag, searchQuery],
   );
 
   const featuredFlagships = useMemo(
@@ -91,1524 +326,573 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
     else onOpenPreview(primaryWorkbenchSlug);
   };
 
+  const handleCopyCommand = (command: string, key: string) => {
+    if (navigator?.clipboard?.writeText) {
+      void navigator.clipboard.writeText(command);
+      setCopiedSlug(key);
+      setTimeout(() => setCopiedSlug(null), 1800);
+    }
+  };
+
+  const hasActiveFilters =
+    modeFilter !== "all" || activeTag !== "all" || searchQuery.trim().length > 0;
+
   return (
-    <div className="min-h-dvh bg-white text-[#0B1221] flex flex-col selection:bg-[#DBEAFE] selection:text-[#1E3A8A]">
-      {/* 1. Crisp Studio Header */}
-      <header className="sticky top-0 z-30 border-b border-[#E8EDF5] bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-8 sm:py-3.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div
+    <div className="min-h-dvh bg-[#FAFAFA] text-[#09090B] flex flex-col selection:bg-[#DBEAFE] selection:text-[#1E3A8A]">
+      {/* Skip link targeting the main heading per WCAG 2.4.1 & screen magnifier best practice */}
+      <a href="#main-content" className="visually-hidden hub-skip-link">
+        Skip to main content
+      </a>
+
+      {/* 1. Minimal Sticky Navigation Bar */}
+      <header className="sticky top-0 z-30 border-b border-[#E4E4E7] bg-white/85 backdrop-blur-md">
+        <div className="mx-auto flex min-h-14 max-w-[1160px] flex-wrap items-center justify-between gap-4 px-4 py-2 sm:px-6">
+          <a
+            href="#top"
+            className="flex min-w-0 items-center gap-2.5 text-[#09090B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 rounded-md"
+          >
+            <span
               aria-hidden="true"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0B1324] font-mono text-xs font-bold text-white shadow-sm"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#09090B] font-mono text-xs font-semibold text-white"
             >
               G
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate text-base font-bold tracking-tight text-[#0B1221]">
-                  GenUI Studio Hub
-                </span>
-                <span className="hidden rounded-full border border-[#DBEAFE] bg-[#EFF4FF] px-2.5 py-0.5 font-mono text-[10px] font-semibold text-[#2563EB] lg:inline">
-                  Excalidraw-to-GenUI Workbench
-                </span>
-              </div>
-              <p className="hidden truncate text-xs text-[#5B6B82] sm:block">
-                Wireframe → validated UI preview → React starter
-              </p>
-            </div>
-          </div>
+            </span>
+            <span className="truncate text-sm font-semibold tracking-tight">
+              GenUI Studio Hub
+            </span>
+            <span className="hidden rounded border border-[#E4E4E7] bg-[#FAFAFA] px-1.5 py-0.5 font-mono text-[0.625rem] font-medium text-[#52525B] sm:inline">
+              MIT · v1.0
+            </span>
+          </a>
 
           <nav
-            aria-label="Platform sections"
-            className="flex shrink-0 items-center gap-1.5 sm:gap-2"
+            aria-label="Primary"
+            className="flex shrink-0 items-center gap-1 sm:gap-2"
           >
             <a
               href="#workflow"
-              className="hub-cta hidden md:inline-flex min-h-[36px] items-center px-3.5 py-1.5 text-xs font-semibold text-[#5B6B82] hover:bg-[#F8FAFC] hover:text-[#0B1221] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition"
+              className="hidden md:inline-flex min-h-[32px] items-center rounded-md px-2.5 text-xs font-medium text-[#52525B] hover:text-[#09090B] hover:bg-[#F4F4F5] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
             >
-              How It Works
-            </a>
-            <a
-              href="#catalog"
-              className="hub-cta hidden md:inline-flex min-h-[36px] items-center px-3.5 py-1.5 text-xs font-semibold text-[#5B6B82] hover:bg-[#F8FAFC] hover:text-[#0B1221] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition"
-            >
-              Starter Catalogs ({counts.total})
+              Architecture
             </a>
             <a
               href="#featured"
-              className="hub-cta hidden md:inline-flex min-h-[36px] items-center px-3.5 py-1.5 text-xs font-semibold text-[#5B6B82] hover:bg-[#F8FAFC] hover:text-[#0B1221] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition"
+              className="hidden md:inline-flex min-h-[32px] items-center rounded-md px-2.5 text-xs font-medium text-[#52525B] hover:text-[#09090B] hover:bg-[#F4F4F5] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
             >
-              Reference Demos
+              Applications
+            </a>
+            <a
+              href="#catalog"
+              className="hidden md:inline-flex min-h-[32px] items-center rounded-md px-2.5 text-xs font-medium text-[#52525B] hover:text-[#09090B] hover:bg-[#F4F4F5] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+            >
+              Registry ({counts.total})
             </a>
             <button
               type="button"
               onClick={openWorkbench}
               data-testid="header-open-sample-wireframe"
-              className="inline-flex min-h-[36px] items-center rounded-full bg-[#0B1324] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#16223B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg bg-[#09090B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
             >
-              Open Workbench
+              <span>Open Workbench</span>
+              <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-10 sm:px-8 sm:py-16 space-y-16 sm:space-y-24">
-        {/* 2. Hero + Deep Navy Pill CTA + Multi-Device Layered Product Stage */}
-        <section className="space-y-10">
-          <div className="mx-auto max-w-[780px] text-center space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#DBEAFE] bg-[#F3F7FF] px-3.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#2563EB]">
-              <span
-                aria-hidden="true"
-                className="h-2 w-2 rounded-full bg-[#2563EB]"
-              />
-              Excalidraw-to-GenUI Workbench
-            </div>
+      <main id="top" className="flex-1">
+        {/* 2. Hero + Real Interactive Wireframe Compiler Sandbox */}
+        <section className="relative border-b border-[#E4E4E7] bg-white">
+          <div
+            aria-hidden="true"
+            className="hub-dot-grid pointer-events-none absolute inset-x-0 top-0 h-[420px] opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+          />
 
-            <h1 className="hub-display-heading font-extrabold text-[#0B1221]">
-              Turn a wireframe into a validated, interactive UI preview.
-            </h1>
+          <div className="relative mx-auto max-w-[1160px] px-4 pt-12 pb-14 sm:px-6 sm:pt-16 sm:pb-20 space-y-10">
+            <div className="mx-auto max-w-[740px] text-center space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#E4E4E7] bg-white px-3 py-1 font-mono text-[0.6875rem] font-medium text-[#52525B] shadow-2xs">
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 rounded-full bg-[#2563EB]"
+                />
+                <span>Deterministic Excalidraw-to-React Compiler · @json-render v0.22</span>
+              </div>
 
-            <p className="hub-body-copy mx-auto max-w-[60ch] text-base sm:text-lg text-[#5B6B82] leading-relaxed">
-              Sketch with catalog-backed blocks in Excalidraw. The workbench
-              compiles the sketch to a GenUI Spec, shows exactly which block
-              became which component and what was healed, renders the live
-              preview, and exports a usable React starter.
-            </p>
+              <h1
+                id="main-content"
+                tabIndex={-1}
+                className="hub-display-heading font-bold text-[#09090B] focus:outline-none"
+              >
+                Compile wireframes into schema-verified React apps.
+              </h1>
 
-            {/* Primary first-success CTA + Caption */}
-            <div className="pt-2 space-y-3">
-              <div className="mx-auto flex w-full max-w-[420px] flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
+              <p className="hub-body-copy mx-auto max-w-[58ch] text-base text-[#52525B] leading-relaxed sm:text-[1.0625rem]">
+                Draw with catalog-backed blocks in Excalidraw. GenUI Studio
+                compiles scenes into a Zod-validated UI Spec with zero LLM calls,
+                surfaces healed props and live $state bindings, and exports a
+                runnable Next.js starter.
+              </p>
+
+              {/* Primary & Secondary CTAs */}
+              <div className="flex flex-col items-stretch justify-center gap-2.5 pt-1 sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={openWorkbench}
                   data-testid="hero-open-sample-wireframe"
-                  className="inline-flex min-h-[48px] w-full items-center justify-center px-6 py-3.5 text-center text-xs font-bold uppercase tracking-[0.08em] text-white bg-[#0B1324] shadow-[0_14px_30px_-6px_rgba(11,19,36,0.38)] hover:bg-[#16223B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer sm:w-auto sm:px-8"
+                  className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-[#09090B] px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
                 >
-                  Open Sample Wireframe in Workbench
+                  <span>Open Sample Wireframe in Workbench</span>
+                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </button>
                 <a
                   href="#catalog"
-                  className="hub-cta inline-flex min-h-[48px] w-full items-center justify-center border border-[#CBD5E1] bg-white px-6 py-3.5 text-center text-xs font-bold uppercase tracking-[0.06em] text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition sm:w-auto"
+                  className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-5 py-2.5 text-sm font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
                 >
-                  Start From a Catalog
+                  <span>Browse Registry</span>
                 </a>
               </div>
-              <p className="text-xs font-medium text-[#64748B]">
-                MIT runtime · Deterministic Excalidraw &amp; Zod compiler · No
-                LLM call required
-              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 font-mono text-[0.6875rem] text-[#71717A]">
+                <span>MIT licensed</span>
+                <span aria-hidden="true">·</span>
+                <span>Zero external API keys</span>
+                <span aria-hidden="true">·</span>
+                <span>120 automated tests &amp; fast-check PBT</span>
+              </div>
             </div>
 
-            {/* 5-step first-success path */}
+            {/* Real Interactive Compiler Preview (replaces fake marketing mockups) */}
+            <HeroWorkbenchDemo
+              onOpenWorkbench={(slug, loadSample) => {
+                if (loadSample && onOpenSampleWireframe) onOpenSampleWireframe();
+                else onOpenPreview(slug);
+              }}
+            />
+
+            {/* Compact 5-Step Pipeline Rail */}
             <ol
+              role="list"
               data-testid="first-success-steps"
-              aria-label="First-success path"
-              className="mx-auto grid max-w-[900px] grid-cols-1 gap-2 pt-4 text-left sm:grid-cols-2 lg:grid-cols-5"
+              aria-label="Wireframe-to-application pipeline"
+              className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-[#E4E4E7] bg-[#E4E4E7] sm:grid-cols-2 lg:grid-cols-5"
             >
-              {FIRST_SUCCESS_STEPS.map((step, idx) => (
+              {PIPELINE_STEPS.map((step, idx) => (
                 <li
                   key={step.title}
-                  className="rounded-xl border border-[#E8EDF5] bg-white px-3 py-2.5"
+                  className="bg-white px-4 py-3.5 flex flex-col justify-between gap-1"
                 >
-                  <div className="font-mono text-[10px] font-bold text-[#2563EB]">
-                    0{idx + 1}
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[0.6875rem] font-semibold tabular-nums text-[#2563EB]">
+                      0{idx + 1}
+                    </span>
+                    <span className="text-xs font-semibold text-[#09090B]">
+                      {step.title}
+                    </span>
                   </div>
-                  <div className="text-xs font-bold text-[#0B1221]">
-                    {step.title}
-                  </div>
-                  <div className="mt-0.5 text-[11px] leading-snug text-[#5B6B82]">
+                  <p className="text-xs text-[#52525B] leading-snug">
                     {step.detail}
-                  </div>
+                  </p>
                 </li>
               ))}
             </ol>
           </div>
-
-          {/* Layered 3-Device Product Stage Composition (Desktop Workbench + Left Audit Card + Right Mobile Preview) */}
-          <div className="relative mx-auto max-w-[1060px] pt-2 lg:pb-10">
-            {/* Soft Ambient Radial Glow Behind Stage */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-12 -top-4 bottom-4 -z-10 rounded-[40px] bg-gradient-to-b from-[#EFF4FF]/80 via-[#F8FAFC]/50 to-transparent blur-2xl"
-            />
-
-            {/* Center Desktop Studio Workbench Window */}
-            <div className="mx-auto max-w-[900px] rounded-[24px] border border-[#DCE4F0] bg-white shadow-[0_32px_80px_-20px_rgba(15,23,42,0.14)] overflow-hidden">
-              {/* Browser / Workbench Top Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EEF2F6] bg-[#FAFBFD] px-4 py-2.5 font-mono text-[11px] text-[#64748B]">
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E2E8F0]" />
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E2E8F0]" />
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E2E8F0]" />
-                  <span className="ml-1 rounded-md bg-[#0B1324] px-2 py-0.5 text-[10px] font-semibold text-white">
-                    Spec Canvas
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-[10px]">
-                  <span className="hidden sm:inline">Width: 1280</span>
-                  <span className="hidden sm:inline">Height: 800</span>
-                  <span className="rounded bg-[#ECFDF5] px-1.5 py-0.5 font-semibold text-[#047857]">
-                    ✓ DAG Verified
-                  </span>
-                </div>
-              </div>
-
-              {/* 3-Column Studio Workbench Interior */}
-              <div className="grid grid-cols-1 md:grid-cols-12 md:min-h-[430px]">
-                {/* Left Sidebar Rail (decorative; hidden on phones) */}
-                <div className="hidden md:col-span-3 md:flex md:border-r border-[#EEF2F6] bg-white p-4 flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563EB] text-[10px] font-bold text-white">
-                        G
-                      </span>
-                      <div>
-                        <div className="text-xs font-bold text-[#0B1221]">
-                          GenUI Studio
-                        </div>
-                        <div className="font-mono text-[9px] text-[#64748B]">
-                          v1.0 · Spec Engine
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 font-mono text-[11px]">
-                      <div className="flex items-center gap-2 rounded-lg bg-[#EFF4FF] px-2.5 py-1.5 font-semibold text-[#2563EB]">
-                        <span>✦</span>
-                        <span>Design System</span>
-                      </div>
-                      <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[#5B6B82]">
-                        <span>⊞</span>
-                        <span>Wireframe Architect</span>
-                      </div>
-                      <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[#5B6B82]">
-                        <span>◈</span>
-                        <span>Zod Catalog</span>
-                      </div>
-                      <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[#5B6B82]">
-                        <span>⚡</span>
-                        <span>X-Ray &amp; PBT</span>
-                      </div>
-                      <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[#5B6B82]">
-                        <span>⇪</span>
-                        <span>SKILL.md &amp; MCP</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="hidden md:block rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5 font-mono text-[10px] text-[#5B6B82]">
-                    <div className="font-semibold text-[#0B1221]">
-                      excalidraw-compiler.ts
-                    </div>
-                    <div className="mt-0.5 truncate">
-                      Sorted by (y, x) · 0 cycles
-                    </div>
-                  </div>
-                </div>
-
-                {/* Center Spec Stage */}
-                <div className="md:col-span-6 bg-[#FAFBFD] p-5 sm:p-6 flex flex-col justify-between gap-5">
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">
-                        GENUI STUDIO · FOUNDATIONS
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0B1221]">
-                        Design system
-                      </div>
-                      <p className="text-xs text-[#5B6B82] leading-relaxed">
-                        A guardrailed visual language for streaming deterministic
-                        2D and 3D React interfaces without runtime crashes or
-                        schema drift.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
-                      <span className="rounded-full border border-[#E2E8F0] bg-white px-2.5 py-0.5 font-medium text-[#0B1221]">
-                        ● Accessible by default
-                      </span>
-                      <span className="rounded-full border border-[#E2E8F0] bg-white px-2.5 py-0.5 font-medium text-[#0B1221]">
-                        ● Responsive containers
-                      </span>
-                      <span className="rounded-full border border-[#E2E8F0] bg-white px-2.5 py-0.5 font-medium text-[#0B1221]">
-                        ● Reusable skills
-                      </span>
-                    </div>
-
-                    <div className="rounded-2xl border border-[#E8EDF5] bg-white p-4 shadow-2xs space-y-3">
-                      <div className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#2563EB]">
-                        01 / LIVE SPEC BLOCKS
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-[#EEF2F6] bg-[#FAFBFD] p-3 space-y-1">
-                          <div className="font-mono text-[9px] text-[#64748B]">
-                            HeroSection · /elements/hero
-                          </div>
-                          <div className="text-sm font-extrabold tracking-tight text-[#0B1221]">
-                            Make ideas matter.
-                          </div>
-                          <div className="text-[10px] text-[#5B6B82]">
-                            Compiled from spatial box (x:40, y:24)
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-[#EEF2F6] bg-[#FAFBFD] p-3 space-y-1">
-                          <div className="font-mono text-[9px] text-[#64748B]">
-                            MetricStrip · /elements/kpi
-                          </div>
-                          <div className="text-sm font-extrabold tracking-tight text-[#0B1221]">
-                            Build with purpose.
-                          </div>
-                          <div className="text-[10px] text-[#5B6B82]">
-                            State bound → /wireframeBindings/plan
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Floating Live JSONL Remix Prompt Bar inside Stage */}
-                  <div className="rounded-2xl border border-[#DCE4F0] bg-white p-2.5 shadow-sm flex items-center justify-between gap-2">
-                    <div className="px-2 text-xs text-[#64748B] truncate">
-                      Describe the interface patch you want to stream...
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="rounded-lg bg-[#F1F5F9] px-2 py-1 font-mono text-[10px] font-semibold text-[#0B1221]">
-                        RFC 6902 JSONL
-                      </span>
-                      {primaryWorkbenchSlug && (
-                        <button
-                          type="button"
-                          onClick={openWorkbench}
-                          aria-label="Open live workbench"
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0B1324] text-xs font-bold text-white hover:bg-[#2563EB] transition cursor-pointer"
-                        >
-                          ↗
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Catalog & Pack Drawer */}
-                <div className="hidden md:col-span-3 md:block md:border-l border-[#EEF2F6] bg-white p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#0B1221]">
-                      Installable Packs
-                    </span>
-                    <span className="font-mono text-[10px] text-[#64748B]">
-                      {counts.total} ready
-                    </span>
-                  </div>
-                  <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1.5 font-mono text-[10px] text-[#64748B]">
-                    npx genui-studio add...
-                  </div>
-                  <a
-                    href="#catalog"
-                    className="hub-cta block w-full bg-[#0B1324] py-1.5 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-white hover:bg-[#1E293B] transition"
-                  >
-                    Browse Catalog
-                  </a>
-
-                  <div className="grid grid-cols-2 md:grid-cols-1 gap-2 pt-1">
-                    <div
-                      style={{ colorScheme: "only dark" }}
-                      className="rounded-xl bg-gradient-to-br from-[#0F172A] via-[#1E3A8A] to-[#0B1324] p-2.5 text-white"
-                    >
-                      <div className="font-mono text-[9px] text-[#93C5FD]">
-                        3D WEBGL + OTLP
-                      </div>
-                      <div className="text-xs font-bold">SpatialOps Pro</div>
-                    </div>
-                    <div
-                      style={{ colorScheme: "only dark" }}
-                      className="rounded-xl bg-gradient-to-br from-[#18090D] via-[#450A0A] to-[#09090B] p-2.5 text-white"
-                    >
-                      <div className="font-mono text-[9px] text-[#FCA5A5]">
-                        60 FPS HORROR
-                      </div>
-                      <div className="text-xs font-bold">AFTERDARK 2.0</div>
-                    </div>
-                    <div className="rounded-xl border border-[#0B1221] bg-white p-2.5 text-[#0B1221]">
-                      <div className="font-mono text-[9px] text-[#5B6B82]">
-                        5-TONE ARCHIVE
-                      </div>
-                      <div className="text-xs font-bold">NINETY9 // 1999</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Left Overlapping Floating Card: MCP & PBT Guardrail Audit (Screenshot 3 Left Device) */}
-            <div className="hidden md:block mt-6 lg:mt-0 lg:absolute lg:left-0 lg:-bottom-2 lg:w-[295px] rounded-[24px] border border-[#DCE4F0] bg-white p-5 shadow-[0_24px_60px_-15px_rgba(15,23,42,0.18)] space-y-3.5">
-              <div className="flex items-center justify-between border-b border-[#EEF2F6] pb-2.5">
-                <span className="font-mono text-[11px] font-bold text-[#0B1221]">
-                  @genui-studio/mcp
-                </span>
-                <span className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#5B6B82]">
-                  Audit
-                </span>
-              </div>
-
-              <div className="ml-6 rounded-2xl rounded-tr-xs bg-[#EFF4FF] p-3 text-[11px] font-medium text-[#1E3A8A] leading-snug">
-                Are there any runtime, schema, or accessibility issues before we
-                ship this GenUI spec?
-              </div>
-
-              <div className="space-y-2 text-[11px] leading-relaxed text-[#475569]">
-                <div className="font-bold text-[#0B1221]">
-                  Verified runtime invariants
-                </div>
-                <ol className="list-decimal pl-4 space-y-1.5">
-                  <li>
-                    <strong className="text-[#0B1221]">
-                      Acyclic DAG &amp; depth cap:
-                    </strong>{" "}
-                    DFS sanitizer severs cyclic child references and caps tree
-                    depth at 16.
-                  </li>
-                  <li>
-                    <strong className="text-[#0B1221]">
-                      Self-healing Zod props:
-                    </strong>{" "}
-                    Out-of-bounds stream patches fall back cleanly without
-                    unmounting sibling trees.
-                  </li>
-                  <li>
-                    <strong className="text-[#0B1221]">
-                      Scoped theme isolation:
-                    </strong>{" "}
-                    Each pack mounts inside{" "}
-                    <code className="font-mono text-[10px] text-[#0B1221]">
-                      [data-template-theme]
-                    </code>
-                    .
-                  </li>
-                </ol>
-              </div>
-            </div>
-
-            {/* Right Overlapping Floating Mobile Viewport Preview (Screenshot 3 Right Device) */}
-            <div className="hidden md:block mt-6 lg:mt-0 lg:absolute lg:right-0 lg:-bottom-2 lg:w-[255px] rounded-[28px] border-[5px] border-[#F8FAFC] ring-1 ring-[#DCE4F0] bg-white p-4 shadow-[0_24px_60px_-15px_rgba(15,23,42,0.2)] space-y-3">
-              <div className="flex items-center justify-between border-b border-[#EEF2F6] pb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
-                  <span className="font-mono text-[10px] font-bold text-[#0B1221]">
-                    Mobile · 390px
-                  </span>
-                </div>
-                <span className="font-mono text-[9px] text-[#047857] font-semibold">
-                  Container Query
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#2563EB]">
-                  GENUI STUDIO · MOBILE
-                </div>
-                <div className="text-lg font-extrabold tracking-tight text-[#0B1221]">
-                  Design system
-                </div>
-                <p className="text-[10px] text-[#5B6B82] leading-snug">
-                  Identical GenUI spec adapted automatically inside the Studio
-                  mobile viewport stage.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-[#EEF2F6] bg-[#FAFBFD] p-2.5 space-y-1">
-                <div className="font-mono text-[9px] font-bold text-[#2563EB]">
-                  01 / TYPOGRAPHY
-                </div>
-                <div className="text-xs font-extrabold text-[#0B1221]">
-                  Make ideas matter.
-                </div>
-                <div className="text-[9px] text-[#64748B]">
-                  Fluid clamp() · WCAG contrast verified
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1.5 font-mono text-[9px] text-[#64748B]">
-                <span>Stream patch...</span>
-                <span className="text-[#2563EB] font-bold">JSONL →</span>
-              </div>
-            </div>
-          </div>
         </section>
 
-        {/* 3. Continuous Loop Workflow (Screenshot 2 Style: 01 -> 02 -> 03 + Return Loop Pill) */}
-        <section id="workflow" className="scroll-mt-24 space-y-10">
-          <div className="mx-auto max-w-[680px] text-center space-y-3">
-            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#2563EB]">
-              HOW THE WORKBENCH WORKS
-            </div>
-            <h2 className="hub-section-heading font-extrabold text-[#0B1221]">
-              Sketch, check, and export in one workbench
-            </h2>
-            <p className="hub-body-copy text-sm sm:text-base text-[#5B6B82] leading-relaxed">
-              Draw the layout, read the compile diagnostics next to the live
-              preview, and export a React starter that contains the Spec you
-              just compiled.
-            </p>
-          </div>
-
-          <div className="mx-auto max-w-[1040px]">
-            {/* 3 Cards + Horizontal Dashed Connectors */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch gap-4">
-              {/* Step 01: Author */}
-              <article className="hub-bento-card p-7 flex flex-col justify-between gap-6">
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF4FF] text-[#2563EB]">
-                      <svg
-                        className="h-5 w-5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M12 19l7-7 3 3-7 7-3-3z" />
-                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-                      </svg>
-                    </div>
-                    <span className="font-sans text-4xl font-extrabold tracking-tight text-[#DCE6F7]">
-                      01
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-[#0B1221]">
-                      Sketch &amp; compile
-                    </h3>
-                    <p className="text-sm text-[#5B6B82] leading-relaxed">
-                      Draw catalog-backed blocks and labelled state arrows in
-                      Wireframe Architect. Every edit recompiles to a GenUI{" "}
-                      <code className="font-mono text-xs text-[#0B1221]">
-                        Spec
-                      </code>{" "}
-                      and Mermaid graph.
-                    </p>
-                  </div>
-                </div>
-
-                {primaryWorkbenchSlug && (
-                  <button
-                    type="button"
-                    onClick={openWorkbench}
-                    className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-sm font-bold text-[#2563EB] hover:text-[#1D4ED8] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 cursor-pointer"
-                  >
-                    <span>Open sample wireframe</span>
-                    <span aria-hidden="true">→</span>
-                  </button>
-                )}
-              </article>
-
-              {/* Dashed Arrow 1 -> 2 */}
-              <div
-                aria-hidden="true"
-                className="hidden lg:flex items-center justify-center px-1 text-[#3B82F6]"
-              >
-                <svg className="h-6 w-12" viewBox="0 0 48 24" fill="none">
-                  <path
-                    d="M2 12h38"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M36 7l6 5-6 5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-
-              {/* Step 02: Verify */}
-              <article className="hub-bento-card p-7 flex flex-col justify-between gap-6">
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div className="rounded-2xl border border-[#BFDBFE] p-1">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFF4FF] text-[#2563EB]">
-                        <svg
-                          className="h-5 w-5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M3 3v18h18" />
-                          <path d="M7 14l4-4 4 4 5-6" />
-                        </svg>
-                      </div>
-                    </div>
-                    <span className="font-sans text-4xl font-extrabold tracking-tight text-[#DCE6F7]">
-                      02
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-[#0B1221]">
-                      Inspect &amp; preview
-                    </h3>
-                    <p className="text-sm text-[#5B6B82] leading-relaxed">
-                      The diagnostics strip lists each block mapping, each{" "}
-                      <code className="font-mono text-xs text-[#0B1221]">
-                        $state
-                      </code>{" "}
-                      binding, and every healed prop or ignored tag, while the
-                      preview renders the result with per-element fault
-                      isolation.
-                    </p>
-                  </div>
-                </div>
-
-                {primaryWorkbenchSlug && (
-                  <button
-                    type="button"
-                    onClick={openWorkbench}
-                    className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-sm font-bold text-[#2563EB] hover:text-[#1D4ED8] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 cursor-pointer"
-                  >
-                    <span>See the diagnostics</span>
-                    <span aria-hidden="true">→</span>
-                  </button>
-                )}
-              </article>
-
-              {/* Dashed Arrow 2 -> 3 */}
-              <div
-                aria-hidden="true"
-                className="hidden lg:flex items-center justify-center px-1 text-[#3B82F6]"
-              >
-                <svg className="h-6 w-12" viewBox="0 0 48 24" fill="none">
-                  <path
-                    d="M2 12h38"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M36 7l6 5-6 5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-
-              {/* Step 03: Distribute */}
-              <article className="hub-bento-card p-7 flex flex-col justify-between gap-6">
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF4FF] text-[#2563EB]">
-                      <svg
-                        className="h-5 w-5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M9 18h6" />
-                        <path d="M10 22h4" />
-                        <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
-                      </svg>
-                    </div>
-                    <span className="font-sans text-4xl font-extrabold tracking-tight text-[#DCE6F7]">
-                      03
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-[#0B1221]">
-                      Export a starter
-                    </h3>
-                    <p className="text-sm text-[#5B6B82] leading-relaxed">
-                      Download a runnable Next.js{" "}
-                      <code className="font-mono text-xs text-[#0B1221]">
-                        .zip
-                      </code>
-                      , copy the{" "}
-                      <code className="font-mono text-xs text-[#0B1221]">
-                        design.md
-                      </code>{" "}
-                      Mermaid section, or install the catalog with{" "}
-                      <code className="font-mono text-xs text-[#0B1221]">
-                        npx genui-studio add
-                      </code>
-                      .
-                    </p>
-                  </div>
-                </div>
-
-                <a
-                  href="#catalog"
-                  className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-sm font-bold text-[#2563EB] hover:text-[#1D4ED8] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
-                >
-                  <span>Install Pack</span>
-                  <span aria-hidden="true">→</span>
-                </a>
-              </article>
-            </div>
-
-            {/* Bottom Return Loop Connector & Pill ("SYNC TO KIRO SPECS, MCP & REPEAT") */}
-            <div className="relative mt-4 pt-4 flex flex-col items-center">
-              <svg
-                aria-hidden="true"
-                className="hidden lg:block w-full max-w-[760px] h-16 text-[#93C5FD]"
-                viewBox="0 0 760 64"
-                fill="none"
-              >
-                <path
-                  d="M680 2 v26 a18 18 0 0 1 -18 18 H98 a18 18 0 0 1 -18 -18 V8"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeDasharray="3 4"
-                />
-                <path
-                  d="M75 12 l5 -7 l5 7"
-                  stroke="#3B82F6"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="80" cy="40" r="5" fill="#2563EB" />
-                <circle
-                  cx="80"
-                  cy="40"
-                  r="10"
-                  fill="#2563EB"
-                  fillOpacity="0.18"
-                />
-              </svg>
-
-              <div className="lg:-mt-10 rounded-full border border-[#E2E8F0] bg-white px-6 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#1E3A8A] shadow-[0_10px_28px_-8px_rgba(15,23,42,0.12)]">
-                SYNC TO KIRO SPECS, MCP &amp; AGENT SKILLS
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. Asymmetric Bento Grid (Screenshot 1 Style: Speed Card + Templates Card + Donut Telemetry Card + Tall Dark MCP/CLI Card) */}
-        <section id="bento" className="scroll-mt-24 space-y-10">
-          <div className="mx-auto max-w-[680px] text-center space-y-3">
-            <h2 className="hub-section-heading font-extrabold text-[#0B1221]">
-              Why build agent interfaces with GenUI Studio?
-            </h2>
-            <p className="hub-body-copy text-sm sm:text-base text-[#5B6B82] leading-relaxed">
-              Choose a system that doesn&apos;t just generate screens, but proves
-              schema compliance, isolates themes, and packages reusable skills
-              for every agent workflow.
-            </p>
-          </div>
-
-          <div className="mx-auto max-w-[1040px] grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* Left 8 Columns: 2 Top Cards + 1 Wide Bottom Donut Card */}
-            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* Top-Left Bento Card: Deterministic UI Generation + Registry Counts */}
-              <article className="hub-bento-card p-6 sm:p-7 flex flex-col justify-between gap-5">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-xl font-bold leading-snug text-[#0B1221]">
-                    Deterministic UI
-                    <br />
-                    Compilation
-                  </h3>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
-                    <svg
-                      className="h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="text-5xl font-extrabold tracking-tight tabular-nums text-[#0B1221]">
-                    500+
-                  </div>
-                  <p className="text-xs sm:text-sm text-[#5B6B82] leading-snug">
-                    fast-check PBT runs per suite with &lt;2ms DFS cycle &amp;
-                    Zod prop healing
-                  </p>
-                </div>
-
-                {/* Grounded Registry Counts (Preserving Test Hooks) */}
-                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[#EEF2F6] font-mono text-[11px]">
-                  <div className="rounded-xl bg-[#F8FAFC] px-2.5 py-2">
-                    <span className="block text-[9px] font-semibold text-[#64748B]">
-                      NATIVE
-                    </span>
-                    <span
-                      data-testid="count-mode-a"
-                      className="text-sm font-extrabold text-[#0B1221]"
-                    >
-                      {counts.native}
-                    </span>
-                  </div>
-                  <div className="rounded-xl bg-[#F8FAFC] px-2.5 py-2">
-                    <span className="block text-[9px] font-semibold text-[#64748B]">
-                      STANDALONE
-                    </span>
-                    <span
-                      data-testid="count-mode-b"
-                      className="text-sm font-extrabold text-[#0B1221]"
-                    >
-                      {counts.standalone}
-                    </span>
-                  </div>
-                  <div className="rounded-xl bg-[#ECFDF5] px-2.5 py-2">
-                    <span className="block text-[9px] font-semibold text-[#047857]">
-                      VERIFIED
-                    </span>
-                    <span
-                      data-testid="count-verified"
-                      className="text-sm font-extrabold text-[#047857]"
-                    >
-                      {counts.verified}
-                    </span>
-                  </div>
-                </div>
-              </article>
-
-              {/* Top-Middle Bento Card: Skip the Blank Screen & Use a Template */}
-              <article className="hub-bento-card-tinted p-6 sm:p-7 flex flex-col justify-between gap-6">
-                {/* 3 Floating Miniature Wireframe Cards */}
-                <div
-                  aria-hidden="true"
-                  className="grid grid-cols-3 gap-2.5 pt-1"
-                >
-                  <div className="rounded-xl border border-[#DCE6F7] bg-white p-2.5 shadow-2xs space-y-2">
-                    <div className="h-2.5 w-10 rounded-full bg-[#2563EB]" />
-                    <div className="h-2 w-full rounded bg-[#E2E8F0]" />
-                    <div className="h-6 w-full rounded-md bg-[#F1F5F9]" />
-                  </div>
-                  <div className="rounded-xl border border-[#DCE6F7] bg-white p-2.5 shadow-2xs space-y-2">
-                    <div className="h-2.5 w-8 rounded-full bg-[#93C5FD]" />
-                    <div className="grid grid-cols-2 gap-1">
-                      <div className="h-7 rounded bg-[#E2E8F0]" />
-                      <div className="h-7 rounded bg-[#F1F5F9]" />
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[#DCE6F7] bg-white p-2.5 shadow-2xs space-y-2">
-                    <div className="h-5 w-full rounded bg-[#EFF4FF]" />
-                    <div className="h-2.5 w-12 rounded-full bg-[#2563EB]" />
-                    <div className="h-2 w-full rounded bg-[#E2E8F0]" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">
-                    ✦ VERIFIED CATALOG PACKS
-                  </div>
-                  <h3 className="text-xl font-bold leading-snug text-[#0B1221]">
-                    Skip the blank screen and use a template.
-                  </h3>
-                  <p className="text-xs text-[#5B6B82] leading-relaxed">
-                    Start from {counts.total} native and standalone React packs
-                    with prebuilt Zod catalogs and Kiro specs.
-                  </p>
-                </div>
-              </article>
-
-              {/* Bottom Wide Bento Card: Guardrail Proof & Donut Breakdown */}
-              <article className="sm:col-span-2 hub-bento-card p-6 sm:p-7 space-y-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">
-                      ✦ RUNTIME &amp; PBT VERIFICATION TOOLS
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-[#0B1221]">
-                      Get real proof on your UI guardrails
-                    </h3>
-                  </div>
-                  {primaryWorkbenchSlug && (
-                    <button
-                      type="button"
-                      onClick={openWorkbench}
-                      aria-label="Inspect runtime telemetry in workbench"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EFF4FF] text-sm font-bold text-[#2563EB] hover:bg-[#DBEAFE] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
-                    >
-                      ↗
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
-                  {/* Segmented SVG Donut Ring Chart */}
-                  <div className="sm:col-span-5 flex justify-center">
-                    <div className="relative flex h-44 w-44 items-center justify-center">
-                      <svg
-                        className="h-full w-full -rotate-90"
-                        viewBox="0 0 160 160"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="60"
-                          fill="none"
-                          stroke="#F1F5F9"
-                          strokeWidth="18"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="60"
-                          fill="none"
-                          stroke="#2563EB"
-                          strokeWidth="18"
-                          strokeDasharray="228 377"
-                          strokeDashoffset="0"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="60"
-                          fill="none"
-                          stroke="#93C5FD"
-                          strokeWidth="18"
-                          strokeDasharray="86 377"
-                          strokeDashoffset="-232"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="60"
-                          fill="none"
-                          stroke="#F59E0B"
-                          strokeWidth="18"
-                          strokeDasharray="48 377"
-                          strokeDashoffset="-322"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                        <span className="text-3xl font-extrabold tracking-tight text-[#0B1221]">
-                          100%
-                        </span>
-                        <span className="text-[11px] font-medium text-[#5B6B82] leading-tight">
-                          Verified catalog compliance
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Breakdown Legend & Hierarchy */}
-                  <div className="sm:col-span-7 space-y-3">
-                    <div className="flex items-center justify-between border-b border-[#EEF2F6] pb-2.5 text-sm">
-                      <div className="flex items-center gap-2.5 font-medium text-[#475569]">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#2563EB]" />
-                        <span>Mode A · Native GenUI Catalogs</span>
-                      </div>
-                      <span className="font-bold text-[#0B1221]">
-                        {counts.native} packs (67%)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between border-b border-[#EEF2F6] pb-2.5 text-sm">
-                      <div className="flex items-center gap-2.5 font-medium text-[#475569]">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#93C5FD]" />
-                        <span>Mode B · Standalone reference apps</span>
-                      </div>
-                      <span className="font-bold text-[#0B1221]">
-                        {counts.standalone} apps (33%)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pb-1 text-sm">
-                      <div className="flex items-center gap-2.5 font-medium text-[#475569]">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
-                        <span>SpatialOps Reference App</span>
-                      </div>
-                      <a
-                        href="http://localhost:5174"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-mono text-xs font-bold text-[#2563EB] hover:underline"
-                      >
-                        localhost:5174 ↗
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            </div>
-
-            {/* Right 4 Columns: Tall Dark Card ("Export your design via CLI or MCP") */}
-            <article className="lg:col-span-4 hub-dark-bento p-6 sm:p-7 flex flex-col justify-between gap-6">
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold leading-snug text-white">
-                  Export your design
-                  <br />
-                  via CLI or MCP
-                </h3>
-
-                {/* Dark Code Window with Traffic Dots & Filename */}
-                <div className="rounded-2xl border border-white/10 bg-[#070E1C] overflow-hidden shadow-inner">
-                  <div className="flex items-center justify-between border-b border-white/10 bg-[#0B1528] px-3.5 py-2.5 font-mono text-[11px] text-[#94A3B8]">
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#334155]" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#334155]" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#334155]" />
-                    </div>
-                    <span className="text-[#E2E8F0]">genui_mcp_export.ts</span>
-                  </div>
-
-                  <pre className="p-4 font-mono text-[11px] leading-relaxed overflow-x-auto text-[#E2E8F0]">
-                    <code>
-                      <span className="text-[#93C5FD]">import</span> &#123;
-                      compileExcalidrawToGenUI &#125;{"\n"}
-                      {"  "}
-                      <span className="text-[#93C5FD]">from</span>{" "}
-                      <span className="text-[#86EFAC]">
-                        &quot;@genui-studio/core&quot;
-                      </span>
-                      ;{"\n\n"}
-                      <span className="text-[#64748B]">
-                        // 1. Compile spatial canvas to Spec
-                      </span>
-                      {"\n"}
-                      <span className="text-[#93C5FD]">const</span> &#123; spec,
-                      mermaidDiagram &#125; ={"\n"}
-                      {"  "}compileExcalidrawToGenUI(&#123;{"\n"}
-                      {"    "}slug:{" "}
-                      <span className="text-[#86EFAC]">
-                        &quot;spatial-ops-3d-pro&quot;
-                      </span>
-                      ,{"\n"}
-                      {"    "}elements: sceneElements,{"\n"}
-                      {"    "}catalog: template.catalog,{"\n"}
-                      {"  "}&#125;);{"\n\n"}
-                      <span className="text-[#64748B]">
-                        // 2. Install pack + SKILL.md + POWER.md
-                      </span>
-                      {"\n"}
-                      <span className="text-[#FDE047]">
-                        $ npx genui-studio add afterdark-horror
-                      </span>
-                    </code>
-                  </pre>
-
-                  {/* Subtle Scrollbar Track Accent */}
-                  <div className="bg-[#E2E8F0] px-3 py-1.5">
-                    <div className="h-1.5 w-28 rounded-full bg-[#64748B]" />
-                  </div>
-                </div>
-              </div>
-
-              <a
-                href="#catalog"
-                className="hub-cta inline-flex min-h-[44px] w-full items-center justify-center gap-2 border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 transition"
-              >
-                <span>Explore Export Packs</span>
-                <span aria-hidden="true">→</span>
-              </a>
-            </article>
-          </div>
-        </section>
-
-        {/* 5. Featured Applications Built With GenUI Studio (AFTERDARK, NINETY9, CMOS BIOS) */}
-        {featuredFlagships.length > 0 && (
-          <section
-            id="featured"
-            data-testid="marketplace-featured-flagship"
-            className="scroll-mt-24 space-y-8"
-          >
-            <div className="mx-auto max-w-[680px] text-center space-y-3">
-              <div className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#2563EB]">
-                OPTIONAL · STRESS-TEST FIXTURES
-              </div>
-              <h2 className="hub-section-heading font-extrabold text-[#0B1221]">
-                Optional reference demos &amp; stress-test fixtures
+        {/* 3. Engineering Architecture Guarantees */}
+        <section
+          id="workflow"
+          className="mx-auto max-w-[1160px] px-4 py-14 sm:px-6 sm:py-16 space-y-8"
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1.5">
+              <p className="font-mono text-xs font-medium text-[#2563EB]">
+                @genui-studio/core
+              </p>
+              <h2 className="hub-section-heading font-bold text-[#09090B]">
+                Built for deterministic UI generation, not fragile prompts.
               </h2>
-              <p className="hub-body-copy text-sm sm:text-base text-[#5B6B82]">
-                You don&apos;t need these to use the workbench. They run the same
-                runtime inside a scoped{" "}
-                <code className="font-mono text-xs text-[#0B1221]">
-                  data-template-theme
-                </code>{" "}
-                container and exist to stress-test it with very different 2D
-                and 3D interfaces. The SpatialOps SRE demo runs separately on{" "}
-                <a
-                  href="http://localhost:5174"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-mono text-xs font-semibold text-[#2563EB] hover:underline"
+            </div>
+            <p className="max-w-[44ch] text-sm text-[#52525B]">
+              One guardrailed runtime powers every template, wireframe, and
+              standalone app in the workspace.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {CORE_PILLARS.map((pillar) => {
+              const Icon = pillar.icon;
+              return (
+                <div
+                  key={pillar.title}
+                  className="hub-card p-5 flex flex-col justify-between gap-4"
                 >
-                  localhost:5174 ↗
-                </a>
-                .
+                  <div className="space-y-3">
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] text-[#09090B]">
+                      <Icon aria-hidden="true" className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-[#09090B]">
+                      {pillar.title}
+                    </h3>
+                    <p className="hub-body-copy text-xs text-[#52525B] leading-relaxed">
+                      {pillar.summary}
+                    </p>
+                  </div>
+                  <div className="border-t border-[#F4F4F5] pt-3 font-mono text-[0.6875rem] text-[#71717A]">
+                    {pillar.metric}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Copyable CLI Quickstart Bar */}
+          <div className="hub-code-surface flex flex-col items-stretch justify-between gap-3 rounded-xl border border-white/10 px-4 py-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2.5 min-w-0 font-mono text-xs">
+              <Terminal aria-hidden="true" className="h-4 w-4 shrink-0 text-[#60A5FA]" />
+              <code className="truncate text-zinc-200 select-all">
+                npx genui-studio add product-landing-starter
+              </code>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                handleCopyCommand(
+                  "npx genui-studio add product-landing-starter",
+                  "cli-quickstart",
+                )
+              }
+              className="inline-flex min-h-[30px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-3 py-1 font-mono text-[0.6875rem] font-medium text-white hover:bg-white/15 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+            >
+              {copiedSlug === "cli-quickstart" ? (
+                <>
+                  <Check aria-hidden="true" className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>Copy command</span>
+                </>
+              )}
+            </button>
+          </div>
+        </section>
+
+        {/* 4. Reference Applications Built on the Skeleton */}
+        <section
+          id="featured"
+          data-testid="marketplace-featured-flagship"
+          className="border-y border-[#E4E4E7] bg-white"
+        >
+          <div className="mx-auto max-w-[1160px] px-4 py-14 sm:px-6 sm:py-16 space-y-8">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1.5">
+                <p className="font-mono text-xs font-medium text-[#2563EB]">
+                  Reference Applications
+                </p>
+                <h2 className="hub-section-heading font-bold text-[#09090B]">
+                  Four distinct applications on one shared engine.
+                </h2>
+              </div>
+              <p className="max-w-[46ch] text-sm text-[#52525B]">
+                Every application below is MIT-licensed, previewable live inside
+                scoped containers, and exportable as a standalone Next.js starter.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {featuredFlagships.map((flagship, index) => {
-                const slug = flagship.manifest.slug;
-                const isMono = slug === "ninety9-archive";
-                const isBios = slug === "cmos-cloud-bios";
-                const demonstration =
-                  FLAGSHIP_DEMONSTRATIONS[slug] ??
-                  flagship.manifest.description;
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {featuredFlagships.map((entry) => {
+                const { manifest } = entry;
+                const cliCmd = `npx genui-studio add ${manifest.slug}`;
+                const modeLabel =
+                  manifest.mode === "standalone"
+                    ? "Mode B · Standalone"
+                    : "Mode A · Native";
 
                 return (
                   <article
-                    key={`featured-${slug}`}
-                    data-testid={`marketplace-flagship-${slug}`}
-                    className="hub-bento-card overflow-hidden flex flex-col justify-between transition hover:border-[#94A3B8]"
+                    key={manifest.slug}
+                    className="hub-card overflow-hidden flex flex-col justify-between transition hover:border-[#D4D4D8]"
                   >
-                    {/* Contained Miniature App Preview */}
-                    <div className="p-4 bg-[#F8FAFC] border-b border-[#E8EDF5]">
-                      {isMono ? (
-                        <div
-                          style={{ colorScheme: "only light" }}
-                          className="min-h-[148px] rounded-xl border-2 border-[#000000] bg-[#FFFFFF] p-4 text-[#000000] shadow-[3px_3px_0px_#000000] flex flex-col justify-between"
-                        >
-                          <div className="flex items-center justify-between border-b border-[#000000] pb-2 font-mono text-[10px] font-bold">
-                            <span>ARCHIVE // 1990–1999</span>
-                            <span className="border border-[#000000] bg-[#D9D9D9] px-1.5 py-0.5">
-                              5-TONE MONO
-                            </span>
-                          </div>
-                          <div className="py-2 space-y-1">
-                            <div className="font-mono text-xs font-bold tracking-tight">
-                              34 Dossiers · 12 Sectors
-                            </div>
-                            <div className="text-[11px] text-[#292929]">
-                              COBOL boot terminal · Paper-white CRT scanlines ·
-                              Live monochrome remixes
-                            </div>
-                          </div>
-                          <div className="flex gap-1.5 font-mono text-[9px] font-bold">
-                            <span className="bg-[#000000] text-[#FFFFFF] px-1.5 py-0.5">
-                              #FFFFFF
-                            </span>
-                            <span className="border border-[#000000] px-1.5 py-0.5">
-                              0px RADIUS
-                            </span>
-                          </div>
-                        </div>
-                      ) : isBios ? (
-                        <div
-                          style={{ colorScheme: "only dark" }}
-                          className="min-h-[148px] rounded-xl border-4 border-double border-[#FFFFFF] bg-[#0000AA] p-3.5 font-mono text-[#FFFFFF] shadow-[3px_3px_0px_#000000] flex flex-col justify-between"
-                        >
-                          <div className="flex items-center justify-between border-b border-[#00AAAA] pb-1.5 text-[10px]">
-                            <span className="text-[#FFFF55] font-bold">
-                              AWARD CMOS SETUP
-                            </span>
-                            <span className="text-[#00AAAA]">VGA 16-COLOR</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 py-2 text-[10px]">
-                            <div className="bg-[#AA0000] px-1.5 py-0.5 text-[#FFFF55]">
-                              ▶ CLOCK MULTIPLIER
-                            </div>
-                            <div className="px-1.5 py-0.5 text-[#FFFFFF]">
-                              ▶ 3D PCB TWIN
-                            </div>
-                            <div className="px-1.5 py-0.5 text-[#00AAAA]">
-                              F10: COMPILE IaC
-                            </div>
-                            <div className="px-1.5 py-0.5 text-[#FFFF55]">
-                              main.tf + compose
-                            </div>
-                          </div>
-                          <div className="border-t border-[#00AAAA] pt-1.5 text-[9px] text-[#FFFF55]">
-                            FSK Modem Audio · FNV-1a CMOS Checksum
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          style={{ colorScheme: "only dark" }}
-                          className="min-h-[148px] rounded-xl border border-[#2A1B1E] bg-[#07070A] p-4 text-[#F1F5F9] flex flex-col justify-between"
-                        >
-                          <div className="flex items-center justify-between font-mono text-[10px]">
-                            <span className="text-[#94A3B8]">
-                              02:17 AM · WEBGL
-                            </span>
-                            <span className="rounded border border-[#DC2626]/60 bg-[#DC2626]/20 px-1.5 py-0.5 text-[#FCA5A5]">
-                              ZONE E BREAKER
-                            </span>
-                          </div>
-                          <div className="py-2 space-y-1">
-                            <div className="text-sm font-semibold tracking-tight text-white">
-                              AFTERDARK 2.0
-                            </div>
-                            <div className="text-[11px] text-[#94A3B8]">
-                              5 3D cemetery zones · Procedural Web Audio ·
-                              Daylight editorial restoration
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between font-mono text-[9px] text-[#CBD5E1]">
-                            <span>THREE.InstancedMesh</span>
-                            <span>PRO · $89</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Crisp Bento Card Body */}
-                    <div className="p-6 flex-1 flex flex-col justify-between gap-5">
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
-                          <span className="font-bold text-[#2563EB]">
-                            Reference demo 0{index + 1} ·{" "}
-                            {flagship.manifest.category}
-                          </span>
-                          <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[#5B6B82] font-semibold">
-                            {flagship.manifest.tier === "pro"
-                              ? `PRO · $${flagship.manifest.priceUsd}`
-                              : "FREE · MIT"}
+                    <div>
+                      <ShowcaseThumbnail slug={manifest.slug} />
+                      <div className="p-5 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h3 className="text-base font-semibold tracking-tight text-[#09090B]">
+                            {manifest.title}
+                          </h3>
+                          <span className="rounded-md border border-[#E4E4E7] bg-[#FAFAFA] px-2 py-0.5 font-mono text-[0.625rem] font-medium text-[#52525B]">
+                            {modeLabel}
                           </span>
                         </div>
 
-                        <h3 className="text-xl font-bold text-[#0B1221]">
-                          {flagship.manifest.title}
-                        </h3>
-
-                        <p className="text-sm text-[#5B6B82] leading-relaxed">
-                          {demonstration}
+                        <p className="hub-body-copy text-xs text-[#52525B] leading-relaxed">
+                          {FLAGSHIP_ARCHITECTURAL_NOTES[manifest.slug] ??
+                            manifest.description}
                         </p>
 
-                        <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] px-3 py-2 font-mono text-[11px] text-[#5B6B82] flex items-center justify-between gap-2">
-                          <code className="truncate text-[#0B1221]">
-                            npx genui-studio add {slug}
-                          </code>
-                          <span className="shrink-0 text-[10px] font-semibold text-[#047857]">
-                            {flagship.catalog.metadata.componentNames.length}{" "}
-                            blocks
-                          </span>
+                        {/* Copyable CLI Install Command */}
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] px-3 py-1.5 font-mono text-[0.6875rem] text-[#3F3F46]">
+                          <code className="truncate select-all">{cliCmd}</code>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCommand(cliCmd, manifest.slug)}
+                            aria-label={`Copy CLI command for ${manifest.title}`}
+                            className="inline-flex min-h-[24px] shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[0.625rem] font-medium text-[#52525B] hover:bg-[#E4E4E7]/60 hover:text-[#09090B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1"
+                          >
+                            {copiedSlug === manifest.slug ? (
+                              <>
+                                <Check aria-hidden="true" className="h-3 w-3 text-[#047857]" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy aria-hidden="true" className="h-3 w-3" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-2.5 pt-2 font-mono text-xs">
-                        <button
-                          type="button"
-                          onClick={() => onOpenPreview(slug)}
-                          data-testid={`flagship-enter-${slug}`}
-                          className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#0B1324] px-3 py-2 font-semibold text-white hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
-                        >
-                          Open Preview →
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setExportTemplate(flagship)}
-                          data-testid={`flagship-export-${slug}`}
-                          className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-3 py-2 font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
-                        >
-                          Export Pack
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-2 border-t border-[#F4F4F5] bg-[#FAFAFA]/70 px-5 py-3">
+                      <button
+                        type="button"
+                        onClick={() => onOpenPreview(manifest.slug)}
+                        aria-label={`Open Preview for ${manifest.title}`}
+                        className="inline-flex min-h-[34px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#09090B] px-3.5 py-1.5 text-xs font-medium text-white hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                      >
+                        <span>Open Preview</span>
+                        <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExportTemplate(entry)}
+                        aria-label={`Export ${manifest.title}`}
+                        className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-3.5 py-1.5 text-xs font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                      >
+                        <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span>Export</span>
+                      </button>
                     </div>
                   </article>
                 );
               })}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
 
-        {/* 6. Unified Installable Catalog Grid */}
-        <section id="catalog" className="scroll-mt-24 space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#2563EB]">
-                INSTALLABLE REGISTRY
-              </div>
-              <h2 className="hub-section-heading font-extrabold text-[#0B1221]">
-                All Catalog Packs ({counts.total})
-              </h2>
-              <p className="text-sm text-[#5B6B82]">
-                Filter by execution mode, tier, or capability tag. Every card
-                includes a scoped live preview, Wireframe Architect, X-Ray PBT,
-                and CLI/ZIP export.
+        {/* 5. Filterable Starter & Template Registry */}
+        <section
+          id="catalog"
+          className="mx-auto max-w-[1160px] px-4 py-14 sm:px-6 sm:py-16 space-y-6"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1">
+              <p className="font-mono text-xs font-medium text-[#2563EB]">
+                Catalog Registry
               </p>
+              <h2 className="hub-section-heading font-bold text-[#09090B]">
+                Starter packs &amp; dual-mode templates
+              </h2>
+            </div>
+            <div className="font-mono text-xs tabular-nums text-[#71717A]">
+              Showing {filteredTemplates.length} of {counts.total} packs ·{" "}
+              {counts.native} native · {counts.standalone} standalone
             </div>
           </div>
 
-          {/* Filter & Search Bar */}
-          <div className="hub-bento-card p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div
-                role="group"
-                aria-label="Filter by template mode"
-                className="hub-scroll-row -mx-1 w-[calc(100%+0.5rem)] items-center gap-1.5 px-1 pb-0.5 font-mono text-xs sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0 sm:pb-0"
-              >
-                <button
-                  type="button"
-                  aria-pressed={modeFilter === "all"}
-                  onClick={() => setModeFilter("all")}
-                  data-testid="filter-mode-all"
-                  className={`min-h-[36px] rounded-full px-4 py-1.5 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer ${
-                    modeFilter === "all"
-                      ? "bg-[#0B1324] text-white"
-                      : "border border-[#CBD5E1] bg-white text-[#5B6B82] hover:text-[#0B1221]"
-                  }`}
-                >
-                  All ({counts.total})
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={modeFilter === "native"}
-                  onClick={() => setModeFilter("native")}
-                  data-testid="filter-mode-native"
-                  className={`min-h-[36px] rounded-full px-4 py-1.5 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer ${
-                    modeFilter === "native"
-                      ? "bg-[#2563EB] text-white"
-                      : "border border-[#CBD5E1] bg-white text-[#5B6B82] hover:text-[#0B1221]"
-                  }`}
-                >
-                  Mode A · Native ({counts.native})
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={modeFilter === "standalone"}
-                  onClick={() => setModeFilter("standalone")}
-                  data-testid="filter-mode-standalone"
-                  className={`min-h-[36px] rounded-full px-4 py-1.5 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer ${
-                    modeFilter === "standalone"
-                      ? "bg-[#2563EB] text-white"
-                      : "border border-[#CBD5E1] bg-white text-[#5B6B82] hover:text-[#0B1221]"
-                  }`}
-                >
-                  Mode B · Standalone ({counts.standalone})
-                </button>
-
-                <span
+          {/* Unified Filter Toolbar */}
+          <div className="hub-card p-3 space-y-3">
+            <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+              {/* Accessible Search Input */}
+              <div className="relative flex-1 max-w-md">
+                <label htmlFor="registry-search" className="visually-hidden">
+                  Search templates and starter packs
+                </label>
+                <Search
                   aria-hidden="true"
-                  className="mx-1 h-4 w-px bg-[#E2E8F0]"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717A]"
                 />
-
-                <button
-                  type="button"
-                  aria-pressed={tierFilter === "pro"}
-                  onClick={() =>
-                    setTierFilter((prev) => (prev === "pro" ? "all" : "pro"))
-                  }
-                  data-testid="filter-tier-pro"
-                  className={`min-h-[36px] rounded-full px-4 py-1.5 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer ${
-                    tierFilter === "pro"
-                      ? "bg-[#0B1324] text-white"
-                      : "border border-[#CBD5E1] bg-white text-[#5B6B82] hover:text-[#0B1221]"
-                  }`}
-                >
-                  PRO Packs Only
-                </button>
-              </div>
-
-              <div className="w-full sm:w-72">
                 <input
+                  id="registry-search"
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Search templates by name, category, or tag"
-                  placeholder="Search packs, tags, or domain..."
-                  data-testid="marketplace-search-input"
-                  className="w-full min-h-[38px] rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-4 py-1.5 text-sm text-[#0B1221] placeholder:text-[#64748B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 focus:bg-white"
+                  placeholder="Search by title, slug, or capability..."
+                  className="min-h-[36px] w-full rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] pl-9 pr-3 py-1.5 text-xs text-[#09090B] placeholder:text-[#71717A] focus:border-[#2563EB] focus:bg-white focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition"
                 />
+              </div>
+
+              {/* Segmented Mode Filter */}
+              <div
+                role="group"
+                aria-label="Filter by template mode"
+                className="inline-flex items-center rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-0.5 text-xs self-start md:self-auto"
+              >
+                {(
+                  [
+                    ["all", `All (${counts.total})`],
+                    ["native", "Mode A · Native"],
+                    ["standalone", "Mode B · Standalone"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={modeFilter === mode}
+                    onClick={() => setModeFilter(mode)}
+                    className={`min-h-[30px] rounded-md px-3 py-1 font-medium transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 ${
+                      modeFilter === mode
+                        ? "bg-white text-[#09090B] shadow-2xs font-semibold"
+                        : "text-[#52525B] hover:text-[#09090B]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Tag Pills */}
-            <div className="hub-scroll-row items-center gap-1.5 pt-2 border-t border-[#EEF2F6] sm:flex-wrap">
-              <span className="font-mono text-[11px] font-semibold text-[#5B6B82] mr-1">
-                Tags:
-              </span>
+            {/* Category Tag Strip */}
+            <div
+              role="group"
+              aria-label="Filter by capability tag"
+              className="hub-scroll-row items-center gap-1.5 border-t border-[#F4F4F5] pt-2.5 sm:flex-wrap"
+            >
               <button
                 type="button"
                 aria-pressed={activeTag === "all"}
                 onClick={() => setActiveTag("all")}
-                data-testid="filter-tag-all"
-                className={`min-h-[28px] rounded-full px-3 py-0.5 font-mono text-[11px] font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
+                className={`min-h-[28px] rounded-md border px-2.5 py-1 text-xs font-medium transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 ${
                   activeTag === "all"
-                    ? "bg-[#0B1324] text-white"
-                    : "border border-[#E2E8F0] bg-[#F8FAFC] text-[#5B6B82] hover:border-[#94A3B8] hover:text-[#0B1221]"
+                    ? "border-[#09090B] bg-[#09090B] text-white"
+                    : "border-[#E4E4E7] bg-white text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B]"
                 }`}
               >
-                All Tags
+                All tags
               </button>
-              {MARKETPLACE_FILTER_TAGS.map((tag) => {
-                const isSelected = activeTag === tag;
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() =>
-                      setActiveTag((prev) => (prev === tag ? "all" : tag))
-                    }
-                    data-testid={`filter-tag-${tag}`}
-                    className={`min-h-[28px] rounded-full px-3 py-0.5 font-mono text-[11px] font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
-                      isSelected
-                        ? "bg-[#2563EB] text-white"
-                        : "border border-[#E2E8F0] bg-[#F8FAFC] text-[#5B6B82] hover:border-[#94A3B8] hover:text-[#0B1221]"
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-              {activeTag !== "all" && (
+              {MARKETPLACE_FILTER_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  aria-pressed={activeTag === tag}
+                  onClick={() => setActiveTag(tag)}
+                  className={`min-h-[28px] rounded-md border px-2.5 py-1 text-xs font-medium transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 ${
+                    activeTag === tag
+                      ? "border-[#09090B] bg-[#09090B] text-white"
+                      : "border-[#E4E4E7] bg-white text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B]"
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+              {hasActiveFilters && (
                 <button
                   type="button"
-                  onClick={() => setActiveTag("all")}
-                  data-testid="clear-tag-filter-btn"
-                  className="min-h-[28px] rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[#B91C1C] hover:bg-[#FEF2F2] focus-visible:outline-2 focus-visible:outline-[#2563EB] cursor-pointer"
+                  onClick={() => {
+                    setModeFilter("all");
+                    setActiveTag("all");
+                    setSearchQuery("");
+                  }}
+                  className="ml-auto inline-flex min-h-[28px] items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#52525B] hover:text-[#09090B] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1"
                 >
-                  Clear tag ✕
+                  <X aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>Reset</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* Template Cards Grid */}
+          {/* Registry Grid */}
           {filteredTemplates.length === 0 ? (
-            <div className="hub-bento-card p-12 text-center">
-              <p className="font-mono text-sm text-[#5B6B82]">
-                No catalog packs match the current filter criteria.
+            <div className="hub-card p-10 text-center space-y-2">
+              <p className="text-sm font-medium text-[#09090B]">
+                No templates match the current filters.
+              </p>
+              <p className="text-xs text-[#71717A]">
+                Try clearing the search query or switching back to all modes.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((entry) => {
-                const { manifest, catalog } = entry;
-                const isStandalone = manifest.mode === "standalone";
+                const { manifest } = entry;
+                const componentCount = entry.catalog.metadata.componentNames.length;
+                const modeLabel =
+                  manifest.mode === "standalone"
+                    ? "Mode B · Standalone"
+                    : "Mode A · Native";
 
                 return (
                   <article
                     key={manifest.slug}
                     data-testid={`marketplace-card-${manifest.slug}`}
-                    className="hub-bento-card overflow-hidden flex flex-col justify-between transition hover:border-[#94A3B8]"
+                    className="hub-card hub-registry-card p-5 flex flex-col justify-between gap-4 transition hover:border-[#D4D4D8]"
                   >
-                    {/* Contained Theme Swatch Header */}
-                    <div
-                      style={{
-                        colorScheme: `only ${manifest.theme.defaultColorScheme}`,
-                        backgroundColor: manifest.theme.surfaceBg,
-                        color: manifest.theme.textColor,
-                      }}
-                      className="p-5 border-b border-[#E8EDF5] space-y-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px]">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
                         <span
-                          className="rounded-full border px-2.5 py-0.5 font-semibold uppercase"
-                          style={{
-                            backgroundColor: "#0B1324",
-                            color: "#F8FAFC",
-                            borderColor: "rgba(255,255,255,0.22)",
-                          }}
+                          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[0.625rem] font-medium ${
+                            manifest.mode === "standalone"
+                              ? "border-[#FDE68A] bg-[#FFFBEB] text-[#B45309]"
+                              : "border-[#E4E4E7] bg-[#FAFAFA] text-[#52525B]"
+                          }`}
                         >
-                          {isStandalone
-                            ? "Mode B · Standalone"
-                            : "Mode A · Native"}
-                        </span>
-
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {manifest.verified && (
-                            <span
-                              className="rounded-full px-2.5 py-0.5 font-semibold"
-                              style={{
-                                backgroundColor: "#064E3B",
-                                color: "#D1FAE5",
-                              }}
-                            >
-                              ✓ GenUI Verified
-                            </span>
-                          )}
                           <span
-                            className="rounded-full border px-2.5 py-0.5 font-semibold"
-                            style={{
-                              backgroundColor: "#0B1324",
-                              color: "#F8FAFC",
-                              borderColor: "rgba(255,255,255,0.22)",
-                            }}
-                          >
-                            {manifest.tier === "pro"
-                              ? `PRO · $${manifest.priceUsd}`
-                              : "FREE · MIT"}
-                          </span>
-                        </div>
+                            aria-hidden="true"
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: manifest.theme.accentColor }}
+                          />
+                          {modeLabel}
+                        </span>
+                        <span className="font-mono text-[0.625rem] text-[#71717A]">
+                          {manifest.license}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          aria-hidden="true"
-                          className="h-3 w-3 rounded-full shrink-0 border border-white/30"
-                          style={{ backgroundColor: manifest.theme.accentColor }}
-                        />
-                        <h3
-                          className="text-base font-bold tracking-tight truncate"
-                          style={{ fontFamily: manifest.theme.displayFont }}
-                        >
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-semibold tracking-tight text-[#09090B]">
                           {manifest.title}
                         </h3>
+                        <p className="line-clamp-2 text-xs text-[#52525B] leading-relaxed">
+                          {manifest.description}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[0.6875rem] tabular-nums text-[#71717A]">
+                        <span>{componentCount} blocks</span>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          {manifest.pages.length}{" "}
+                          {manifest.pages.length === 1 ? "route" : "routes"}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{manifest.category}</span>
                       </div>
                     </div>
 
-                    {/* Clear Hierarchy: Purpose -> What Is Included -> Actions */}
-                    <div className="p-5 flex-1 flex flex-col justify-between gap-4">
-                      <div className="space-y-3">
-                        <p className="text-sm text-[#5B6B82] leading-relaxed line-clamp-3">
-                          {manifest.description}
-                        </p>
-
-                        <div className="rounded-xl bg-[#F8FAFC] border border-[#E8EDF5] px-3 py-2 font-mono text-[11px] text-[#0B1221] flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold">
-                            {catalog.metadata.componentNames.length} catalog
-                            blocks
-                          </span>
-                          <span className="text-[#5B6B82]">
-                            {manifest.pages.length}{" "}
-                            {manifest.pages.length === 1 ? "page" : "pages"} ·{" "}
-                            {manifest.theme.defaultColorScheme}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
-                          {manifest.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[#5B6B82]"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#EEF2F6] font-mono text-xs">
-                        <button
-                          type="button"
-                          onClick={() => onOpenPreview(manifest.slug)}
-                          data-testid={`preview-btn-${manifest.slug}`}
-                          className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#0B1324] px-3 py-2 font-semibold text-white hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
-                        >
-                          Live Preview →
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setExportTemplate(entry)}
-                          data-testid={`export-btn-${manifest.slug}`}
-                          className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-3 py-2 font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
-                        >
-                          Export Pack
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-2 border-t border-[#F4F4F5] pt-3.5">
+                      <button
+                        type="button"
+                        onClick={() => onOpenPreview(manifest.slug)}
+                        data-testid={`preview-btn-${manifest.slug}`}
+                        aria-label={`Open Preview for ${manifest.title}`}
+                        className="inline-flex min-h-[34px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#09090B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                      >
+                        <span>Open Preview</span>
+                        <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExportTemplate(entry)}
+                        aria-label={`Export ${manifest.title}`}
+                        className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-3 py-1.5 text-xs font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                      >
+                        <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span>Export</span>
+                      </button>
                     </div>
                   </article>
                 );
@@ -1618,27 +902,42 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
         </section>
       </main>
 
-      {/* Clean Studio Footer */}
-      <footer className="border-t border-[#E8EDF5] bg-[#FAFBFD] mt-16">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8 text-xs text-[#5B6B82]">
-          <div>
-            <strong className="text-[#0B1221]">GenUI Studio Hub</strong> ·
-            Powered by{" "}
-            <code className="font-mono text-[#0B1221]">@genui-studio/core</code>
-            , <code className="font-mono text-[#0B1221]">@json-render</code>, and{" "}
-            <code className="font-mono text-[#0B1221]">
-              @excalidraw/excalidraw
-            </code>
+      {/* 6. Restrained Footer */}
+      <footer className="border-t border-[#E4E4E7] bg-white">
+        <div className="mx-auto flex max-w-[1160px] flex-col items-start justify-between gap-3 px-4 py-6 text-xs text-[#71717A] sm:flex-row sm:items-center sm:px-6">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#09090B]">GenUI Studio Hub</span>
+            <span aria-hidden="true">·</span>
+            <span>MIT License</span>
+            <span aria-hidden="true">·</span>
+            <span className="font-mono text-[0.6875rem]">@genui-studio/core</span>
           </div>
-          <div className="font-mono text-[11px]">
-            MIT License · Kiroween Skeleton Crew
+          <div className="flex flex-wrap items-center gap-4">
+            <a
+              href="#workflow"
+              className="hover:text-[#09090B] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 rounded"
+            >
+              Architecture
+            </a>
+            <a
+              href="#featured"
+              className="hover:text-[#09090B] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 rounded"
+            >
+              Applications
+            </a>
+            <a
+              href="#catalog"
+              className="hover:text-[#09090B] transition focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 rounded"
+            >
+              Registry
+            </a>
           </div>
         </div>
       </footer>
 
       {exportTemplate && (
         <TemplateExportDialog
-          isOpen={Boolean(exportTemplate)}
+          isOpen
           onClose={() => setExportTemplate(null)}
           template={exportTemplate}
         />

@@ -2,8 +2,8 @@ import type { Spec } from "@json-render/core";
 import type { TemplateSourceFile } from "./types.js";
 
 /**
- * Source text for the runnable Next.js starter exported from the showcase packs
- * (`spatial-mesh-starter`, `spatial-ops-3d-pro`, ...).
+ * Source text for the runnable Next.js starter exported from the wireframe starter packs
+ * (`saas-dashboard-starter`, `product-landing-starter`).
  *
  * The exported `app/page.tsx` imports `verifiedCatalog` + `initialPageSpecs` from
  * `src/template/catalog` and `templateComponents` from `src/template/components`.

@@ -52,9 +52,13 @@ function printHelp() {
     --json             Print machine-readable JSON output (validate command)
     --help, -h         Show help
 
-  \x1b[1mAVAILABLE PACKS:\x1b[0m
-    \x1b[36mspatial-ops-3d-pro\x1b[0m   (Pro $79)  - 14-Component Aegis 3D WebGL Incident War-Room
-    \x1b[32mspatial-mesh-starter\x1b[0m (Free $0)  - 3D WebGL Microservice Mesh Starter Kit
+  \x1b[1mAVAILABLE STARTERS & APPS (ALL MIT):\x1b[0m
+    \x1b[36msaas-dashboard-starter\x1b[0m   (Free MIT) - Dark SaaS Dashboard Wireframe Starter
+    \x1b[32mproduct-landing-starter\x1b[0m  (Free MIT) - Light Product Landing Wireframe Starter
+    \x1b[36mafterdark-horror\x1b[0m         (Free MIT) - AFTERDARK 2.0 3D WebGL Exploration + Editorial Site
+    \x1b[32mninety9-archive\x1b[0m          (Free MIT) - NINETY9 Monochrome 1990s Archive + 1-Bit Arcade
+    \x1b[36mcmos-cloud-bios\x1b[0m          (Free MIT) - BIOS // NECROMANCER CMOS Utility + 3D PCB IaC Compiler
+    \x1b[32mneuro-chimera-synth\x1b[0m      (Free MIT) - CHIMERA // LAB Physarum Bio-SQL Optimizer Lab
 `);
 }
 

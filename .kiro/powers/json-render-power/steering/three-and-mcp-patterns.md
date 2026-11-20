@@ -1,4 +1,4 @@
-# Playbook: 3D Scene Generation (`@json-render/react-three-fiber`) & MCP Apps (`@json-render/mcp`)
+# Playbook: 3D Scene Generation (`@json-render/react-three-fiber`) & Shared State
 
 ## 1. Combining 3D R3F Topologies with 2D Shared State
 
@@ -15,8 +15,8 @@
 
 ### Dual-Viewport Shared `StateStore` Pattern
 By passing a single `TimeTravelStateStore` instance (it implements the `@json-render/core` `StateStore` interface) to both `<JSONUIProvider store={store}>` (2D UI) and `<ThreeCanvas store={store}>` (3D WebGL UI):
-1. A 2D slider bound to `{ "$bindState": "/cluster/replicationFactor" }` updates the store immediately.
-2. A 3D node using `{ "$state": "/cluster/replicationFactor" }` or `$cond` for its `color` / `scale` / `emissiveIntensity` updates in the 60fps WebGL canvas without re-mounting the scene!
+1. A 2D slider bound to `{ "$bindState": "/scene/intensity" }` updates the store immediately.
+2. A 3D node using `{ "$state": "/scene/intensity" }` or `$cond` for its `color` / `scale` / `emissiveIntensity` updates in the 60fps WebGL canvas without re-mounting the scene.
 
 ```tsx
 import { JSONUIProvider, Renderer } from "@json-render/react";
@@ -45,37 +45,3 @@ export function DualSurfaceWorkspace({ store, spec2D, spec3D, registry2D, regist
 ```
 
 The sample passes no `handlers`, so built-in actions (`setState`, `pushState`, `removeState`, `validateForm`) work but custom catalog actions do not run. Both `JSONUIProvider` and `ThreeCanvas` accept a `handlers` prop; build it with `defineRegistry(...).handlers(getSetState, getState)`.
-
----
-
-## 2. Serving Catalogs as MCP Apps (`@json-render/mcp`)
-
-`@json-render/mcp` is not a dependency of this repository; install it (`@json-render/mcp@^0.22.0`, peer `react@^19`) before using this pattern. The repo's own MCP server, `packages/genui-mcp`, is built directly on `@modelcontextprotocol/sdk` instead. The signatures below were checked against the published `0.22.0` type declarations.
-
-Use `createMcpApp` from `@json-render/mcp` and `buildAppHtml` from `@json-render/mcp/build-app-html` (also exported from `@json-render/mcp/app`) to expose any verified catalog as an interactive MCP tool + iframe resource. `createMcpApp` is async and returns `Promise<McpServer>`; connect a transport yourself:
-
-```typescript
-import { createMcpApp } from "@json-render/mcp";
-import { buildAppHtml } from "@json-render/mcp/build-app-html";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-
-const html = buildAppHtml({
-  title: "GenUI Studio Telemetry App",
-  js: bundledClientJs,
-  css: bundledClientCss,
-});
-
-export const mcpServer = await createMcpApp({
-  name: "genui-studio-telemetry",
-  version: "1.0.0",
-  catalog: verifiedCatalog.catalog,
-  html,
-  tool: {
-    name: "render_telemetry_dashboard",
-    title: "Render Guardrailed Telemetry Dashboard",
-    description: "Streams a verified json-render UI spec into the MCP client.",
-  },
-});
-
-await mcpServer.connect(new StdioServerTransport());
-```

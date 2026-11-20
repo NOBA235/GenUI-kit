@@ -15,14 +15,14 @@ export const TemplateExportModal: React.FC<TemplateExportModalProps> = ({
   packId,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [activeTab, setActiveTab] = useState<"CLI" | "ZIP" | "MCP">("CLI");
+  const [activeTab, setActiveTab] = useState<"CLI" | "ZIP">("CLI");
   const [licenseToken, setLicenseToken] = useState("kiroween-2026-judge-pass");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isGeneratingZip, setIsGeneratingZip] = useState(false);
   const [zipSuccessMsg, setZipSuccessMsg] = useState<string | null>(null);
 
   const pack: AgentReadyPackManifest =
-    ALL_TEMPLATE_PACKS[packId] ?? ALL_TEMPLATE_PACKS["spatial-ops-3d-pro"]!;
+    ALL_TEMPLATE_PACKS[packId] ?? ALL_TEMPLATE_PACKS["saas-dashboard-starter"]!;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -70,39 +70,6 @@ export const TemplateExportModal: React.FC<TemplateExportModalProps> = ({
     pack.tier === "pro"
       ? `npx genui-studio add ${pack.id} --license=${licenseToken}`
       : `npx genui-studio add ${pack.id}`;
-
-  const kiroMcpSnippet = JSON.stringify(
-    {
-      mcpServers: {
-        "genui-studio": {
-          command: "node",
-          args: ["./packages/genui-mcp/dist/cli.js"],
-          env: { NODE_ENV: "production" },
-          disabled: false,
-          autoApprove: [
-            "list_catalog_components",
-            "validate_ui_spec",
-            "fuzz_test_catalog",
-          ],
-        },
-      },
-    },
-    null,
-    2,
-  );
-
-  const claudeMcpSnippet = JSON.stringify(
-    {
-      mcpServers: {
-        "genui-studio": {
-          command: "node",
-          args: ["./packages/genui-mcp/dist/cli.js"],
-        },
-      },
-    },
-    null,
-    2,
-  );
 
   return (
     <dialog
@@ -170,17 +137,6 @@ export const TemplateExportModal: React.FC<TemplateExportModalProps> = ({
             }`}
           >
             📦 Tab 2: Download .ZIP
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("MCP")}
-            className={`border-b-2 px-4 py-3 font-semibold transition ${
-              activeTab === "MCP"
-                ? "border-cyan-400 text-cyan-300"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            🔌 Tab 3: MCP Connect
           </button>
         </div>
 
@@ -298,50 +254,6 @@ export const TemplateExportModal: React.FC<TemplateExportModalProps> = ({
 ├── .claude/skills/            # AI Agent Skill (Claude Code / Cursor)
 ├── .kiro/powers/              # Kiro Power & Steering Rules
 └── __tests__/                 # fast-check Property-Based Test suite`}
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "MCP" && (
-            <div className="space-y-4">
-              <p className="text-xs text-slate-300">
-                Expose this template pack&apos;s catalog directly to your AI agent over Model Context Protocol (MCP) so it can inspect component schemas and validate UI trees without hallucinating.
-              </p>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold text-slate-300">
-                    For Kiro IDE / CLI (<code className="text-cyan-300">.kiro/settings/mcp.json</code>):
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(kiroMcpSnippet, "kiro-mcp")}
-                    className="rounded bg-slate-800 px-2.5 py-0.5 font-mono text-xs text-slate-300 hover:bg-slate-700"
-                  >
-                    {copiedKey === "kiro-mcp" ? "✔ Copied" : "Copy JSON"}
-                  </button>
-                </div>
-                <pre className="rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-[11px] text-slate-300 overflow-x-auto">
-                  {kiroMcpSnippet}
-                </pre>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold text-slate-300">
-                    For Claude Desktop (<code className="text-cyan-300">claude_desktop_config.json</code>):
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(claudeMcpSnippet, "claude-mcp")}
-                    className="rounded bg-slate-800 px-2.5 py-0.5 font-mono text-xs text-slate-300 hover:bg-slate-700"
-                  >
-                    {copiedKey === "claude-mcp" ? "✔ Copied" : "Copy JSON"}
-                  </button>
-                </div>
-                <pre className="rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-[11px] text-slate-300 overflow-x-auto">
-                  {claudeMcpSnippet}
                 </pre>
               </div>
             </div>

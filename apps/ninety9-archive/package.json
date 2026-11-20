@@ -1,0 +1,34 @@
+{
+  "name": "@genui-studio/app-ninety9-archive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone Skeleton Crew Application #1: NINETY9 — 1997 Paper-White Monochrome Archive & 1-Bit Workstation Arcade powered by @genui-studio/core.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5176",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4176",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@genui-studio/core": "workspace:*",
+    "@genui-studio/templates": "workspace:*",
+    "@json-render/core": "^0.22.0",
+    "@json-render/react": "^0.22.0",
+    "lucide-react": "^0.475.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.1.0",
+    "vitest": "^3.0.0"
+  }
+}

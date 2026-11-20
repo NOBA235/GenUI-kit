@@ -3,7 +3,7 @@
   "id": "ninety9-archive",
   "name": "ninety9-archive",
   "title": "NINETY9 — The Monochrome Archive of the 1990s",
-  "description": "Flagship Website #2: 1997 NeXT/Macintosh paper-white monochrome editorial workstation publication archiving 34 historical artifacts across 12 sectors and 1990-1999 decade milestones, featuring toggleable CRT scanlines, 99.4 MHz random packet transmission, and Zod-verified live monochrome remixes.",
+  "description": "Application #2 built with Kiro + GenUI: 1997 NeXT/Macintosh paper-white monochrome editorial workstation publication archiving 34 historical artifacts across 12 sectors and 1990-1999 decade milestones, featuring toggleable CRT scanlines, 99.4 MHz random packet transmission, and Zod-verified live monochrome remixes.",
   "mode": "native",
   "version": "1.0.0",
   "author": "GenUI Studio Flagship Lab",

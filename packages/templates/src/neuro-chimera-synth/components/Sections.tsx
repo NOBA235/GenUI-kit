@@ -5,7 +5,7 @@ import { BiotechHeroSection } from "./BiotechHeroSection.js";
 import { ChemotaxisPacket } from "./ChemotaxisPacket.js";
 import { ChimeraLabShell } from "./ChimeraLabShell.js";
 import { InteractiveBenchmarkBento } from "./InteractiveBenchmarkBento.js";
-import { KiroCrewAgentConstellation } from "./KiroCrewAgentConstellation.js";
+import { OptimizerAgentConstellation } from "./OptimizerAgentConstellation.js";
 import { PricingTiersSection } from "./PricingTiersSection.js";
 import { SonificationSpectrumHUD } from "./SonificationSpectrumHUD.js";
 import { SqlAstExecutionCompare } from "./SqlAstExecutionCompare.js";
@@ -28,8 +28,8 @@ export const { registry: templateComponents } = defineRegistry(verifiedCatalog.c
       <BioNetworkCanvas caption={props.caption} particleBudget={props.particleBudget} showLabels={props.showLabels} />
     ),
     SqlAstExecutionCompare: ({ props }) => <SqlAstExecutionCompare heading={props.heading} showAst={props.showAst} />,
-    KiroCrewAgentConstellation: ({ props }) => (
-      <KiroCrewAgentConstellation heading={props.heading} utcOffsetMinutes={props.utcOffsetMinutes} showCronPreview={props.showCronPreview} />
+    OptimizerAgentConstellation: ({ props }) => (
+      <OptimizerAgentConstellation heading={props.heading} utcOffsetMinutes={props.utcOffsetMinutes} showCronPreview={props.showCronPreview} />
     ),
     SonificationSpectrumHUD: ({ props }) => <SonificationSpectrumHUD heading={props.heading} showPartials={props.showPartials} />,
     BiotechHeroSection: ({ props }) => (

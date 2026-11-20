@@ -1,11 +1,11 @@
-# Requirements: Flagship Website #4 — CHIMERA // LAB (`packages/templates/src/neuro-chimera-synth`)
+# Requirements: Application #4 — CHIMERA // LAB (`packages/templates/src/neuro-chimera-synth`)
 
 ## Introduction
-CHIMERA // LAB stitches four technologies that were never meant to meet into one template:
+CHIMERA // LAB combines four computational layers into one GenUI starter application:
 1. **Physarum routing.** A slime-mould (*Physarum polycephalum*) flow-reinforcement solver finds fault-tolerant routes through a service graph.
 2. **SQL plan analysis.** A deterministic SQL parser and cost-based planner turn real queries into `Seq Scan` / `Index Scan` / `Hash Join` plans. The plans set the "food quality" of every database node the slime mould can reach.
 3. **Sonification.** A Web Audio FM and granular synthesizer turns network entropy, latency and flux into an ambient drone. Full-table scans add Geiger-counter clicks.
-4. **Kiro Crew app.** An installable Kiro Crew app (`kiro-crew-app/`) ships three agents, a skill and three scheduled crons, so the same optimization logic runs inside a developer's Kiro Crew workspace.
+4. **Local Optimizer Agents.** Three deterministic in-app optimizer agents (`chimera-architect`, `index-surgeon`, `deadlock-hunter`) propose and apply composite indexes and N+1 batch rewrites inside the local lab sandbox.
 
 Glossary:
 - **Node**: a gateway, service, agent, database primary, replica, shard or cache in the routing graph.
@@ -17,10 +17,10 @@ Glossary:
 ---
 
 ## Requirement 1: Scoped template isolation
-**User story:** As a template buyer, I want the template isolated so it never leaks into the host app.
-1. THE SYSTEM SHALL keep all template source inside `packages/templates/src/neuro-chimera-synth/`, and the installable Crew app inside its `kiro-crew-app/` folder.
+**User story:** As a developer, I want the template isolated so it never leaks into the host app.
+1. THE SYSTEM SHALL keep all template source inside `packages/templates/src/neuro-chimera-synth/`.
 2. WHEN `/preview/neuro-chimera-synth` renders, THE SYSTEM SHALL scope all styles to `[data-template-theme="neuro-chimera-synth"]`.
-3. WHILE the template is previewed, THE SYSTEM SHALL collapse Studio Hub chrome into a corner bio-tag labelled `[ALT+G] GENUI STUDIO // EXPORT CHIMERA + KIRO CREW APP`.
+3. WHILE the template is previewed, THE SYSTEM SHALL collapse Studio Hub chrome into a corner bio-tag labelled `[ALT+G] GENUI STUDIO // EXPORT CHIMERA LAB`.
 
 ## Requirement 2: Bioluminescent laboratory palette
 1. THE SYSTEM SHALL use `#020A0E`, `#00F5B8`, `#FFB000`, `#FF2A6D` and frosted-quartz panels `rgba(2, 18, 24, 0.78)` with `1px solid rgba(0, 245, 184, 0.25)` borders.
@@ -66,7 +66,7 @@ Glossary:
    - Unindexed E-Commerce Checkout Spike
    - N+1 Social Feed Graph
    - Vector Embedding Shard Imbalance
-   - Overnight Kiro Crew Autonomous PR Refactor
+   - Overnight Autonomous PR Refactor
    - Multi-Tenant Analytics Hot Partition
    - Ride-Hailing Dispatch Region Failover
    - Biotech Genomics Pipeline & Protein Fold Search
@@ -89,27 +89,13 @@ Glossary:
 3. THE SYSTEM SHALL schedule grains and Geiger clicks with one look-ahead scheduler, and release all nodes on dispose.
 4. THE SYSTEM SHALL no-op under SSR or when `AudioContext` is unavailable.
 
-## Requirement 8: Kiro Crew app bundle
-1. THE SYSTEM SHALL ship `kiro-crew-app/app.json` that conforms to the Kiro Crew App Kit manifest reference. It SHALL declare:
-   - identity fields
-   - three agents (`chimera-architect`, `index-surgeon`, `deadlock-hunter`) and one skill (`bio-query-optimizer`)
-   - a dashboard page
-   - three crons (`0 */6 * * *`, `0 3 * * *`, `*/30 * * * *`)
-   - documented backend lifecycle hooks
-   - permissions, dependencies and setup commands
-2. THE SYSTEM SHALL ship `agents/chimera-architect.json` with `"model": "auto"` and `"tools": ["@kirocrew-core"]`. Its prompt SHALL inspect schemas, git history and `EXPLAIN` plans, and SHALL propose changes without running DDL unasked.
-3. THE SYSTEM SHALL ship `skills/bio-query-optimizer/SKILL.md` that teaches:
-   - N+1 detection and batching
-   - composite index design
-   - reading `EXPLAIN (ANALYZE, BUFFERS)`
-   - emitting `@json-render` RFC 6902 patches
-4. THE SYSTEM SHALL ship all three crons paused (`"enabled": false`) because they need a configured project and database first.
-5. THE SYSTEM SHALL validate the manifest with `validateCrewManifest()`. That validator encodes the documented install-time rules: kebab-case name, semver version, relative contained paths, exactly one cron schedule field, page route and label, and `module.path:callable` hooks.
-6. THE SYSTEM SHALL keep `@kirocrew/app-sdk`, React and `lucide-react` external in the dashboard bundle.
+## Requirement 8: Local optimizer agent constellation
+1. THE SYSTEM SHALL provide three deterministic local optimizer agents (`chimera-architect`, `index-surgeon`, `deadlock-hunter`) in `components/OptimizerAgentConstellation.tsx`.
+2. Each agent SHALL display its strategy, previewed cron audit schedule (`nextCronRuns`), session change count, and a 1-click dispatch control.
+3. All interventions SHALL be sandboxed to the local in-memory `PhysarumNetwork` and recorded with content-hash checkpoints; no external database or repository is ever mutated.
 
 ## Requirement 9: Interactive lab
 1. THE SYSTEM SHALL render the network on a 60 FPS canvas with particle flux, plus HUD panels for plans, telemetry and the agent log.
 2. THE SYSTEM SHALL register the lab components in a GenUI catalog with strict Zod props and remix presets.
-3. THE SYSTEM SHALL verify parser round-trips, planner monotonicity, solver conservation and manifest validity with `fast-check`.
-   - **Status:** the committed `fast-check` suite (`src/__tests__/chimera-lab.pbt.test.ts`) covers solver NaN/Infinity and flux bounds, planner index monotonicity and manifest validity. There is no committed parser round-trip property; round-trip was checked by a one-off script over the 22 distinct SQL statements shipped in the scenarios, all passing.
-4. THE SYSTEM SHALL list the template in the Studio Hub marketplace and export it, including the Kiro Crew app, in the `.zip`.
+3. THE SYSTEM SHALL verify solver bounds, planner index monotonicity, and catalog adversarial resilience with `fast-check` in `src/__tests__/chimera-lab.pbt.test.ts`.
+4. THE SYSTEM SHALL list the template in Studio Hub and export it as a standalone MIT Next.js starter `.zip`.

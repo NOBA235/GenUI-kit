@@ -1,203 +1,164 @@
 import type { AgentReadyPackManifest } from "./types.js";
 
 /**
- * 1. Pro Template Pack: Aegis 3D Spatial Incident War-Room
+ * 1. Starter Pack: SaaS Dashboard Wireframe Starter (Dark)
  */
-export const SPATIAL_OPS_3D_PRO_PACK: AgentReadyPackManifest = {
-  id: "spatial-ops-3d-pro",
-  name: "spatial-ops-3d-pro",
-  title: "Aegis 3D Spatial Infrastructure War-Room",
+export const SAAS_DASHBOARD_STARTER_PACK: AgentReadyPackManifest = {
+  id: "saas-dashboard-starter",
+  name: "saas-dashboard-starter",
+  title: "SaaS Dashboard Wireframe Starter",
   description:
-    "Production 14-component Hybrid 3D (React Three Fiber WebGL) + 2D Tactical SRE Incident HUD combining zero-allocation 3D service mesh topologies with shared TimeTravelStateStore failover runbooks.",
+    "Dark-mode SaaS dashboard starter built on @genui-studio/core: SiteShell, HeroSection, MetricStrip, and FeatureGrid with verified Zod prop healing and Next.js export.",
   version: "1.0.0",
-  author: "GenUI Studio <creators@genui.studio>",
-  license: "Commercial-Single",
-  tier: "pro",
-  priceUsd: 79,
-  category: "spatial-3d",
-  tags: ["3d", "threejs", "r3f", "webgl", "sre", "incident-command", "pro"],
+  author: "GenUI Studio",
+  license: "MIT",
+  tier: "free",
+  priceUsd: 0,
+  category: "dashboard",
+  tags: ["free", "starter", "saas", "dashboard", "wireframe"],
   dependencies: {
     "@genui-studio/core": "^1.0.0",
     "@json-render/core": "^0.22.0",
     "@json-render/react": "^0.22.0",
-    "@json-render/react-three-fiber": "^0.22.0",
-    "@react-three/drei": "^10.0.0",
-    "@react-three/fiber": "^9.0.0",
-    "three": "^0.173.0",
     "zod": "^4.3.6",
   },
   devDependencies: {
-    "@types/three": "^0.173.0",
     "fast-check": "^4.10.2",
     "vitest": "^3.0.0",
   },
-  catalogHash: "sha256-a94f31c827b5034e6109dc0489e21703ab",
+  catalogHash: "sha256-saas-dashboard-starter-001",
   components: [
     {
-      name: "AegisWarRoomShell",
-      description: "Root container organizing 3D spatial viewport and 2D tactical HUD.",
-      slots: ["spatial", "hud"],
-      hasFallbackProps: true,
-    },
-    {
-      name: "ClusterTopologyCanvas",
-      description: "3D WebGL scene viewport rendering the microservice mesh.",
+      name: "SiteShell",
+      description: "Top-level dashboard container organizing navigation badge, density, and sections.",
       slots: ["default"],
       hasFallbackProps: true,
     },
     {
-      name: "ServiceMeshNode3D",
-      description: "Interactive 3D microservice node mesh with emissive glow and label.",
+      name: "HeroSection",
+      description: "Primary workspace banner with headline, bound summary state, and calls-to-action.",
       slots: [],
       hasFallbackProps: true,
     },
     {
-      name: "TrafficFlowEdge3D",
-      description: "Directional 3D bezier connection line with animated packet pulses.",
+      name: "MetricStrip",
+      description: "Horizontal KPI highlight grid displaying bounded numeric telemetry and SLO percentage.",
       slots: [],
       hasFallbackProps: true,
     },
     {
-      name: "BlastRadiusSphere3D",
-      description: "Translucent volumetric pulsating sphere indicating fault blast radius.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "RegionZoneBoundary3D",
-      description: "Spatial bounding zone wireframe delimiting a regional cluster.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "IncidentHeroBanner",
-      description: "High-priority SEV header banner showing incident title and MTTD.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "ServiceDiagnosticPanel",
-      description: "Deep-dive telemetry inspection card for selected 3D service node.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "LatencyHistogramCard",
-      description: "Interactive p50/p95/p99 latency curve & SLO error-budget burn card.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "ErrorLogTailer",
-      description: "Real-time streaming structured log tail showing HTTP 5xx codes.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "BlastRadiusDependencyTree",
-      description: "Visual topological tree showing upstream callers and dependencies.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "RunbookActionDesk",
-      description: "Interactive remediation desk to trip breakers, scale, or failover.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "ClusterMetricsGrid",
-      description: "High-level SRE telemetry grid for Global Error Rate and RPS.",
-      slots: [],
-      hasFallbackProps: true,
-    },
-    {
-      name: "SreAuditTrailBanner",
-      description: "Live immutable audit strip displaying executed SRE remediations.",
+      name: "FeatureGrid",
+      description: "Multi-column capability or pricing tier grid with bounded column counts.",
       slots: [],
       hasFallbackProps: true,
     },
   ],
   files: [
     {
-      path: "catalog/spatial-catalog.ts",
+      path: "catalog/starter-catalog.ts",
       type: "registry:catalog",
-      content: `// Aegis 3D Spatial Verified Catalog Exported from GenUI Studio
+      content: `// SaaS Dashboard Verified Catalog Exported from GenUI Studio
 import { z } from "zod";
 import { schema } from "@json-render/react/schema";
 import { createVerifiedCatalog } from "@genui-studio/core";
 
-export const spatialCatalog = createVerifiedCatalog(schema, {
+export const starterCatalog = createVerifiedCatalog(schema, {
   components: {
-    AegisWarRoomShell: {
-      description: "Root 3D + 2D command shell",
+    SiteShell: {
+      description: "Top-level website container organizing hero, metrics, and sections.",
       props: z.object({
-        incidentTitle: z.string().min(1).max(140),
-        severity: z.enum(["SEV-0", "SEV-1", "SEV-2", "NOMINAL"]),
-        activeRegion: z.enum(["GLOBAL", "US-East", "EU-West", "APAC-South"]),
-        hudPosition: z.enum(["RIGHT_SPLIT", "BOTTOM_DRAWER", "FULL_OVERLAY"])
+        brandName: z.string().min(1).max(80),
+        tagline: z.string().min(1).max(160),
+        badge: z.string().min(1).max(48),
+        layoutDensity: z.enum(["spacious", "compact", "editorial"]),
       }),
-      slots: ["spatial", "hud"]
+      slots: ["default"],
     },
-    ClusterTopologyCanvas: {
-      description: "3D WebGL viewport canvas",
+    HeroSection: {
+      description: "Primary hero section with headline, summary, and call-to-action.",
       props: z.object({
-        cameraFov: z.number().int().min(30).max(90),
-        enableOrbitControls: z.boolean(),
-        enableGrid: z.boolean(),
-        enableBloom: z.boolean(),
-        ambientIntensity: z.number().min(0.1).max(2.0)
+        eyebrow: z.string().min(1).max(60),
+        headline: z.string().min(1).max(140),
+        summary: z.string().min(1).max(320),
+        primaryCta: z.string().min(1).max(48),
+        secondaryCta: z.string().min(1).max(48).nullable(),
       }),
-      slots: ["default"]
-    }
+      slots: [],
+    },
+    MetricStrip: {
+      description: "Horizontal KPI highlight grid displaying bounded numeric telemetry.",
+      props: z.object({
+        heading: z.string().min(1).max(80),
+        primaryValue: z.string().min(1).max(32),
+        primaryLabel: z.string().min(1).max(48),
+        secondaryValue: z.string().min(1).max(32),
+        secondaryLabel: z.string().min(1).max(48),
+        uptimePercent: z.number().min(0).max(100),
+      }),
+      slots: [],
+    },
+    FeatureGrid: {
+      description: "Multi-column capability showcase section.",
+      props: z.object({
+        sectionTitle: z.string().min(1).max(80),
+        columns: z.number().int().min(1).max(4),
+        items: z.array(
+          z.object({
+            title: z.string().min(1).max(60),
+            detail: z.string().min(1).max(180),
+          }),
+        ),
+      }),
+      slots: [],
+    },
   },
-  actions: {}
+  actions: {},
 });
 `,
     },
   ],
   agentSkill: {
     skillMd: `---
-name: spatial-ops-3d-pro
-description: Expert AI Agent Skill for generating, manipulating, and animating 3D WebGL infrastructure topologies and 2D SRE HUDs.
+name: saas-dashboard-starter
+description: AI Agent Skill for composing dark-mode SaaS dashboard interfaces using the verified SiteShell, HeroSection, MetricStrip, and FeatureGrid catalog.
 author: GenUI Studio
 version: 1.0.0
 ---
 
-# Spatial Ops 3D Pro Agent Skill
+# SaaS Dashboard Wireframe Starter Skill
 
-This skill instructs agents on 3D coordinate math, camera FOV bounds, and zero-allocation Three.js patterns.
+Use this skill when compiling wireframes or streaming RFC 6902 JSONL specs for SaaS telemetry dashboards.
 
-## 3D Rules for AI Generation:
-1. Coordinates \`position: [x, y, z]\` must stay strictly within \`[-12, 12]\` to remain inside frustum.
-2. Root element must always be \`AegisWarRoomShell\` with \`spatial\` and \`hud\` slots.
-3. Node status values: \`NOMINAL\` (emerald), \`DEGRADED\` (amber), \`CRITICAL_OUTAGE\` (rose).
+## Rules:
+1. Root element must be \`SiteShell\` with \`layoutDensity\` in \`["spacious", "compact", "editorial"]\`.
+2. Keep \`MetricStrip.uptimePercent\` within \`[0, 100]\`; out-of-range values are clamped and surfaced via \`<DiagnosticHealedBadge />\`.
+3. Keep \`FeatureGrid.columns\` between \`1\` and \`4\`.
 `,
     kiroPowerMd: `---
-name: "spatial-ops-3d-pro"
-displayName: "Aegis 3D Spatial War-Room Power"
-description: "Authoritative Kiro Power for 3D WebGL microservice topologies, bezier traffic edges, and dual-viewport state sync."
-keywords: ["3d", "webgl", "r3f", "threejs", "sre", "incident-command"]
+name: "saas-dashboard-starter"
+displayName: "SaaS Dashboard Wireframe Starter Power"
+description: "Kiro Power for generating validated dark-mode SaaS dashboards with @genui-studio/core."
+keywords: ["saas", "dashboard", "wireframe", "excalidraw", "json-render", "genui"]
 ---
 
-# Onboarding: \`spatial-ops-3d-pro\`
-Use this power when generating 3D WebGL microservice maps with \`@json-render/react-three-fiber\`.
+# Onboarding: \`saas-dashboard-starter\`
+Use this power when authoring or extending SaaS dashboard Specs with \`@genui-studio/core\`.
 `,
-    steeringRules: `# Spatial 3D Architectural Rules
-- Zero allocations in \`useFrame\` render loop.
-- Reuse geometries and materials across identical tiers.
-- Emissive glow driven by store state without scene remounts.
+    steeringRules: `# SaaS Dashboard Starter Rules
+- Render all dynamic UI trees through \`<SafeGenUIRenderer>\` with \`createTimeTravelStateStore\`.
+- Never inject raw HTML or JSX strings.
+- Validate exported specs with \`genui-studio validate\`.
 `,
   },
   pbtSuite: {
     theorems: ["INV-PBT-01", "INV-PBT-02", "INV-PBT-03", "INV-PBT-04"],
     code: `import { describe, it, expect } from "vitest";
 import { runCatalogInvariantSuite } from "@genui-studio/core/testing";
-import { spatialCatalog } from "./catalog/spatial-catalog";
+import { starterCatalog } from "./catalog/starter-catalog";
 
-describe("Spatial Ops 3D Invariant Suite", () => {
-  it("guarantees 3D topology acyclic invariance under fast-check fuzzing", () => {
-    const report = runCatalogInvariantSuite(spatialCatalog, { numRuns: 30 });
+describe("SaaS Dashboard Starter Invariant Suite", () => {
+  it("passes INV-PBT-01 through INV-PBT-04 under fast-check fuzzing", () => {
+    const report = runCatalogInvariantSuite(starterCatalog, { numRuns: 30 });
     expect(report.allPassed).toBe(true);
   });
 });
@@ -206,60 +167,71 @@ describe("Spatial Ops 3D Invariant Suite", () => {
 };
 
 /**
- * 2. Free Starter Pack: 3D Spatial Mesh Starter
+ * 2. Starter Pack: Product Landing Wireframe Starter (Light)
  */
-export const SPATIAL_MESH_STARTER_PACK: AgentReadyPackManifest = {
-  id: "spatial-mesh-starter",
-  name: "spatial-mesh-starter",
-  title: "3D Spatial Mesh Starter Pack",
+export const PRODUCT_LANDING_STARTER_PACK: AgentReadyPackManifest = {
+  id: "product-landing-starter",
+  name: "product-landing-starter",
+  title: "Product Landing Wireframe Starter",
   description:
-    "Free starter kit for WebGL microservice scenes: ClusterTopologyCanvas, ServiceMeshNode3D, and TrafficFlowEdge3D.",
+    "Light-mode editorial landing page starter built on @genui-studio/core: turn an Excalidraw wireframe into a validated, interactive React landing page and Next.js export.",
   version: "1.0.0",
-  author: "GenUI Studio <creators@genui.studio>",
+  author: "GenUI Studio",
   license: "MIT",
   tier: "free",
   priceUsd: 0,
-  category: "spatial-3d",
-  tags: ["free", "starter", "3d", "threejs", "webgl"],
+  category: "dashboard",
+  tags: ["free", "starter", "landing", "editorial", "wireframe"],
   dependencies: {
     "@genui-studio/core": "^1.0.0",
     "@json-render/core": "^0.22.0",
-    "@json-render/react-three-fiber": "^0.22.0",
-    "three": "^0.173.0",
+    "@json-render/react": "^0.22.0",
     "zod": "^4.3.6",
   },
   devDependencies: {
-    "@types/three": "^0.173.0",
+    "fast-check": "^4.10.2",
     "vitest": "^3.0.0",
   },
-  catalogHash: "sha256-starter-mesh-002",
+  catalogHash: "sha256-product-landing-starter-002",
   components: [
     {
-      name: "ClusterTopologyCanvas",
-      description: "Basic WebGL canvas with OrbitControls.",
+      name: "SiteShell",
+      description: "Light editorial page frame organizing header badge, tagline, and vertical sections.",
       slots: ["default"],
       hasFallbackProps: true,
     },
     {
-      name: "ServiceMeshNode3D",
-      description: "3D Node with emissive status glow.",
+      name: "HeroSection",
+      description: "High-contrast product launch hero with headline, value proposition, and primary CTA.",
+      slots: [],
+      hasFallbackProps: true,
+    },
+    {
+      name: "MetricStrip",
+      description: "Social-proof and reliability KPI strip with bounded percentage telemetry.",
+      slots: [],
+      hasFallbackProps: true,
+    },
+    {
+      name: "FeatureGrid",
+      description: "Structured feature highlights and pricing tier cards.",
       slots: [],
       hasFallbackProps: true,
     },
   ],
   files: [],
   agentSkill: {
-    skillMd: "# 3D Mesh Starter Skill\nBasic 3D mesh skill for Claude and Cursor.",
-    kiroPowerMd: "# 3D Mesh Starter Power\nStarter 3D power for Kiro.",
-    steeringRules: "# 3D Starter Rules\nClamp node coordinates to [-10, 10].",
+    skillMd: "# Product Landing Starter Skill\nCompose clean light-mode product landing pages with SiteShell, HeroSection, MetricStrip, and FeatureGrid.",
+    kiroPowerMd: "# Product Landing Starter Power\nKiro Power for wireframe-driven product landing pages on @genui-studio/core.",
+    steeringRules: "# Product Landing Starter Rules\nKeep copy concise, validate all specs with catalog.validateFull(), and preserve responsive grid columns (1..4).",
   },
   pbtSuite: {
-    theorems: ["INV-PBT-01", "INV-PBT-02"],
-    code: "// 3D Starter PBT suite\n",
+    theorems: ["INV-PBT-01", "INV-PBT-02", "INV-PBT-03", "INV-PBT-04"],
+    code: "// Product Landing Starter PBT suite\n",
   },
 };
 
 export const ALL_TEMPLATE_PACKS: Record<string, AgentReadyPackManifest> = {
-  "spatial-ops-3d-pro": SPATIAL_OPS_3D_PRO_PACK,
-  "spatial-mesh-starter": SPATIAL_MESH_STARTER_PACK,
+  "saas-dashboard-starter": SAAS_DASHBOARD_STARTER_PACK,
+  "product-landing-starter": PRODUCT_LANDING_STARTER_PACK,
 };

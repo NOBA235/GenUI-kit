@@ -4,15 +4,11 @@
  * Executed via `.kiro/hooks/catalog-schema-sync.json` (PostFileSave), by CI,
  * or manually via `node .kiro/hooks/scripts/catalog-audit.mjs`.
  *
- * Scans `packages/genui-core/src` and `apps/spatial-ops/src` and:
+ * Scans `packages/genui-core/src`, `packages/templates/src`, and `apps/studio-hub/src` and:
  * 1. Fails on `dangerouslySetInnerHTML` or `eval(` in non-test sources (Invariant 1).
  * 2. Counts files that define catalogs (`defineCatalog` / `createVerifiedCatalog`) and files that use
  *    the safe boundary (`wrapRegistryWithTelemetry` / `SafeGenUIRenderer`). These counts are reported, not enforced.
  * 3. Fails if a required core skeleton file is missing.
- *
- * It does not typecheck and does not compare catalogs with registries. Catalog-registry parity
- * (components, descriptions, actions) is enforced by `auditCatalogRegistryParity` in
- * `apps/spatial-ops/src/__tests__/spatial-app.test.tsx`, which runs in `pnpm -r test`.
  */
 
 import fs from "node:fs";
@@ -33,7 +29,7 @@ function collectTypeScriptFiles(dirPath, collected = []) {
     const fullPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
       collectTypeScriptFiles(fullPath, collected);
-    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+    } else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".generated.ts")) {
       collected.push(fullPath);
     }
   }
@@ -44,7 +40,10 @@ function runAudit() {
   const startTime = performance.now();
   const scanRoots = [
     path.join(repoRoot, "packages", "genui-core", "src"),
-    path.join(repoRoot, "apps", "spatial-ops", "src"),
+    path.join(repoRoot, "packages", "templates", "src"),
+    path.join(repoRoot, "apps", "studio-hub", "src"),
+    path.join(repoRoot, "apps", "ninety9-archive", "src"),
+    path.join(repoRoot, "apps", "cmos-cloud-bios", "src"),
   ];
 
   const allFiles = [];

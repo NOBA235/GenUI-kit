@@ -414,7 +414,7 @@ export const BioNetworkCanvas: React.FC<BioNetworkCanvasProps> = ({ caption, par
         <h2 className="chimera-heading">{caption}</h2>
         <div className="flex flex-wrap items-center gap-2 chimera-mono text-[11px]">
           <span className="chimera-badge chimera-flux">● Flux</span>
-          <span className="chimera-badge chimera-synapse">◆ Crew worker</span>
+          <span className="chimera-badge chimera-synapse">◆ Optimizer agent</span>
           <span className="chimera-badge chimera-mutation">▲ Full scan / stall</span>
         </div>
       </div>
@@ -464,7 +464,7 @@ export const BioNetworkCanvas: React.FC<BioNetworkCanvasProps> = ({ caption, par
                 Inject index
               </button>
             </div>
-            <p className="chimera-mono text-[10px] chimera-muted">Dispatch Kiro Crew worker</p>
+            <p className="chimera-mono text-[10px] chimera-muted">Dispatch optimizer agent</p>
             <div className="grid grid-cols-1 gap-1">
               {CREW_AGENT_NAMES.map((agent) => (
                 <button key={agent} type="button" className="chimera-button text-left" onClick={() => dispatchAgent(agent, selected.id)}>

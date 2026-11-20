@@ -1,4 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Copy,
+  Download,
+  GitBranch,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawElement, NonDeleted } from "@excalidraw/excalidraw/element/types";
@@ -12,7 +20,10 @@ import {
   specToInitialExcalidrawElements,
   type ExcalidrawCompileResult,
 } from "../lib/excalidraw-compiler.js";
-import { buildSampleWireframeElements } from "../lib/sample-wireframe.js";
+import {
+  buildDashboardSampleWireframeElements,
+  buildSampleWireframeElements,
+} from "../lib/sample-wireframe.js";
 import { WireframeDiagnosticsStrip } from "./WireframeDiagnosticsStrip.js";
 
 export type WireframeInitialScene = "template" | "sample";
@@ -183,7 +194,15 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
     lastSignatureRef.current = computeSceneSignature(nextElements);
     apiRef.current?.updateScene({ elements: [...nextElements] });
     compileAndEmitNow(nextElements);
-    announceStatus("Loaded sample wireframe");
+    announceStatus("Loaded Product Landing wireframe sample");
+  }, [compileAndEmitNow, announceStatus]);
+
+  const handleLoadDashboardSample = useCallback(() => {
+    const nextElements = buildDashboardSampleWireframeElements();
+    lastSignatureRef.current = computeSceneSignature(nextElements);
+    apiRef.current?.updateScene({ elements: [...nextElements] });
+    compileAndEmitNow(nextElements);
+    announceStatus("Loaded SaaS Dashboard wireframe sample");
   }, [compileAndEmitNow, announceStatus]);
 
   const handleClearCanvas = useCallback(() => {
@@ -290,61 +309,73 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
     <section
       data-testid="wireframe-architect-panel"
       aria-label="Wireframe Architect spatial whiteboard"
-      className="hub-bento-card flex flex-col text-[#0B1221] overflow-hidden min-h-[520px] sm:min-h-[640px]"
+      className="hub-card flex flex-col text-[#09090B] overflow-hidden min-h-[520px] sm:min-h-[640px]"
     >
       {/* Top Action Toolbar following modern-web-guidance role="toolbar" pattern */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#E8EDF5] bg-white px-3 py-3 sm:px-4">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#E4E4E7] bg-white px-3 py-2.5 sm:px-4">
         <div className="flex flex-wrap items-center gap-2">
           <span
             aria-hidden="true"
             className="inline-flex h-2 w-2 rounded-full bg-[#2563EB]"
           />
-          <span className="font-mono text-xs font-bold text-[#0B1221]">
+          <span className="font-mono text-xs font-semibold text-[#09090B]">
             Wireframe Architect
-            <span className="hidden sm:inline"> · Deterministic Spatial Compiler</span>
+            <span className="hidden sm:inline font-normal text-[#71717A]">
+              {" "}· Deterministic Compiler
+            </span>
           </span>
-          <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#5B6B82]">
+          <span className="rounded-md border border-[#E4E4E7] bg-[#FAFAFA] px-2 py-0.5 font-mono text-[0.6875rem] font-medium tabular-nums text-[#52525B]">
             {latestResult.compiledNodeCount} blocks ·{" "}
-            {latestResult.stateBindings.length} state arrows
+            {latestResult.stateBindings.length} bindings
           </span>
         </div>
 
         <div
           role="toolbar"
           aria-label="Wireframe Architect actions"
-          className="hub-scroll-row w-full items-center gap-1.5 font-mono text-[11px] sm:w-auto sm:flex-wrap"
+          className="hub-scroll-row w-full items-center gap-1.5 font-mono text-[0.6875rem] sm:w-auto sm:flex-wrap"
         >
           <div role="group" aria-label="Canvas controls" className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleSyncFromLiveSpec}
               data-testid="wireframe-sync-spec-btn"
-              className="min-h-[30px] min-w-[30px] rounded-full border border-[#CBD5E1] bg-white px-3 py-1 font-medium text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+              className="inline-flex min-h-[28px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-white px-2.5 py-1 font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
             >
-              ↺ Sync from Spec
+              <RefreshCw aria-hidden="true" className="h-3 w-3 text-[#52525B]" />
+              <span>Sync Spec</span>
             </button>
             <button
               type="button"
               onClick={handleLoadSample}
               data-testid="wireframe-load-sample-btn"
-              className="min-h-[30px] min-w-[30px] rounded-full border border-[#2563EB] bg-white px-3 py-1 font-medium text-[#1D4ED8] hover:bg-[#EFF4FF] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+              className="min-h-[28px] rounded-md border border-[#2563EB] bg-white px-2.5 py-1 font-medium text-[#1D4ED8] hover:bg-[#EFF6FF] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
             >
-              Load Sample
+              Landing Sample
+            </button>
+            <button
+              type="button"
+              onClick={handleLoadDashboardSample}
+              data-testid="wireframe-load-dashboard-btn"
+              className="min-h-[28px] rounded-md border border-[#09090B] bg-white px-2.5 py-1 font-medium text-[#09090B] hover:bg-[#FAFAFA] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+            >
+              SaaS Dashboard
             </button>
             <button
               type="button"
               onClick={handleClearCanvas}
               data-testid="wireframe-clear-btn"
-              className="min-h-[30px] min-w-[30px] rounded-full border border-[#CBD5E1] bg-white px-3 py-1 font-medium text-[#5B6B82] hover:border-[#B91C1C] hover:text-[#B91C1C] hover:bg-[#FEF2F2] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+              className="inline-flex min-h-[28px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-white px-2.5 py-1 font-medium text-[#52525B] hover:border-[#B91C1C] hover:text-[#B91C1C] hover:bg-[#FEF2F2] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
             >
-              Clear
+              <Trash2 aria-hidden="true" className="h-3 w-3" />
+              <span>Clear</span>
             </button>
           </div>
 
           <span
             role="separator"
             aria-orientation="vertical"
-            className="mx-1 h-4 w-px border-l border-[#E2E8F0]"
+            className="mx-1 h-4 w-px border-l border-[#E4E4E7]"
           />
 
           <div role="group" aria-label="Kiro spec export" className="flex flex-wrap items-center gap-1.5">
@@ -352,39 +383,42 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
               type="button"
               onClick={() => void handleCopyKiroDesignMd()}
               data-testid="wireframe-copy-design-btn"
-              className="min-h-[30px] min-w-[30px] rounded-full border border-[#2563EB] bg-[#EFF4FF] px-3 py-1 font-semibold text-[#1D4ED8] hover:bg-[#DBEAFE] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+              className="inline-flex min-h-[28px] items-center gap-1 rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-2.5 py-1 font-medium text-[#1D4ED8] hover:bg-[#DBEAFE] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
             >
-              Copy design.md Mermaid
+              <Copy aria-hidden="true" className="h-3 w-3" />
+              <span>Copy design.md</span>
             </button>
             <button
               type="button"
               onClick={handleDownloadExcalidrawJson}
               data-testid="wireframe-download-json-btn"
-              className="min-h-[30px] min-w-[30px] rounded-full border border-[#CBD5E1] bg-white px-3 py-1 font-medium text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+              className="inline-flex min-h-[28px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-white px-2.5 py-1 font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
             >
-              .excalidraw.json
+              <Download aria-hidden="true" className="h-3 w-3 text-[#52525B]" />
+              <span>.excalidraw.json</span>
             </button>
             <button
               type="button"
               aria-pressed={showMermaidInspector}
               onClick={() => setShowMermaidInspector((v) => !v)}
               data-testid="wireframe-toggle-mermaid-btn"
-              className={`min-h-[30px] min-w-[30px] rounded-full border px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
+              className={`inline-flex min-h-[28px] items-center gap-1 rounded-md border px-2.5 py-1 font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
                 showMermaidInspector
-                  ? "border-[#0B1324] bg-[#0B1324] text-white"
-                  : "border-[#CBD5E1] bg-white text-[#0B1221] hover:bg-[#F8FAFC]"
+                  ? "border-[#09090B] bg-[#09090B] text-white"
+                  : "border-[#E4E4E7] bg-white text-[#09090B] hover:bg-[#FAFAFA]"
               }`}
             >
-              Mermaid Graph
+              <GitBranch aria-hidden="true" className="h-3 w-3" />
+              <span>Mermaid</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Catalog Block Palette (mirrors preloaded Excalidraw Library items) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8EDF5] bg-[#F8FAFC] px-3 py-2 sm:px-4">
-        <div className="hub-scroll-row w-full items-center gap-1.5 font-mono text-[11px] sm:w-auto sm:flex-wrap">
-          <span className="font-semibold text-[#5B6B82]">Catalog Shapes:</span>
+      {/* Quick Catalog Block Palette */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E4E7] bg-[#FAFAFA] px-3 py-2 sm:px-4">
+        <div className="hub-scroll-row w-full items-center gap-1.5 font-mono text-[0.6875rem] sm:w-auto sm:flex-wrap">
+          <span className="font-medium text-[#71717A]">Insert block:</span>
           {libraryBundle.componentSummaries.map((comp) => (
             <button
               key={comp.name}
@@ -392,9 +426,10 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
               onClick={() => handleInsertCatalogBlock(comp.name)}
               title={comp.description}
               data-testid={`wireframe-insert-${comp.name}`}
-              className="min-h-[26px] rounded-full border border-[#2563EB]/35 bg-white px-2.5 py-0.5 font-medium text-[#1D4ED8] hover:border-[#2563EB] hover:bg-[#EFF4FF] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
+              className="inline-flex min-h-[26px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-white px-2 py-0.5 font-medium text-[#09090B] hover:border-[#2563EB] hover:text-[#1D4ED8] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer"
             >
-              + {comp.name}
+              <Plus aria-hidden="true" className="h-3 w-3 text-[#71717A]" />
+              <span>{comp.name}</span>
             </button>
           ))}
         </div>
@@ -404,7 +439,7 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
           role="status"
           aria-live="polite"
           data-testid="wireframe-status-live"
-          className="min-h-[1rem] font-mono text-[11px] font-medium text-[#047857]"
+          className="min-h-[1rem] font-mono text-[0.6875rem] font-medium text-[#047857]"
         >
           {statusMessage}
         </p>
@@ -415,13 +450,13 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
       {showMermaidInspector && (
         <div
           data-testid="wireframe-mermaid-drawer"
-          className="border-b border-[#E8EDF5] bg-[#F8FAFC] p-3 font-mono text-xs text-[#0B1221]"
+          className="border-b border-[#E4E4E7] bg-[#FAFAFA] p-3 font-mono text-xs text-[#09090B]"
         >
-          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#5B6B82]">
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[0.6875rem] text-[#52525B]">
             <span>Generated `.kiro/specs/{slug}/design.md` Mermaid Architecture Graph</span>
             <span>Sorted top-to-bottom / left-to-right by (y, x)</span>
           </div>
-          <pre className="hub-code-surface max-h-44 overflow-auto rounded-xl border border-white/10 p-3 text-[11px]">
+          <pre className="hub-code-surface max-h-44 overflow-auto rounded-lg border border-white/10 p-3 text-[0.6875rem]">
             <code>{latestResult.mermaidDiagram}</code>
           </pre>
         </div>
@@ -445,7 +480,7 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
               appState: {
                 viewBackgroundColor: "#ffffff",
                 gridSize: 20,
-                currentItemStrokeColor: "#0b1221",
+                currentItemStrokeColor: "#09090b",
                 currentItemBackgroundColor: "#ffffff",
               },
             }}
@@ -464,33 +499,30 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
           />
         </div>
 
-        {/* Docked Right-Hand Wireframe Stencil Library (Inspired by WZ Wireframe Kit + Excalidraw Library UI) */}
+        {/* Docked Right-Hand Wireframe Stencil Library */}
         <aside
           aria-label="Wireframe Stencil Library"
-          className="hidden md:flex w-56 shrink-0 flex-col justify-between border-l border-[#E8EDF5] bg-white p-3.5"
+          className="hidden md:flex w-56 shrink-0 flex-col justify-between border-l border-[#E4E4E7] bg-[#FAFAFA] p-3.5"
         >
           <div className="space-y-3 overflow-y-auto pr-0.5">
-            <div className="flex items-center justify-between border-b border-[#EEF2F6] pb-2">
-              <span className="text-xs font-bold text-[#2563EB]">
-                Library · Wireframe Kit
+            <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-2">
+              <span className="text-xs font-semibold text-[#09090B]">
+                Stencil Library
               </span>
-              <span className="font-mono text-[10px] text-[#64748B]">
-                {libraryBundle.componentSummaries.length} stencils
+              <span className="font-mono text-[0.625rem] tabular-nums text-[#71717A]">
+                {libraryBundle.componentSummaries.length} blocks
               </span>
             </div>
 
-            {/* 3-Primitive Legend (Blocks · Links · Tags) */}
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5 font-mono text-[10px] space-y-1 text-[#5B6B82]">
-              <div className="font-bold text-[#0B1221]">
-                ① Blocks · ② Links · ③ Tags
+            <div className="rounded-lg border border-[#E4E4E7] bg-white p-2.5 font-mono text-[0.625rem] space-y-1 text-[#52525B]">
+              <div className="font-semibold text-[#09090B]">
+                Blocks · Arrows · Tags
               </div>
               <div>
-                Click any stencil to drop a Zod-verified wireframe block onto
-                the canvas.
+                Click a stencil to drop a Zod-verified block onto the canvas.
               </div>
             </div>
 
-            {/* Visual Wireframe Stencil Grid */}
             <div className="grid grid-cols-2 gap-2">
               {libraryBundle.componentSummaries.map((comp, idx) => (
                 <button
@@ -498,41 +530,40 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
                   type="button"
                   onClick={() => handleInsertCatalogBlock(comp.name)}
                   title={`Insert ${comp.name}: ${comp.description}`}
-                  className="group flex flex-col items-center justify-between gap-1.5 rounded-xl border border-[#E2E8F0] bg-white p-2 text-left hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] transition cursor-pointer"
+                  className="group flex flex-col items-center justify-between gap-1.5 rounded-lg border border-[#E4E4E7] bg-white p-2 text-left hover:border-[#09090B] focus-visible:outline-2 focus-visible:outline-[#2563EB] transition cursor-pointer"
                 >
-                  {/* Crisp Black-on-White Miniature Wireframe Icon */}
                   <div
                     aria-hidden="true"
-                    className="w-full h-11 rounded border-[1.5px] border-[#0B1221] bg-white p-1.5 flex flex-col justify-between shadow-[1.5px_1.5px_0px_#0B1221]"
+                    className="w-full h-11 rounded border border-[#09090B] bg-white p-1.5 flex flex-col justify-between"
                   >
                     {idx % 4 === 0 ? (
                       <>
                         <div className="flex items-center justify-between gap-1">
-                          <span className="h-1.5 w-5 bg-[#0B1221]" />
-                          <span className="h-2 w-6 rounded-2xs bg-[#0B1221]" />
+                          <span className="h-1.5 w-5 bg-[#09090B]" />
+                          <span className="h-2 w-6 rounded-2xs bg-[#09090B]" />
                         </div>
-                        <div className="h-3 w-full border border-[#0B1221] flex items-center justify-center">
-                          <span className="h-1.5 w-1.5 rounded-full border border-[#0B1221]" />
+                        <div className="h-3 w-full border border-[#09090B] flex items-center justify-center">
+                          <span className="h-1.5 w-1.5 rounded-full border border-[#09090B]" />
                         </div>
                       </>
                     ) : idx % 4 === 1 ? (
                       <>
-                        <div className="h-1.5 w-8 bg-[#0B1221]" />
+                        <div className="h-1.5 w-8 bg-[#09090B]" />
                         <div className="grid grid-cols-3 gap-0.5">
-                          <span className="h-3.5 border border-[#0B1221]" />
-                          <span className="h-3.5 border border-[#0B1221]" />
-                          <span className="h-3.5 border border-[#0B1221]" />
+                          <span className="h-3.5 border border-[#09090B]" />
+                          <span className="h-3.5 border border-[#09090B]" />
+                          <span className="h-3.5 border border-[#09090B]" />
                         </div>
                       </>
                     ) : idx % 4 === 2 ? (
                       <>
                         <div className="flex items-center gap-1">
-                          <span className="h-2 w-2 rounded-full bg-[#0B1221]" />
-                          <span className="h-1.5 flex-1 border border-[#0B1221]" />
+                          <span className="h-2 w-2 rounded-full bg-[#09090B]" />
+                          <span className="h-1.5 flex-1 border border-[#09090B]" />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="h-1.5 w-6 bg-[#0B1221]" />
-                          <span className="text-[7px] font-mono font-bold text-[#0B1221]">
+                          <span className="h-1.5 w-6 bg-[#09090B]" />
+                          <span className="text-[0.4375rem] font-mono font-bold text-[#09090B]">
                             →
                           </span>
                         </div>
@@ -540,16 +571,16 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
                     ) : (
                       <>
                         <div className="flex justify-between">
-                          <span className="h-2 w-7 bg-[#0B1221] text-[6px] text-white leading-none px-0.5">
+                          <span className="h-2 w-7 bg-[#09090B] text-[0.375rem] text-white leading-none px-0.5">
                             TAG
                           </span>
-                          <span className="h-2 w-2 rounded-full border border-[#0B1221]" />
+                          <span className="h-2 w-2 rounded-full border border-[#09090B]" />
                         </div>
-                        <div className="h-1.5 w-full bg-[#CBD5E1]" />
+                        <div className="h-1.5 w-full bg-[#D4D4D8]" />
                       </>
                     )}
                   </div>
-                  <span className="w-full truncate font-mono text-[9px] font-bold text-[#0B1221] text-center">
+                  <span className="w-full truncate font-mono text-[0.5625rem] font-semibold text-[#09090B] text-center">
                     {comp.name}
                   </span>
                 </button>
@@ -560,9 +591,10 @@ export const WireframeArchitectCanvas: React.FC<WireframeArchitectCanvasProps> =
           <button
             type="button"
             onClick={handleSyncFromLiveSpec}
-            className="mt-3 w-full min-h-[34px] rounded-xl bg-[#4F46E5] px-3 py-1.5 font-mono text-[11px] font-semibold text-white hover:bg-[#4338CA] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+            className="mt-3 inline-flex w-full min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-[#09090B] px-3 py-1.5 font-mono text-[0.6875rem] font-medium text-white hover:bg-[#18181B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-            ↺ Rebuild Wireframe Kit
+            <RefreshCw aria-hidden="true" className="h-3 w-3" />
+            <span>Rebuild Kit</span>
           </button>
         </aside>
       </div>

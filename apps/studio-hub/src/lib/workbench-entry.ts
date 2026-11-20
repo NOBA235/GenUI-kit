@@ -6,13 +6,12 @@
 
 /**
  * Template the sample flow opens. It uses the shared showcase catalog
- * (SiteShell, HeroSection, MetricStrip, FeatureGrid) and is free/MIT, so the export
- * step needs no license token.
+ * (SiteShell, HeroSection, MetricStrip, FeatureGrid) and is free/MIT.
  */
-export const SAMPLE_WIREFRAME_SLUG = "spatial-mesh-starter";
+export const SAMPLE_WIREFRAME_SLUG = "product-landing-starter";
 
 /** Fallback when the preferred sample template is not registered. */
-export const SAMPLE_WIREFRAME_FALLBACK_SLUG = "spatial-ops-3d-pro";
+export const SAMPLE_WIREFRAME_FALLBACK_SLUG = "saas-dashboard-starter";
 
 /** URL query that opens Wireframe Architect with the sample scene loaded. */
 export const SAMPLE_WIREFRAME_QUERY = "wireframe=sample";

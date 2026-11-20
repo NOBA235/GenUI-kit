@@ -2,8 +2,8 @@
   "slug": "neuro-chimera-synth",
   "id": "neuro-chimera-synth",
   "name": "neuro-chimera-synth",
-  "title": "CHIMERA // LAB — Bio-Digital SQL Synthesizer & Kiro Crew Agent Hive",
-  "description": "Flagship Website #4: a Physarum slime-mould simulation of your database traffic. Full-table scans and N+1 loops glow crimson; sever or drag nodes and the network re-routes. A deterministic SQL parser and cost planner compare EXPLAIN plans before and after Kiro Crew optimization, three Kiro Crew agents ship as an installable app, and the network's health is sonified as an FM drone.",
+  "title": "CHIMERA // LAB — Bio-Digital SQL Synthesizer & Optimizer Lab",
+  "description": "Application #4 built with Kiro + GenUI: a Physarum slime-mould simulation of database traffic. Full-table scans and N+1 loops glow crimson; sever or drag nodes and the network re-routes. A deterministic SQL parser and cost planner compare EXPLAIN plans before and after local agent optimization, and network health is sonified as an FM drone.",
   "mode": "native",
   "version": "1.0.0",
   "author": "GenUI Studio",
@@ -32,12 +32,12 @@
       "slug": "home",
       "title": "CHIMERA // LAB · Bio-Digital SQL Synthesizer",
       "route": "/",
-      "description": "Live bio-network canvas with the SQL, Kiro Crew and sonification command deck, plus an AI research SaaS landing-page mode.",
+      "description": "Live bio-network canvas with the SQL, optimizer agent and sonification command deck, plus an AI research SaaS landing-page mode.",
       "sections": [
         "ChimeraLabShell",
         "BioNetworkCanvas",
         "SqlAstExecutionCompare",
-        "KiroCrewAgentConstellation",
+        "OptimizerAgentConstellation",
         "SonificationSpectrumHUD",
         "BiotechHeroSection",
         "InteractiveBenchmarkBento",
@@ -48,9 +48,9 @@
   "remixPresets": [
     {
       "id": "crew-night-shift",
-      "label": "Stream Preset: Autonomous Kiro Crew Night-Shift (4 Parallel Agents Refactoring Postgres)",
+      "label": "Stream Preset: Autonomous Agent Night-Shift (4 Parallel Agents Refactoring Postgres)",
       "description": "Loads the overnight refactor network (planner, refactor, test and review agents on one code-index database) and dispatches deadlock-hunter, index-surgeon and chimera-architect in turn.",
-      "prompt": "Stream Preset: Autonomous Kiro Crew Night-Shift (4 Parallel Agents Refactoring Postgres)"
+      "prompt": "Stream Preset: Autonomous Agent Night-Shift (4 Parallel Agents Refactoring Postgres)"
     },
     {
       "id": "genomics-protein-folding",

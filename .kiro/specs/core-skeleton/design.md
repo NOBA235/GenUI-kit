@@ -30,8 +30,8 @@ flowchart LR
         DAG --> SafeReg["wrapRegistryWithTelemetry()"]
         Store["TimeTravelStateStore (immutableSetByPath)"] <--> SafeReg
         SafeReg --> React2D["SafeGenUIRenderer -> @json-render/react <Renderer />"]
-        React2D --> R3F3D["@react-three/fiber <Canvas /> (apps/spatial-ops scene manifest)"]
-        VCat --> MCP["packages/genui-mcp tools (validate_ui_spec, fuzz_test_catalog)"]
+        React2D --> Apps["Consumer Apps (studio-hub, ninety9-archive, cmos-cloud-bios)"]
+        VCat --> CLI["packages/genui-cli (validate, add, export)"]
     end
 
     subgraph Verification["4. Formal Verification (fast-check)"]
@@ -175,7 +175,7 @@ sequenceDiagram
 
 ## 6. Subsystem 5: Property-Based Chaos & Fuzzing Engine (`src/testing/`)
 
-Using `fast-check@4.10.2`, `@genui-studio/core/testing` exports composable Arbitraries and an in-process verification runner (`runCatalogInvariantSuite`, properties `INV-PBT-01`..`04`, default `numRuns` 50) that runs in `vitest`, in the MCP `fuzz_test_catalog` tool, and live in the browser X-Ray drawers (`apps/spatial-ops/src/components/SpatialXRayDrawer.tsx`, `apps/studio-hub/src/components/TemplateXRayDrawer.tsx`):
+Using `fast-check@4.10.2`, `@genui-studio/core/testing` exports composable Arbitraries and an in-process verification runner (`runCatalogInvariantSuite`, properties `INV-PBT-01`..`04`, default `numRuns` 50) that runs in `vitest`, in the Kiro PBT hook (`.kiro/hooks/scripts/run-pbt-suite.mjs`), and live in the browser X-Ray drawer (`apps/studio-hub/src/components/TemplateXRayDrawer.tsx`):
 1. **`catalogToSpecArbitrary(catalog, options)`:** Generates valid DAG specs whose element props are drawn from each component's Zod schema (`zodTypeToArbitrary`, `catalogToElementArbitrary`).
 2. **`arbitraryAdversarialSpec(catalog)`:** Takes a valid spec and applies one of nine corruptions: self cycle, mutual cycle, slot cycle, duplicate children, diamond aliasing, non-finite numbers (`NaN`, `±Infinity`, `-0`), `javascript:` URIs, `visible`/`on` misplaced inside `props`, or an unknown component with a dangling child.
 3. **`arbitraryCorruptedJsonlStream()`:** Generates JSONL streams mixing valid patches with prototype-polluting paths, invalid ops, `javascript:` props, self-referencing children, and truncated JSON.

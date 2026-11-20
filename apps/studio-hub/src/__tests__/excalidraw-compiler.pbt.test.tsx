@@ -111,7 +111,7 @@ describe("Excalidraw Spatial-to-GenUI Compiler — Formal PBT & Unit Invariants"
           const result = compileExcalidrawToGenUI(elements, {
             catalog: showcasePreviewCatalog,
             baseSpec,
-            slug: "spatial-ops-3d-pro",
+            slug: "saas-dashboard-starter",
           });
 
           expect(result.spec.root).toBeTruthy();
@@ -185,7 +185,7 @@ describe("Excalidraw Spatial-to-GenUI Compiler — Formal PBT & Unit Invariants"
 
         const compiled = compileExcalidrawToGenUI(bottomFirst, {
           catalog: showcasePreviewCatalog,
-          slug: "spatial-ops-3d-pro",
+          slug: "saas-dashboard-starter",
         });
 
         const rootChildren = compiled.spec.elements[compiled.spec.root]?.children ?? [];
@@ -274,7 +274,7 @@ describe("Excalidraw Spatial-to-GenUI Compiler — Formal PBT & Unit Invariants"
 
     const compiled = compileExcalidrawToGenUI(scene, {
       catalog: showcasePreviewCatalog,
-      slug: "spatial-ops-3d-pro",
+      slug: "saas-dashboard-starter",
     });
 
     expect(compiled.compiledNodeCount).toBe(2);
@@ -289,11 +289,11 @@ describe("Excalidraw Spatial-to-GenUI Compiler — Formal PBT & Unit Invariants"
     const kiroExport = exportExcalidrawToKiroArtifacts({
       elements: scene,
       compileResult: compiled,
-      slug: "spatial-ops-3d-pro",
-      title: "Aegis 3D",
+      slug: "saas-dashboard-starter",
+      title: "SaaS Dashboard",
     });
-    expect(kiroExport.filenameExcalidraw).toBe("spatial-ops-3d-pro.excalidraw.json");
-    expect(kiroExport.filenameDesignMd).toBe(".kiro/specs/spatial-ops-3d-pro/design.md");
+    expect(kiroExport.filenameExcalidraw).toBe("saas-dashboard-starter.excalidraw.json");
+    expect(kiroExport.filenameDesignMd).toBe(".kiro/specs/saas-dashboard-starter/design.md");
     expect(kiroExport.designMdSection).toContain("```mermaid");
     expect(kiroExport.designMdSection).toContain("/wireframeBindings/checkoutPlan");
   });
@@ -327,7 +327,7 @@ describe("Excalidraw Spatial-to-GenUI Compiler — Formal PBT & Unit Invariants"
 
   it("exposes Wireframe Architect HUD button and isolates Excalidraw behind React.lazy Suspense boundary", () => {
     const previewHtml = renderToStaticMarkup(
-      <App initialPath="/preview/spatial-ops-3d-pro" instantStreamForTest />,
+      <App initialPath="/preview/saas-dashboard-starter" instantStreamForTest />,
     );
     expect(previewHtml).toContain('data-testid="toggle-wireframe-btn"');
     expect(previewHtml).toContain('aria-pressed="false"');
@@ -335,7 +335,7 @@ describe("Excalidraw Spatial-to-GenUI Compiler — Formal PBT & Unit Invariants"
 
     const wireframeLazyHtml = renderToStaticMarkup(
       <PreviewPage
-        slug="spatial-ops-3d-pro"
+        slug="saas-dashboard-starter"
         isFullscreen={false}
         onToggleFullscreen={() => {}}
         onNavigateHome={() => {}}

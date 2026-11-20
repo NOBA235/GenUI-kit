@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ArrowLeft } from "lucide-react";
 import type { Spec } from "@json-render/core";
 import { JSONUIProvider } from "@json-render/react";
 import {
@@ -472,15 +473,15 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
 
   if (!template) {
     return (
-      <div className="min-h-dvh bg-[#F8FAFC] text-[#0B1221] flex items-center justify-center p-4 sm:p-8">
+      <div className="min-h-dvh bg-[#FAFAFA] text-[#09090B] flex items-center justify-center p-4 sm:p-8">
         <div
           data-testid="template-not-found"
-          className="hub-bento-card w-full max-w-md p-6 text-center space-y-4 sm:p-8"
+          className="hub-card w-full max-w-md p-6 text-center space-y-4 sm:p-8"
         >
-          <h1 className="text-xl font-bold text-[#0B1221]">
+          <h1 className="text-lg font-semibold tracking-tight text-[#09090B]">
             Template &quot;{slug}&quot; Not Found
           </h1>
-          <p className="text-sm text-[#5B6B82]">
+          <p className="text-sm text-[#52525B]">
             No Mode A native website or Mode B standalone project is registered
             under slug{" "}
             <code className="font-mono text-xs text-[#2563EB]">{slug}</code>.
@@ -488,9 +489,10 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           <button
             type="button"
             onClick={onNavigateHome}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#0B1324] px-5 py-2 font-mono text-xs font-semibold text-white hover:bg-[#1E293B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-[#09090B] px-4 py-2 text-xs font-medium text-white hover:bg-[#18181B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-            ← Return to Marketplace
+            <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+            <span>Return to Marketplace</span>
           </button>
         </div>
       </div>
@@ -518,7 +520,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           ? isMonochromeArchive
             ? "bg-[#FFFFFF] text-[#000000]"
             : "bg-[#000000] text-zinc-100"
-          : "bg-[#F8FAFC] text-[#0B1221]"
+          : "bg-[#FAFAFA] text-[#09090B]"
       }`}
     >
       {!isImmersedHidden ? (
@@ -581,7 +583,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
             aria-label="Open GenUI Studio HUD and export (Alt+G)"
             className="truncate text-left hover:text-[#FFB000] cursor-pointer"
           >
-            [ALT+G] GENUI STUDIO // EXPORT CHIMERA + KIRO CREW APP
+            [ALT+G] GENUI STUDIO // EXPORT CHIMERA LAB
           </button>
         </div>
       ) : isMonochromeArchive ? (
@@ -633,7 +635,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
 
       <main
         className={`flex-1 flex justify-center min-w-0 ${
-          isFullBleedViewport ? "p-0" : "p-3 sm:p-5 lg:p-6 bg-[#F8FAFC]"
+          isFullBleedViewport ? "p-0" : "p-3 sm:p-5 lg:p-6 bg-[#FAFAFA]"
         }`}
       >
         <div
@@ -649,7 +651,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
                 fallback={
                   <div
                     data-testid="wireframe-architect-loading"
-                    className="hub-bento-card flex min-h-[640px] items-center justify-center font-mono text-xs text-[#2563EB]"
+                    className="hub-card flex min-h-[640px] items-center justify-center font-mono text-xs text-[#52525B]"
                   >
                     Loading Wireframe Architect (@excalidraw/excalidraw)...
                   </div>
@@ -691,7 +693,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
               className={`studio-viewport-stage min-w-0 overflow-hidden ${
                 isFullBleedViewport
                   ? "w-full min-h-dvh"
-                  : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-2xl border border-[#DCE4F0] shadow-[0_24px_60px_-15px_rgba(15,23,42,0.14)]`
+                  : `${VIEWPORT_WIDTH_CLASS[viewport]} rounded-xl border border-[#E4E4E7] shadow-[0_12px_36px_-16px_rgba(9,9,11,0.12)]`
               }`}
             >
               <ScopedTemplateContainer

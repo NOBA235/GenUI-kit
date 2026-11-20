@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
+import { CheckCircle2, X, XCircle, Zap } from "lucide-react";
 import type { Spec } from "@json-render/core";
 import type {
   StreamTelemetrySnapshot,
@@ -28,6 +29,19 @@ export interface TemplateXRayDrawerProps {
   readonly onInjectChaosPacket?: () => void;
 }
 
+function isPointerOutsideDialog(
+  e: React.PointerEvent<HTMLDialogElement>,
+  dialog: HTMLDialogElement,
+): boolean {
+  const r = dialog.getBoundingClientRect();
+  return (
+    e.clientX < r.left ||
+    e.clientX > r.right ||
+    e.clientY < r.top ||
+    e.clientY > r.bottom
+  );
+}
+
 export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
   isOpen,
   onClose,
@@ -40,6 +54,8 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
   onInjectChaosPacket,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pressedOutsideRef = useRef(false);
+  const titleId = useId();
   const [activeTab, setActiveTab] = useState<
     "PATCH_STREAM" | "DIAGNOSTICS" | "PBT_SUITE" | "SYSTEM_PROMPT"
   >("PATCH_STREAM");
@@ -58,22 +74,22 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
     }
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+  // Fallback for browsers without <dialog closedby="any"> (Safari):
+  // require both pointerdown and pointerup outside the dialog box so text-selection drags don't dismiss.
+  const handlePointerDown = (e: React.PointerEvent<HTMLDialogElement>) => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (!("closedBy" in HTMLDialogElement.prototype)) {
-      if (e.target !== dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      const inside =
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width;
-      if (!inside) {
-        dialog.close();
-        onClose();
-      }
+    if (!dialog || "closedBy" in HTMLDialogElement.prototype) return;
+    pressedOutsideRef.current = isPointerOutsideDialog(e, dialog);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog || "closedBy" in HTMLDialogElement.prototype) return;
+    if (pressedOutsideRef.current && isPointerOutsideDialog(e, dialog)) {
+      dialog.close();
+      onClose();
     }
+    pressedOutsideRef.current = false;
   };
 
   const handleRunInBrowserPbt = () => {
@@ -100,25 +116,29 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
       ref={dialogRef}
       {...({ closedby: "any" } as Record<string, unknown>)}
       onClose={onClose}
-      onClick={handleBackdropClick}
-      aria-label="X-Ray Telemetry and PBT Inspector"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      aria-labelledby={titleId}
       data-testid="hub-xray-drawer"
-      className="studio-dialog fixed inset-y-0 right-0 left-auto m-0 h-dvh w-full max-w-2xl border-l border-[#E8EDF5] bg-white p-0 text-[#0B1221] shadow-2xl"
+      className="studio-dialog fixed inset-y-0 right-0 left-auto m-0 h-dvh w-full max-w-2xl border-l border-[#E4E4E7] bg-white p-0 text-[#09090B] shadow-2xl"
     >
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-[#E8EDF5] bg-[#FAFBFD] px-4 py-4 sm:gap-4 sm:px-5">
+        <div className="flex items-start justify-between gap-3 border-b border-[#E4E4E7] bg-[#FAFAFA] px-4 py-4 sm:gap-4 sm:px-5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span
                 aria-hidden="true"
-                className="inline-block h-2 w-2 rounded-full bg-[#2563EB]"
+                className="inline-block h-1.5 w-1.5 rounded-full bg-[#2563EB]"
               />
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#2563EB]">
+              <span className="font-mono text-[0.6875rem] font-medium text-[#2563EB]">
                 @genui-studio/core · X-Ray Telemetry &amp; PBT Inspector
               </span>
             </div>
-            <h2 className="mt-1 truncate text-base font-bold text-[#0B1221]">
+            <h2
+              id={titleId}
+              className="mt-1 truncate text-base font-semibold tracking-tight text-[#09090B]"
+            >
               {templateTitle} ({templateSlug})
             </h2>
           </div>
@@ -129,21 +149,23 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
               onClose();
             }}
             data-testid="close-hub-xray-btn"
-            className="shrink-0 min-h-[34px] rounded-full border border-[#CBD5E1] bg-white px-3.5 py-1.5 font-mono text-xs font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+            className="inline-flex shrink-0 min-h-[32px] items-center gap-1 rounded-lg border border-[#E4E4E7] bg-white px-2.5 py-1 text-xs font-medium text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-<span className="hidden sm:inline">ESC / </span>Close ✕
+            <span className="hidden sm:inline font-mono text-[0.625rem] text-[#71717A]">ESC</span>
+            <X aria-hidden="true" className="h-3.5 w-3.5" />
+            <span>Close</span>
           </button>
         </div>
 
         {/* Telemetry Strip + Chaos Injection */}
-        <div className="border-b border-[#E8EDF5] bg-white px-4 py-3.5 space-y-3 sm:px-5">
+        <div className="border-b border-[#E4E4E7] bg-white px-4 py-3.5 space-y-3 sm:px-5">
           {onInjectChaosPacket && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3">
               <div className="space-y-0.5 min-w-0 flex-1">
-                <div className="font-mono text-xs font-bold text-[#991B1B]">
+                <div className="font-mono text-xs font-semibold text-[#991B1B]">
                   Adversarial Guardrail Stress Test (INV-PBT-02)
                 </div>
-                <p className="text-xs text-[#5B6B82]">
+                <p className="text-xs text-[#52525B]">
                   Fires out-of-bounds props &amp; cyclic references into the live
                   template stream to prove zero-crash self-healing.
                 </p>
@@ -152,53 +174,58 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
                 type="button"
                 onClick={onInjectChaosPacket}
                 data-testid="hub-inject-chaos-btn"
-                className="shrink-0 min-h-[34px] rounded-full bg-[#B91C1C] px-4 py-1.5 font-mono text-xs font-semibold text-white hover:bg-[#991B1B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+                className="inline-flex shrink-0 min-h-[32px] items-center gap-1.5 rounded-lg bg-[#B91C1C] px-3 py-1.5 font-mono text-xs font-medium text-white hover:bg-[#991B1B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
               >
-                ⚡ Inject Chaos Packet
+                <Zap aria-hidden="true" className="h-3.5 w-3.5" />
+                <span>Inject Chaos Packet</span>
               </button>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-2 font-mono text-xs sm:grid-cols-3 md:grid-cols-6">
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5">
-              <span className="block text-[10px] font-semibold text-[#64748B]">PATCHES</span>
-              <span className="text-sm font-bold tabular-nums text-[#0B1221]">
+            <div className="rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-2.5">
+              <span className="block text-[0.625rem] font-medium text-[#71717A]">PATCHES</span>
+              <span className="text-sm font-semibold tabular-nums text-[#09090B]">
                 {telemetry.patchCount}
               </span>
             </div>
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5">
-              <span className="block text-[10px] font-semibold text-[#64748B]">THROUGHPUT</span>
-              <span className="text-sm font-bold tabular-nums text-[#047857]">
+            <div className="rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-2.5">
+              <span className="block text-[0.625rem] font-medium text-[#71717A]">THROUGHPUT</span>
+              <span className="text-sm font-semibold tabular-nums text-[#047857]">
                 {Math.round(telemetry.tokensPerSec)} tok/s
               </span>
             </div>
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5">
-              <span className="block text-[10px] font-semibold text-[#64748B]">LATENCY</span>
-              <span className="text-sm font-bold tabular-nums text-[#0B1221]">
+            <div className="rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-2.5">
+              <span className="block text-[0.625rem] font-medium text-[#71717A]">LATENCY</span>
+              <span className="text-sm font-semibold tabular-nums text-[#09090B]">
                 {telemetry.lastValidationLatencyMs.toFixed(2)}ms
               </span>
             </div>
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5">
-              <span className="block text-[10px] font-semibold text-[#64748B]">COMPLIANCE</span>
-              <span className="text-sm font-bold tabular-nums text-[#047857]">
+            <div className="rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-2.5">
+              <span className="block text-[0.625rem] font-medium text-[#71717A]">COMPLIANCE</span>
+              <span className="text-sm font-semibold tabular-nums text-[#047857]">
                 {(telemetry.schemaComplianceRate * 100).toFixed(1)}%
               </span>
             </div>
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5">
-              <span className="block text-[10px] font-semibold text-[#64748B]">HEALED</span>
-              <span className="text-sm font-bold tabular-nums text-[#B45309]">
+            <div className="rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-2.5">
+              <span className="block text-[0.625rem] font-medium text-[#71717A]">HEALED</span>
+              <span className="text-sm font-semibold tabular-nums text-[#B45309]">
                 {telemetry.healedPropsCount}
               </span>
             </div>
-            <div className="rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] p-2.5">
-              <span className="block text-[10px] font-semibold text-[#64748B]">CYCLES</span>
-              <span className="text-sm font-bold tabular-nums text-[#B91C1C]">
+            <div className="rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] p-2.5">
+              <span className="block text-[0.625rem] font-medium text-[#71717A]">CYCLES</span>
+              <span className="text-sm font-semibold tabular-nums text-[#B91C1C]">
                 {telemetry.severedCyclesCount}
               </span>
             </div>
           </div>
 
-          <div className="hub-scroll-row gap-1.5 pt-1 font-mono text-xs sm:flex-wrap">
+          <div
+            role="group"
+            aria-label="Inspector sections"
+            className="hub-scroll-row gap-1.5 pt-0.5 font-mono text-xs sm:flex-wrap"
+          >
             {(
               [
                 ["PATCH_STREAM", `JSONL Stream (${patchLog.length})`],
@@ -219,10 +246,10 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
                 type="button"
                 aria-pressed={activeTab === key}
                 onClick={() => setActiveTab(key)}
-                className={`min-h-[32px] rounded-full border px-3.5 py-1 font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
+                className={`min-h-[30px] rounded-md border px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
                   activeTab === key
-                    ? "border-[#0B1324] bg-[#0B1324] text-white font-semibold"
-                    : "border-[#CBD5E1] bg-white text-[#5B6B82] hover:border-[#0B1221] hover:text-[#0B1221]"
+                    ? "border-[#09090B] bg-[#09090B] text-white"
+                    : "border-[#E4E4E7] bg-white text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B]"
                 }`}
               >
                 {label}
@@ -232,32 +259,32 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
         </div>
 
         {/* Tab Body */}
-        <div className="flex-1 overflow-y-auto bg-[#F8FAFC] p-4 space-y-4 font-mono text-xs sm:p-5">
+        <div className="flex-1 overflow-y-auto bg-[#FAFAFA] p-4 space-y-4 font-mono text-xs sm:p-5">
           {activeTab === "PATCH_STREAM" && (
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-[#5B6B82]">
+              <div className="flex items-center justify-between text-[0.6875rem] font-medium text-[#52525B]">
                 <span>Live RFC 6902 Patch Frames</span>
-                <span>
+                <span className="tabular-nums">
                   Elements:{" "}
                   {currentSpec ? Object.keys(currentSpec.elements).length : 0}
                 </span>
               </div>
               {patchLog.length === 0 ? (
-                <div className="rounded-2xl border border-[#E8EDF5] bg-white p-4 text-[#5B6B82]">
-                  Stream initialized. Use the GenUI Live Remix Bar to stream new
+                <div className="rounded-xl border border-[#E4E4E7] bg-white p-4 text-[#52525B]">
+                  Stream initialized. Use the Live Remix Bar to stream new
                   RFC 6902 mutations.
                 </div>
               ) : (
                 patchLog.map((item) => (
                   <div
                     key={item.id}
-                    className={`rounded-2xl border p-3 break-all ${
+                    className={`rounded-xl border p-3 break-all ${
                       item.isChaos
-                        ? "border-[#FCA5A5] bg-[#FEF2F2] text-[#7F1D1D]"
-                        : "border-[#E8EDF5] bg-white text-[#0B1221]"
+                        ? "border-[#FECACA] bg-[#FEF2F2] text-[#7F1D1D]"
+                        : "border-[#E4E4E7] bg-white text-[#09090B]"
                     }`}
                   >
-                    <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
+                    <div className="flex items-center justify-between text-[0.625rem] text-[#71717A] mb-1 tabular-nums">
                       <span>#{item.id}</span>
                       <span>{item.timestamp}</span>
                     </div>
@@ -273,20 +300,21 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
               {telemetry.recentDiagnostics.length === 0 &&
               telemetry.activeFaults.length === 0 &&
               telemetry.recentIssues.length === 0 ? (
-                <div className="rounded-2xl border border-[#6EE7B7] bg-[#ECFDF5] p-4 font-medium text-[#065F46]">
-                  ✔ Zero healed props, zero graph cycles, and zero element faults.
+                <div className="flex items-center gap-2 rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] p-4 font-medium text-[#065F46]">
+                  <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0" />
+                  <span>Zero healed props, zero graph cycles, and zero element faults.</span>
                 </div>
               ) : (
                 <>
                   {telemetry.recentDiagnostics.map((d, idx) => (
                     <div
                       key={`diag-${idx}`}
-                      className="rounded-2xl border border-[#FCD34D] bg-[#FFFBEB] p-3 text-[#78350F]"
+                      className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-[#78350F]"
                     >
                       <div className="font-semibold">
                         [{d.status.toUpperCase()}] {d.componentType}.{d.propName}
                       </div>
-                      <div className="text-[11px] text-[#5B6B82] mt-1">
+                      <div className="text-[0.6875rem] text-[#52525B] mt-1">
                         {d.reason}
                       </div>
                     </div>
@@ -294,10 +322,10 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
                   {telemetry.recentIssues.map((issue, idx) => (
                     <div
                       key={`issue-${idx}`}
-                      className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-3 text-[#7F1D1D]"
+                      className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-[#7F1D1D]"
                     >
                       <div className="font-semibold">{issue.code}</div>
-                      <div className="text-[11px] text-[#5B6B82] mt-1">
+                      <div className="text-[0.6875rem] text-[#52525B] mt-1">
                         {issue.message}
                       </div>
                     </div>
@@ -309,12 +337,12 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
 
           {activeTab === "PBT_SUITE" && (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E8EDF5] bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4E4E7] bg-white p-4">
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-[#0B1221]">
+                  <div className="font-semibold text-[#09090B]">
                     In-Browser fast-check Verification
                   </div>
-                  <p className="text-[11px] text-[#5B6B82] mt-1">
+                  <p className="text-[0.6875rem] text-[#52525B] mt-1">
                     Executes INV-PBT-01 through INV-PBT-04 directly against this
                     template&apos;s VerifiedCatalog.
                   </p>
@@ -324,7 +352,7 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
                   disabled={isRunningPbt}
                   onClick={handleRunInBrowserPbt}
                   data-testid="hub-run-pbt-btn"
-                  className="min-h-[38px] rounded-full bg-[#0B1324] px-4 py-2 font-semibold text-white hover:bg-[#1E293B] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+                  className="min-h-[36px] rounded-lg bg-[#09090B] px-3.5 py-1.5 font-medium text-white hover:enabled:bg-[#18181B] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
                 >
                   {isRunningPbt ? "Running..." : "Run fast-check PBT Suite"}
                 </button>
@@ -333,27 +361,34 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
               {pbtReport && (
                 <div className="space-y-2.5" data-testid="hub-pbt-report">
                   <div
-                    className={`rounded-2xl border p-3 font-semibold ${
+                    className={`flex items-center gap-2 rounded-xl border p-3 font-semibold ${
                       pbtReport.allPassed
-                        ? "border-[#6EE7B7] bg-[#ECFDF5] text-[#065F46]"
-                        : "border-[#FCA5A5] bg-[#FEF2F2] text-[#991B1B]"
+                        ? "border-[#A7F3D0] bg-[#ECFDF5] text-[#065F46]"
+                        : "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]"
                     }`}
                   >
-                    {pbtReport.allPassed
-                      ? `✔ ALL ${pbtReport.theorems.length} FORMAL THEOREMS PASSED (${pbtReport.totalDurationMs.toFixed(1)}ms)`
-                      : "✖ INVARIANT VIOLATION DETECTED"}
+                    {pbtReport.allPassed ? (
+                      <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <XCircle aria-hidden="true" className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>
+                      {pbtReport.allPassed
+                        ? `ALL ${pbtReport.theorems.length} FORMAL THEOREMS PASSED (${pbtReport.totalDurationMs.toFixed(1)}ms)`
+                        : "INVARIANT VIOLATION DETECTED"}
+                    </span>
                   </div>
                   {pbtReport.theorems.map((t) => (
                     <div
                       key={t.id}
-                      className="rounded-2xl border border-[#E8EDF5] bg-white p-3.5 space-y-1.5"
+                      className="rounded-xl border border-[#E4E4E7] bg-white p-3.5 space-y-1.5"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-bold text-[#0B1221]">
+                        <span className="font-semibold text-[#09090B]">
                           {t.id}: {t.name}
                         </span>
                         <span
-                          className={`font-semibold ${
+                          className={`font-semibold tabular-nums ${
                             t.passed ? "text-[#047857]" : "text-[#B91C1C]"
                           }`}
                         >
@@ -362,7 +397,7 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
                         </span>
                       </div>
                       {t.counterexample && (
-                        <pre className="hub-code-surface rounded-xl border border-white/10 p-2.5 text-[11px] overflow-x-auto">
+                        <pre className="hub-code-surface rounded-lg border border-white/10 p-2.5 text-[0.6875rem] overflow-x-auto">
                           {t.counterexample}
                         </pre>
                       )}
@@ -375,15 +410,15 @@ export const TemplateXRayDrawer: React.FC<TemplateXRayDrawerProps> = ({
 
           {activeTab === "SYSTEM_PROMPT" && (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-[#E8EDF5] bg-white p-3.5 space-y-1">
-                <div className="text-[11px] font-bold text-[#5B6B82]">
+              <div className="rounded-xl border border-[#E4E4E7] bg-white p-3.5 space-y-1">
+                <div className="text-[0.6875rem] font-medium text-[#71717A]">
                   CANONICAL SHA-256 FINGERPRINT
                 </div>
                 <div className="font-semibold text-[#2563EB] break-all">
                   {catalog.metadata.catalogHash}
                 </div>
               </div>
-              <pre className="hub-code-surface rounded-2xl border border-white/10 p-4 text-[11px] whitespace-pre-wrap leading-relaxed">
+              <pre className="hub-code-surface rounded-xl border border-white/10 p-4 text-[0.6875rem] whitespace-pre-wrap leading-relaxed">
                 {systemPromptPreview}
               </pre>
             </div>

@@ -4,7 +4,7 @@ inclusion: always
 
 # GenUI Invariants & Safety Contracts (`genui-invariants.md`)
 
-Every module in `@genui-studio/core` and `apps/spatial-ops` MUST enforce the following 7 runtime and safety invariants. These invariants are continuously checked via `fast-check` property-based tests and Vitest integration suites.
+Every module in `@genui-studio/core`, `@genui-studio/templates`, and all consumer applications under `apps/` MUST enforce the following 7 runtime and safety invariants. These invariants are continuously checked via `fast-check` property-based tests and Vitest integration suites.
 
 ---
 

@@ -5,9 +5,9 @@
       "type": "SiteShell",
       "props": {
         "badge": "WIREFRAME LIVE",
-        "brandName": "Aegis 3D Spatial Infrastructure War-Room",
+        "brandName": "SaaS Dashboard Wireframe Starter",
         "layoutDensity": "spacious",
-        "tagline": "14 Verified Catalog Components"
+        "tagline": "4 Verified Catalog Components"
       },
       "children": [
         "wf-blk-hero",
@@ -21,10 +21,10 @@
     "wf-blk-hero": {
       "type": "HeroSection",
       "props": {
-        "eyebrow": "3D / WebGL · @genui-studio/core",
+        "eyebrow": "B2B SaaS · @genui-studio/core",
         "headline": "Zero-trust edge firewall",
-        "primaryCta": "Deploy spatial-ops-3d-pro",
-        "secondaryCta": "Catalog SHA: sha256-a94f31c",
+        "primaryCta": "Deploy saas-dashboard-starter",
+        "secondaryCta": "Catalog SHA: sha256-saas-da",
         "summary": {
           "$state": "/wireframeBindings/selectedRegion"
         }
@@ -36,9 +36,9 @@
       "props": {
         "heading": "kpi telemetry",
         "primaryLabel": "Live p95 latency per region",
-        "primaryValue": "16 Nodes",
-        "secondaryLabel": "Zero-Alloc WebGL",
-        "secondaryValue": "60 FPS",
+        "primaryValue": "$48.2K",
+        "secondaryLabel": "Median API Latency",
+        "secondaryValue": "18.4ms",
         "uptimePercent": 99.98
       },
       "children": []
@@ -49,28 +49,20 @@
         "columns": 3,
         "items": [
           {
-            "title": "AegisWarRoomShell",
-            "detail": "Root container organizing 3D spatial viewport and 2D tactical HUD."
+            "title": "SiteShell",
+            "detail": "Top-level dashboard container organizing navigation badge, density, and sections."
           },
           {
-            "title": "ClusterTopologyCanvas",
-            "detail": "3D WebGL scene viewport rendering the microservice mesh."
+            "title": "HeroSection",
+            "detail": "Primary workspace banner with headline, bound summary state, and calls-to-action."
           },
           {
-            "title": "ServiceMeshNode3D",
-            "detail": "Interactive 3D microservice node mesh with emissive glow and label."
+            "title": "MetricStrip",
+            "detail": "Horizontal KPI highlight grid displaying bounded numeric telemetry and SLO percentage."
           },
           {
-            "title": "TrafficFlowEdge3D",
-            "detail": "Directional 3D bezier connection line with animated packet pulses."
-          },
-          {
-            "title": "BlastRadiusSphere3D",
-            "detail": "Translucent volumetric pulsating sphere indicating fault blast radius."
-          },
-          {
-            "title": "RegionZoneBoundary3D",
-            "detail": "Spatial bounding zone wireframe delimiting a regional cluster."
+            "title": "FeatureGrid",
+            "detail": "Multi-column capability or pricing tier grid with bounded column counts."
           }
         ],
         "sectionTitle": "Capabilities"
@@ -81,10 +73,10 @@
       "type": "MetricStrip",
       "props": {
         "heading": "Stacked note A (same x/y as Z)",
-        "primaryLabel": "3D Mesh Topology",
-        "primaryValue": "16 Nodes",
-        "secondaryLabel": "Zero-Alloc WebGL",
-        "secondaryValue": "60 FPS",
+        "primaryLabel": "Monthly Recurring Revenue",
+        "primaryValue": "$48.2K",
+        "secondaryLabel": "Median API Latency",
+        "secondaryValue": "18.4ms",
         "uptimePercent": 99.98
       },
       "children": []
@@ -93,10 +85,10 @@
       "type": "MetricStrip",
       "props": {
         "heading": "Stacked note Z (same x/y as A)",
-        "primaryLabel": "3D Mesh Topology",
-        "primaryValue": "16 Nodes",
-        "secondaryLabel": "Zero-Alloc WebGL",
-        "secondaryValue": "60 FPS",
+        "primaryLabel": "Monthly Recurring Revenue",
+        "primaryValue": "$48.2K",
+        "secondaryLabel": "Median API Latency",
+        "secondaryValue": "18.4ms",
         "uptimePercent": 99.98
       },
       "children": []
@@ -104,10 +96,10 @@
     "wf-blk-rogue": {
       "type": "HeroSection",
       "props": {
-        "eyebrow": "3D / WebGL · @genui-studio/core",
+        "eyebrow": "B2B SaaS · @genui-studio/core",
         "headline": "hero banner",
-        "primaryCta": "Deploy spatial-ops-3d-pro",
-        "secondaryCta": "Catalog SHA: sha256-a94f31c",
+        "primaryCta": "Deploy saas-dashboard-starter",
+        "secondaryCta": "Catalog SHA: sha256-saas-da",
         "summary": "<script>alert(1)</script>"
       },
       "children": []

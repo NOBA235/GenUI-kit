@@ -1,0 +1,11 @@
+[build]
+  command = "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/studio-hub build"
+  publish = "apps/studio-hub/dist"
+
+[build.environment]
+  NODE_VERSION = "22.18.0"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

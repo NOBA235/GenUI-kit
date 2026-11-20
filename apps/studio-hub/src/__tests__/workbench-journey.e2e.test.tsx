@@ -42,7 +42,10 @@ import {
   createSkeletonRectAndText,
   type ExcalidrawCompileResult,
 } from "../lib/excalidraw-compiler.js";
-import { buildSampleWireframeElements } from "../lib/sample-wireframe.js";
+import {
+  buildDashboardSampleWireframeElements,
+  buildSampleWireframeElements,
+} from "../lib/sample-wireframe.js";
 import { buildWireframeExport } from "../lib/wireframe-export.js";
 
 const slug = resolveSampleWireframeSlug();
@@ -379,5 +382,53 @@ describe("Workbench first-success journey (sketch → compile → diagnose → p
     expect(pageHtml).toContain('mt-1">100%</div>');
     expect(pageHtml).not.toContain(">140%<");
     expect(pageHtml).not.toContain('data-genui-fault-card="true"');
+  });
+
+  it("skeleton crew versatility: compiles and exports a second distinct SaaS Dashboard wireframe through the exact same foundation", async () => {
+    const dashTemplate = getTemplateBySlug("saas-dashboard-starter")!;
+    expect(dashTemplate).toBeDefined();
+    const dashElements = buildDashboardSampleWireframeElements();
+    const dashResult = compileExcalidrawToGenUI(dashElements, {
+      catalog: dashTemplate.catalog,
+      baseSpec: dashTemplate.pageSpecs.home ?? null,
+      slug: dashTemplate.manifest.slug,
+    });
+
+    expect(dashResult.warnings).toEqual([]);
+    expect(dashResult.validationIssues).toEqual([]);
+    expect(dashResult.spec.elements[dashResult.spec.root]?.children).toEqual([
+      "wf-dash-kpis-rect",
+      "wf-dash-summary-rect",
+      "wf-dash-services-rect",
+    ]);
+    expect(dashResult.stateBindings).toEqual([
+      expect.objectContaining({
+        pointerPath: "/wireframeBindings/activeRegion",
+        targetSpecKey: "wf-dash-summary-rect",
+      }),
+    ]);
+
+    const dashStore = createTimeTravelStateStore(
+      (dashResult.spec.state ?? {}) as Record<string, unknown>,
+    );
+    const dashHtml = renderPreview(dashResult.spec, dashTemplate.registry, dashStore);
+    expect(dashHtml).toContain("SaaS Operations Overview");
+    expect(dashHtml).toContain("99.95%");
+    expect(dashHtml).not.toContain('data-genui-fault-card="true"');
+
+    const dashExport = buildWireframeExport({
+      result: dashResult,
+      sceneElements: dashElements,
+      slug: dashTemplate.manifest.slug,
+      title: dashTemplate.manifest.title,
+    });
+    const dashZip = await JSZip.loadAsync(
+      await generateTemplateZip(dashTemplate, { wireframe: dashExport }),
+    );
+    const dashSpecJson = JSON.parse(
+      await dashZip.file(WIREFRAME_SPEC_EXPORT_PATH)!.async("string"),
+    ) as Spec;
+    expect(dashSpecJson).toEqual(dashResult.spec);
+    expect(dashSpecJson).not.toEqual(sampleResult.spec);
   });
 });

@@ -12,8 +12,8 @@ export type {
 
 export {
   ALL_TEMPLATE_PACKS,
-  SPATIAL_MESH_STARTER_PACK,
-  SPATIAL_OPS_3D_PRO_PACK,
+  PRODUCT_LANDING_STARTER_PACK,
+  SAAS_DASHBOARD_STARTER_PACK,
 } from "./pack-definitions.js";
 
 export {

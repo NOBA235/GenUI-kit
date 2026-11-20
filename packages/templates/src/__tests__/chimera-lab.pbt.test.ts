@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import * as fc from "fast-check";
 import JSZip from "jszip";
 import React from "react";
@@ -21,6 +18,7 @@ import {
 } from "../neuro-chimera-synth/catalog.js";
 import { templateComponents } from "../neuro-chimera-synth/components/index.js";
 import { stepSchedule } from "../neuro-chimera-synth/components/ChimeraLabShell.js";
+import { OPTIMIZER_AGENTS } from "../neuro-chimera-synth/components/OptimizerAgentConstellation.js";
 import {
   applyChemotaxisPacket,
   dispatchAgent,
@@ -47,19 +45,6 @@ import {
 import { getScenarioBenchmarks } from "../neuro-chimera-synth/lib/chimera/benchmarks.js";
 import { compareQuery } from "../neuro-chimera-synth/lib/chimera/compare.js";
 import { nextCronRuns } from "../neuro-chimera-synth/lib/chimera/cron.js";
-import {
-  CREW_APP_FILES,
-  CREW_APP_FOLDER,
-  buildCrewAppZip,
-  collectCrewAppFiles,
-  validateCrewAppFiles,
-} from "../neuro-chimera-synth/lib/chimera/crew-bundle.js";
-import {
-  CREW_NAME_PATTERN,
-  CREW_SEMVER_PATTERN,
-  validateCrewBundle,
-  validateCrewManifest,
-} from "../neuro-chimera-synth/lib/chimera/crew-manifest.js";
 import { planQuery, recommendIndexes, withIndex, type Dataset, type IndexDef, type TableStats } from "../neuro-chimera-synth/lib/chimera/query-planner.js";
 import { CHIMERA_SCENARIOS } from "../neuro-chimera-synth/lib/chimera/scenarios.js";
 import { mapTelemetryToSound, predictPartials } from "../neuro-chimera-synth/lib/chimera/sonifier.js";
@@ -380,20 +365,6 @@ function compileRemix(prompt: string) {
   return compiler.finalize();
 }
 
-const CREW_APP_DIR = fileURLToPath(new URL("../neuro-chimera-synth/kiro-crew-app/", import.meta.url));
-
-function readCrewAppFromDisk(dir = CREW_APP_DIR, prefix = ""): Map<string, string> {
-  const out = new Map<string, string>();
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules" || entry.name === "dist") continue;
-    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-    const abs = path.join(dir, entry.name);
-    if (entry.isDirectory()) for (const [k, v] of readCrewAppFromDisk(abs, rel)) out.set(k, v);
-    else out.set(rel, fs.readFileSync(abs, "utf8").replace(/\r\n/g, "\n"));
-  }
-  return out;
-}
-
 afterEach(() => {
   resetLabStoreForTests();
 });
@@ -472,98 +443,16 @@ describe("CHIMERA // LAB: fast-check property suite", () => {
     }
   });
 
-  it("Property 3: the Kiro Crew app.json bundle validates, matches disk, and rejects mutated manifests", async () => {
-    // The embedded bundle passes the App Kit rules.
-    const validation = validateCrewAppFiles(CREW_APP_FILES);
-    expect(validation.ok, JSON.stringify(validation.issues)).toBe(true);
-    if (!validation.ok) return;
-    expect(validation.value.agents.map((a) => a.name).sort()).toEqual(["chimera-architect", "deadlock-hunter", "index-surgeon"]);
-    for (const agent of validation.value.agents) {
-      expect(agent.model).toBe("auto");
-      expect(agent.tools).toEqual(["@kirocrew-core"]);
+  it("Property 3: local optimizer agents carry valid schedules and deterministic actions", () => {
+    expect(OPTIMIZER_AGENTS.map((a) => a.name).sort()).toEqual(["chimera-architect", "deadlock-hunter", "index-surgeon"]);
+    const from = new Date(Date.UTC(2026, 10, 14, 12, 0));
+    for (const agent of OPTIMIZER_AGENTS) {
+      expect(agent.description.length).toBeGreaterThan(10);
+      const runs = nextCronRuns(agent.schedule.cronExpr, from, 3);
+      expect(runs).toHaveLength(3);
+      expect(runs[1]!.getTime()).toBeGreaterThan(runs[0]!.getTime());
     }
-    expect(validation.value.manifest.crons?.every((c) => c.enabled === false)).toBe(true);
-
-    // Drift: embedded files equal the files on disk, and the template bundle carries the same files.
-    const disk = readCrewAppFromDisk();
-    expect(new Map(CREW_APP_FILES.map((f) => [f.path, f.content]))).toEqual(disk);
-    const entry = getTemplateBySlug(SLUG)!;
-    expect(new Map(collectCrewAppFiles(entry.sourceFiles).map((f) => [f.path, f.content]))).toEqual(disk);
-
-    // The download zip extracts to an installable chimera-lab/ folder.
-    const zip = await JSZip.loadAsync(await buildCrewAppZip());
-    for (const file of CREW_APP_FILES) {
-      expect(await zip.file(`${CREW_APP_FOLDER}/${file.path}`)?.async("string")).toBe(file.content);
-    }
-
-    // Manifest mutation fuzzing: validity is exactly what the App Kit rules predict.
-    // Mutations reach into arbitrary manifest fields.
-    type Manifest = Record<string, any>;
-    type Mutation = { readonly valid: boolean; readonly apply: (m: Manifest) => void };
-    const mutation = (valid: boolean, apply: (m: Manifest) => void): Mutation => ({ valid, apply });
-    const manifest = JSON.parse(CREW_APP_FILES.find((f) => f.path === "app.json")!.content) as Manifest;
-    const mutationArb: fc.Arbitrary<Mutation> = fc.oneof(
-      fc.string({ maxLength: 24 }).map((s) => mutation(CREW_NAME_PATTERN.test(s.trim()), (m) => void (m.name = s))),
-      fc
-        .oneof(fc.string({ maxLength: 12 }), fc.tuple(fc.nat(99), fc.nat(99), fc.nat(99)).map((t) => t.join(".")))
-        .map((s) => mutation(CREW_SEMVER_PATTERN.test(s.trim()), (m) => void (m.version = s))),
-      fc
-        .constantFrom("../escape.json", "/etc/agent.json", "C:\\agents\\a.json", "agents/../../x.json", "\\\\server\\share\\a.json", "")
-        .map((p) => mutation(false, (m) => void (m.agents = [...m.agents, p]))),
-      fc.constant(mutation(false, (m) => void (m.crons[0].every = 3600))),
-      fc.constant(mutation(false, (m) => void delete m.crons[1].cron_expr)),
-      fc
-        .constantFrom("61 * * * *", "* * *", "*/0 * * * *", "0 25 * * *", "0 0 32 * *")
-        .map((e) => mutation(false, (m) => void (m.crons[2].cron_expr = e))),
-      fc.constant(mutation(false, (m) => void (m.crons[1].name = m.crons[0].name))),
-      fc
-        .constantFrom("backend.hooks", "backend/hooks.py:on_startup", ":on_startup", "backend.hooks:")
-        .map((h) => mutation(false, (m) => void (m.backend.hooks.on_startup = h))),
-      fc.constant(mutation(false, (m) => void delete m.ui.pages[0].label)),
-      fc.string({ maxLength: 60 }).map((s) => mutation(s.trim().length > 0, (m) => void (m.description = s))),
-      fc.constant(mutation(true, (m) => void (m.tags = [...m.tags, "observability"]))),
-    );
-    fc.assert(
-      fc.property(mutationArb, (m) => {
-        const mutated = structuredClone(manifest);
-        m.apply(mutated);
-        expect(validateCrewManifest(mutated).ok).toBe(m.valid);
-      }),
-      { numRuns: 300 },
-    );
-    // Arbitrary JSON never throws.
-    fc.assert(fc.property(fc.jsonValue(), (value) => void validateCrewManifest(value)), { numRuns: 200 });
-
-    // Bundle fuzzing: a missing agent file or a UTF-16 SKILL.md fails validation.
-    const agentPaths = (manifest.agents as string[]).slice();
-    fc.assert(
-      fc.property(fc.constantFrom(...agentPaths), (missing) => {
-        const result = validateCrewAppFiles(CREW_APP_FILES.filter((f) => f.path !== missing));
-        expect(result.ok).toBe(false);
-        if (!result.ok) expect(result.issues.some((i) => i.file === missing)).toBe(true);
-      }),
-    );
-    // SKILL.md ships as UTF-8 without a BOM; a UTF-16 copy (what PowerShell redirection writes) is rejected.
-    const skill = CREW_APP_FILES.find((f) => f.path.endsWith("SKILL.md"))!;
-    expect(skill.content.startsWith("\uFEFF")).toBe(false);
-    const utf16le = (text: string) => {
-      const out = new Uint8Array(2 + text.length * 2);
-      out[0] = 0xff;
-      out[1] = 0xfe;
-      for (let i = 0; i < text.length; i++) {
-        out[2 + i * 2] = text.charCodeAt(i) & 0xff;
-        out[3 + i * 2] = text.charCodeAt(i) >> 8;
-      }
-      return out;
-    };
-    const encoder = new TextEncoder();
-    const utf16Bundle = Object.fromEntries(
-      CREW_APP_FILES.map((f) => [f.path, f.path === skill.path ? utf16le(f.content) : encoder.encode(f.content)]),
-    );
-    const utf16Result = validateCrewBundle(utf16Bundle);
-    expect(utf16Result.ok).toBe(false);
-    if (!utf16Result.ok) expect(utf16Result.issues.some((i) => i.file === skill.path && /UTF-16/.test(i.message))).toBe(true);
-  }, 60_000);
+  });
 
   it("Property 3b: every catalog component survives adversarial props without crashing the tree", () => {
     const report = runCatalogInvariantSuite(verifiedCatalog, { numRuns: 20 });
@@ -612,14 +501,14 @@ describe("CHIMERA // LAB: fast-check property suite", () => {
 
 describe("CHIMERA // LAB: remix presets, chaos healing, SSR and export", () => {
   it("streams the night-shift and genomics presets into the shell, and the night shift heals the network", () => {
-    expect(classifyRemixPrompt("Stream Preset: Autonomous Kiro Crew Night-Shift (4 Parallel Agents Refactoring Postgres)")).toBe("night-shift");
+    expect(classifyRemixPrompt("Stream Preset: Autonomous Agent Night-Shift (4 Parallel Agents Refactoring Postgres)")).toBe("night-shift");
     expect(classifyRemixPrompt("Stream Preset: Biotech Genomics Pipeline & Protein Folding Telemetry")).toBe("genomics");
     expect(classifyRemixPrompt("Inject Corrupted Cyclic SQL AST / NaN Chemotaxis Packet")).toBe("corrupted");
 
-    const night = compileRemix("Stream Preset: Autonomous Kiro Crew Night-Shift (4 Parallel Agents Refactoring Postgres)");
+    const night = compileRemix("Stream Preset: Autonomous Agent Night-Shift (4 Parallel Agents Refactoring Postgres)");
     expect(night.issues).toHaveLength(0);
     const nightProps = night.spec.elements[SHELL_KEY]?.props as Record<string, unknown>;
-    expect(nightProps.scenarioId).toBe("kiro-crew-overnight-refactor");
+    expect(nightProps.scenarioId).toBe("autonomous-overnight-refactor");
     expect(nightProps.nightShift).toBe(true);
 
     const genomics = compileRemix("Stream Preset: Biotech Genomics Pipeline & Protein Folding Telemetry");
@@ -627,7 +516,7 @@ describe("CHIMERA // LAB: remix presets, chaos healing, SSR and export", () => {
     expect((genomics.spec.elements[SHELL_KEY]?.props as Record<string, unknown>).scenarioId).toBe("genomics-pipeline");
 
     // The night shift itself, through the same store actions the shell's timers call.
-    loadScenario("kiro-crew-overnight-refactor");
+    loadScenario("autonomous-overnight-refactor");
     stepLab(8);
     const before = getLabStore().getState().telemetry;
     for (const agent of ["deadlock-hunter", "index-surgeon", "chimera-architect"] as const) dispatchAgent(agent);
@@ -682,14 +571,14 @@ describe("CHIMERA // LAB: remix presets, chaos healing, SSR and export", () => {
 
   it("server-renders the workbench deck and every landing section in landing mode", () => {
     const workbench = renderSpec(initialPageSpecs.home!);
-    for (const id of ["chimera-lab-shell", "chimera-bio-canvas", "chimera-sql-compare", "chimera-crew-constellation", "chimera-spectrum-hud"]) {
+    for (const id of ["chimera-lab-shell", "chimera-bio-canvas", "chimera-sql-compare", "chimera-agent-constellation", "chimera-spectrum-hud"]) {
       expect(workbench).toContain(`data-testid="${id}"`);
     }
     expect(workbench).toContain("[MODE: CHIMERA LAB WORKBENCH]");
     expect(workbench).toContain("[MODE: AI RESEARCH SAAS LANDING PAGE]");
     expect(workbench).toMatch(/BEFORE \(Seq Scan: [\d,.]+ms\)/);
-    expect(workbench).toMatch(/AFTER KIRO CREW OPTIMIZATION \(Index Scan: [\d,.]+ms\)/);
-    expect(workbench).toContain("Download Kiro Crew App app.json Bundle");
+    expect(workbench).toMatch(/AFTER AGENT OPTIMIZATION \(Index Scan: [\d,.]+ms\)/);
+    expect(workbench).toContain("3 deterministic optimizer agents");
     expect(workbench).not.toContain('data-testid="chimera-landing-hero"');
 
     setLab({ mode: "landing" });
@@ -731,14 +620,14 @@ describe("CHIMERA // LAB: remix presets, chaos healing, SSR and export", () => {
     expect([...level].every((v) => Number.isFinite(v) && v >= 0)).toBe(true);
   });
 
-  it("is registered in the marketplace and exports the Kiro Crew app, SKILL.md and POWER.md in the .zip", async () => {
+  it("is registered in the marketplace and exports the template, SKILL.md and POWER.md in the .zip", async () => {
     const entry = getTemplateBySlug(SLUG);
     expect(entry).toBeDefined();
-    expect(entry!.manifest.title).toBe("CHIMERA // LAB — Bio-Digital SQL Synthesizer & Kiro Crew Agent Hive");
+    expect(entry!.manifest.title).toBe("CHIMERA // LAB — Bio-Digital SQL Synthesizer & Optimizer Lab");
     expect(entry!.manifest.license).toBe("MIT");
     expect(entry!.manifest.tier).toBe("free");
     expect(entry!.manifest.remixPresets?.map((p) => p.prompt)).toEqual([
-      "Stream Preset: Autonomous Kiro Crew Night-Shift (4 Parallel Agents Refactoring Postgres)",
+      "Stream Preset: Autonomous Agent Night-Shift (4 Parallel Agents Refactoring Postgres)",
       "Stream Preset: Biotech Genomics Pipeline & Protein Folding Telemetry",
       "Inject Corrupted Cyclic SQL AST / NaN Chemotaxis Packet",
     ]);
@@ -749,15 +638,13 @@ describe("CHIMERA // LAB: remix presets, chaos healing, SSR and export", () => {
     for (const p of [
       "SKILL.md",
       `.kiro/powers/${SLUG}/POWER.md`,
-      "src/template/kiro-crew-app/app.json",
-      "src/template/kiro-crew-app/backend/hooks.py",
-      "src/template/kiro-crew-app/agents/index-surgeon.json",
       "src/template/lib/chimera/bio-solver.ts",
-      "src/template/lib/chimera/crew-app-files.ts",
       "src/template/components/ChimeraLabShell.tsx",
+      "src/template/components/OptimizerAgentConstellation.tsx",
     ]) {
       expect(paths, p).toContain(p);
     }
+    expect(paths.some((p) => p.includes("kiro-crew-app"))).toBe(false);
     // The generated registry bundle stays in the monorepo; the shell adds its own invariant test.
     expect(paths.some((p) => p.includes("bundle.generated"))).toBe(false);
     expect(paths).toContain("__tests__/invariants.fuzz.test.ts");

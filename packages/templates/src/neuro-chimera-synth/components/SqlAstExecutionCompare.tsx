@@ -166,7 +166,7 @@ export const SqlAstExecutionCompare: React.FC<SqlAstExecutionCompareProps> = ({ 
         <>
           <div className="grid gap-3 md:grid-cols-2">
             <PlanPanel title="BEFORE" side={comparison.before} tone="before" />
-            <PlanPanel title="AFTER KIRO CREW OPTIMIZATION" side={comparison.after} tone="after" />
+            <PlanPanel title="AFTER AGENT OPTIMIZATION" side={comparison.after} tone="after" />
           </div>
           <p className="chimera-mono text-[11px] chimera-muted">
             Planned on {comparison.sinkId} ({comparison.datasetId}). PostgreSQL-style cost model; estimates, not measurements.

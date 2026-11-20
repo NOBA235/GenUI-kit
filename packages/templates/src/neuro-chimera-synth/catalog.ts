@@ -13,7 +13,7 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
   components: {
     ChimeraLabShell: {
       description:
-        "Root workspace for CHIMERA // LAB. Switches between CHIMERA LAB WORKBENCH (bio-network canvas + SQL, Kiro Crew and sonification deck) and AI RESEARCH SAAS LANDING PAGE modes, loads a Physarum query-network scenario, steps the solver on a timer, and can run the three Kiro Crew agents as a night shift.",
+        "Root workspace for CHIMERA // LAB. Switches between CHIMERA LAB WORKBENCH (bio-network canvas + SQL, optimizer agent constellation and sonification deck) and AI RESEARCH SAAS LANDING PAGE modes, loads a Physarum query-network scenario, steps the solver on a timer, and can run the three local optimizer agents as a night shift.",
       props: z.object({
         workspaceTitle: shortText(80),
         defaultMode: z.enum(["workbench", "landing"]),
@@ -26,7 +26,7 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
     },
     BioNetworkCanvas: {
       description:
-        "Live Physarum slime-mould network of services and databases on a 2D canvas: glowing cyan-emerald tubes carry query flux, crimson nodes pulse on full-table scans or saturation, amber diamonds are Kiro Crew workers. Click a node to sever it, inject an index or dispatch an agent; drag it to change link latency.",
+        "Live Physarum slime-mould network of services and databases on a 2D canvas: glowing cyan-emerald tubes carry query flux, crimson nodes pulse on full-table scans or saturation, amber diamonds are local optimizer agents. Click a node to sever it, inject an index or dispatch an agent; drag it to change link latency.",
       props: z.object({
         caption: shortText(80),
         // Matches MAX_PARTICLES in components/BioNetworkCanvas.tsx.
@@ -37,16 +37,16 @@ export const verifiedCatalog = createVerifiedCatalog(schema, {
     },
     SqlAstExecutionCompare: {
       description:
-        "SQL command deck: edit the selected query, inspect its parse tree, and compare the EXPLAIN plan BEFORE vs AFTER KIRO CREW OPTIMIZATION with per-request planner estimates and 1-click index migrations or N+1 batching.",
+        "SQL command deck: edit the selected query, inspect its parse tree, and compare the EXPLAIN plan BEFORE vs AFTER AGENT OPTIMIZATION with per-request planner estimates and 1-click index migrations or N+1 batching.",
       props: z.object({
         heading: shortText(60),
         showAst: z.boolean(),
       }),
       slots: [],
     },
-    KiroCrewAgentConstellation: {
+    OptimizerAgentConstellation: {
       description:
-        "Kiro Crew agent hive for chimera-architect, index-surgeon and deadlock-hunter: agent cards from the bundled app.json, paused cron schedules with next runs, dispatch buttons, the lab activity feed as commit-style checkpoints, and a download of the installable Kiro Crew app.",
+        "Local SQL optimizer agent constellation for chimera-architect, index-surgeon and deadlock-hunter: deterministic agent profiles, audit cron schedule previews, dispatch buttons, and the lab activity feed as commit-style checkpoints.",
       props: z.object({
         heading: shortText(60),
         utcOffsetMinutes: z.number().int().min(-720).max(840),
@@ -157,8 +157,8 @@ export const initialPageSpecs: Record<string, Spec> = {
         children: [],
       },
       crew: {
-        type: "KiroCrewAgentConstellation",
-        props: { heading: "KIRO CREW AGENT HIVE", utcOffsetMinutes: 0, showCronPreview: true },
+        type: "OptimizerAgentConstellation",
+        props: { heading: "OPTIMIZER AGENT CONSTELLATION", utcOffsetMinutes: 0, showCronPreview: true },
         children: [],
       },
       spectrum: {
@@ -172,13 +172,13 @@ export const initialPageSpecs: Record<string, Spec> = {
           eyebrow: "OPEN SOURCE // GENUI STUDIO TEMPLATE",
           headline: "Grow your database like a slime mould.",
           subheadline:
-            "CHIMERA // LAB models query traffic as a Physarum network. Full-table scans and N+1 loops glow crimson, Kiro Crew agents propose the composite indexes and batched rewrites that heal them, and you can hear the network settle.",
+            "CHIMERA // LAB models query traffic as a Physarum network. Full-table scans and N+1 loops glow crimson, local optimizer agents propose the composite indexes and batched rewrites that heal them, and you can hear the network settle.",
           primaryCtaLabel: "OPEN THE LAB",
           installCommand: "npx genui-studio add neuro-chimera-synth",
           features: [
             "Hand-written SQL parser and PostgreSQL-style cost planner, fully deterministic",
             "Physarum solver that re-routes traffic when you sever or drag a node",
-            "Three Kiro Crew agents with paused crons and a downloadable app bundle",
+            "Three deterministic SQL optimizer agents with schedule previews and checkpoint logs",
             "FM sonification with a live spectrum and text equivalents",
           ],
         },
@@ -207,9 +207,9 @@ export const initialPageSpecs: Record<string, Spec> = {
               body: "Kirchhoff flow with an implicit conductivity update: tubes carrying fast, indexed traffic thicken while scan-heavy routes wither.",
             },
             {
-              tag: "CREW",
-              title: "Kiro Crew agent hive",
-              body: "chimera-architect, index-surgeon and deadlock-hunter ship as an installable Kiro Crew app. They propose DDL and never run it.",
+              tag: "AGENTS",
+              title: "Optimizer agent hive",
+              body: "chimera-architect, index-surgeon and deadlock-hunter run deterministically in the lab, proposing composite indexes and N+1 batching without mutating any external database.",
             },
             {
               tag: "AUDIO",
@@ -235,8 +235,8 @@ export const initialPageSpecs: Record<string, Spec> = {
               name: "Open Source",
               priceLabel: "$0",
               cadence: "forever",
-              description: "The full lab, catalog and Kiro Crew app under the MIT license.",
-              features: ["All 7 scenarios", "SQL parser, planner and solver", "Kiro Crew app bundle"],
+              description: "The full lab, verified catalog and Next.js starter under the MIT license.",
+              features: ["All 7 scenarios", "SQL parser, planner and solver", "Deterministic optimizer agents"],
               ctaLabel: "Open the lab",
               highlighted: false,
             },
@@ -245,7 +245,7 @@ export const initialPageSpecs: Record<string, Spec> = {
               priceLabel: "$49",
               cadence: "per seat / month",
               description: "A hosted lab with saved scenarios and team sharing.",
-              features: ["Import pg_stat_statements snapshots", "Saved scenario history", "Shared Crew reports"],
+              features: ["Import pg_stat_statements snapshots", "Saved scenario history", "Shared optimization reports"],
               ctaLabel: "Start a trial",
               highlighted: true,
             },
@@ -314,9 +314,9 @@ export function buildRemixJsonl(prompt: string, currentSpec: Spec | null): strin
 
   if (kind === "night-shift") {
     Object.assign(props, {
-      workspaceTitle: "CHIMERA // LAB  AUTONOMOUS KIRO CREW NIGHT-SHIFT",
+      workspaceTitle: "CHIMERA // LAB  AUTONOMOUS AGENT NIGHT-SHIFT",
       defaultMode: "workbench",
-      scenarioId: "kiro-crew-overnight-refactor",
+      scenarioId: "autonomous-overnight-refactor",
       nightShift: true,
     });
   } else if (kind === "genomics") {

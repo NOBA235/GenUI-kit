@@ -15,13 +15,13 @@
   "scripts": {
     "dev": "pnpm --parallel --filter \"./apps/*\" dev",
     "dev:all": "pnpm --parallel --filter \"./apps/*\" dev",
-    "dev:spatial": "pnpm --filter @genui-studio/spatial-ops dev",
     "dev:hub": "pnpm --filter @genui-studio/studio-hub dev",
+    "dev:ninety9": "pnpm --filter @genui-studio/app-ninety9-archive dev",
+    "dev:cmos": "pnpm --filter @genui-studio/app-cmos-cloud-bios dev",
     "new:template": "node scripts/new-template.ts",
     "ingest:standalone": "node scripts/ingest-standalone.ts",
     "sync:templates": "node scripts/sync-templates.ts",
     "generate:ninety9-assets": "node scripts/generate-ninety9-assets.ts",
-    "mcp": "node packages/genui-mcp/dist/cli.js",
     "genui-studio": "node packages/genui-cli/dist/cli.js",
     "build": "pnpm -r --filter ./packages/* build && pnpm -r --filter ./apps/* build",
     "test": "pnpm -r test",
@@ -42,7 +42,6 @@
     "zod": "^4.3.6"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.2",
     "@types/jszip": "^3.4.1",
     "jszip": "^3.10.2"
   }

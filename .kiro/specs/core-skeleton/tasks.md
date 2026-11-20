@@ -7,15 +7,15 @@
 
 ## Phase 1: Research, Architecture, Licensing & `.kiro` Spec Foundation
 - [x] **Task 1.1: Grounded `@json-render` v0.22.0 & `fast-check` v4 API Inspection**
-  - Inspect exact type definitions and runtime signatures for `@json-render/core`, `@json-render/react`, `@json-render/shadcn`, `@json-render/react-three-fiber`, `@json-render/mcp`, and `fast-check`.
+  - Inspect exact type definitions and runtime signatures for `@json-render/core`, `@json-render/react`, `@react-three/fiber`, and `fast-check`.
 - [x] **Task 1.2: Repository Root & Monorepo Skeleton Initialization**
-  - Create root MIT `LICENSE`, `.gitignore` (explicitly preserving `/.kiro`), `pnpm-workspace.yaml`, `package.json`, `tsconfig.base.json`, and workspace manifests for `packages/genui-core` and `apps/spatial-ops`. (The planned `apps/workbench` was never created; App 1 shipped as `apps/studio-hub`, see Task 3.1.)
+  - Create root MIT `LICENSE`, `.gitignore` (explicitly preserving `/.kiro`), `pnpm-workspace.yaml`, `package.json`, `tsconfig.base.json`, and workspace manifests for `packages/genui-core`, `packages/templates`, `packages/genui-cli`, and consumer apps under `apps/`.
 - [x] **Task 1.3: Authoritative `.kiro/steering/` Documentation**
   - Author `product.md`, `tech.md`, `structure.md`, and `genui-invariants.md`.
 - [x] **Task 1.4: `.kiro/specs/core-skeleton/` EARS Requirements & System Design**
   - Author `requirements.md` (EARS syntax), `design.md` (architecture & algorithms), `correctness.md` (PBT properties), and `tasks.md`.
 - [x] **Task 1.5: `.kiro/powers/json-render-power/` & `.kiro/hooks/`**
-  - Author `POWER.md`, `mcp.json`, power steering guides, and automated Kiro workspace hooks.
+  - Author `POWER.md`, power steering guides, and automated Kiro workspace hooks (`catalog-schema-sync`, `spec-invariants-test`, `raw-jsx-guard`).
 
 ---
 
@@ -41,20 +41,12 @@
 
 ---
 
-## Phase 3: Domain Applications Implementation (`apps/studio-hub` & `apps/spatial-ops`)
-- [ ] **Task 3.1: App 1 — GenUI Studio Verification & Chaos Workbench (`apps/workbench`)**
-  - _Status:_ superseded. `apps/workbench` was never created. App 1 shipped as `apps/studio-hub` (template marketplace, scoped `/preview/:slug`, Excalidraw Wireframe Architect, live JSONL remix through `createGuardrailedStreamCompiler`, X-Ray drawer running `runCatalogInvariantSuite` and showing the catalog hash, Next.js `.zip` export). Not built from the plan below: the lossless-vs-lossy `autoFixSpec` diff view, the `watch` dataflow inspector, and the `@json-render/mcp` app export. Kept unchecked for that reason.
-  - Original plan:
-    1. **Catalog & Prompt Inspector:** Live Zod schema viewer, SHA-256 fingerprint badge, and generated `catalog.prompt()` inspector.
-    2. **Live RFC 6902 JSONL Stream Compiler & Editor:** Real-time chunk streaming, patch-by-patch timeline, lossless vs. lossy `autoFixSpec` diff view, and DAG topology inspector.
-    3. **In-Browser `fast-check` Chaos Fuzzing Lab:** Interactive property-based test runner that bombards the active catalog with cyclic graphs, prototype pollution payloads, and malformed expressions, displaying pass/quarantine telemetry.
-    4. **Time-Travel State & MCP App Exporter:** Live `$bindState` / `watch` state inspector with undo/redo scrubber and one-click `@json-render/mcp` standalone app export.
-- [x] **Task 3.2: App 2 — Aegis Spatial Ops & 3D Incident Command Center (`apps/spatial-ops`)**
-  - _Status:_ implemented and tracked in `.kiro/specs/app-spatial-warroom/tasks.md`, with two deviations from the plan below. The 3D scene uses `@react-three/fiber` `<Canvas>` and `@react-three/drei` directly, fed by a catalog-driven scene manifest (`src/three/`); `@json-render/react-three-fiber` and `@json-render/shadcn` are declared in `package.json` but not imported. Remediation runs through catalog actions (`tripCircuitBreaker`, `triggerRegionalFailover`, `scaleServiceReplicas`, `rollbackDeployment`) on the shared `TimeTravelStateStore`, not through `$bindState` sliders or `watch` triggers.
-  - Original plan:
-    1. **Unified 3D + 2D Catalog:** Combines `@json-render/react-three-fiber` (`ThreeCanvas`, `threeComponents`) with `@json-render/shadcn` and custom SRE telemetry components.
-    2. **Shared Bidirectional `TimeTravelStateStore`:** 2D incident remediation playbooks (`$bindState` sliders, switches, action buttons, `watch` triggers) directly mutate cluster node states, traffic weights, and replication factors that simultaneously drive the 3D WebGL topology scene (`Box`, `Sphere`, `Cylinder`, `Orbit`, `Pulse`, `HtmlLabel`, `OrbitControls`).
-    3. **Live Incident Stream & Fault Quarantine:** Stream multi-step SRE incident response specs via `GuardrailedStreamCompiler` and demonstrate live per-node error boundary quarantine without disrupting the 3D viewport.
-- [x] **Task 3.3: End-to-End Verification, Build & Test Validation**
-  - Run full monorepo `pnpm typecheck`, `pnpm test`, `pnpm test:fuzz`, and production Vite builds for both applications.
-  - _Verified 2026-11-17_ in a clean clone (Node 24.20.0, pnpm 9.15.0): `pnpm -r build`, `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` (143 tests, 6 packages) and both Kiro hook scripts exit 0. The same steps run in `.github/workflows/ci.yml`.
+## Phase 3: Consumer Applications on the Shared Skeleton (`apps/`)
+- [x] **Task 3.1: Excalidraw-to-GenUI Workbench (`apps/studio-hub`)**
+  - Shipped as the visual Wireframe-to-Application Workbench: Excalidraw Wireframe Architect (`compileExcalidrawToGenUI`), Landing & SaaS Dashboard wireframe presets, `<WireframeDiagnosticsStrip />`, scoped `/preview/:slug` preview stage, live JSONL remix, X-Ray PBT inspector, runnable Next.js `.zip` export, and 4 MIT starter applications built with Kiro + GenUI.
+- [x] **Task 3.2: Standalone Skeleton Crew Application #1 — NINETY9 Monochrome Archive (`apps/ninety9-archive`)**
+  - Independent runnable Vite application mounting all 6 monochrome archive & 1-bit arcade routes directly on `@genui-studio/core` (`SafeGenUIRenderer`, `TimeTravelStateStore`, `GuardrailedStreamCompiler`).
+- [x] **Task 3.3: Standalone Skeleton Crew Application #2 — BIOS // NECROMANCER (`apps/cmos-cloud-bios`)**
+  - Independent runnable Vite application mounting the 1994 Award CMOS BIOS + 3D WebGL Motherboard Twin + deterministic Cloud IaC Compiler directly on the exact same `@genui-studio/core` runtime.
+- [x] **Task 3.4: End-to-End Verification, Build & Test Validation**
+  - Verified across all 6 workspace packages (`pnpm -r build`, `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` — 18 test files / 120 passing tests, plus `catalog-audit.mjs`, `run-pbt-suite.mjs`, and `audit-wireframe-compiler.mjs`).

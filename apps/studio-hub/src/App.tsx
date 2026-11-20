@@ -83,6 +83,23 @@ export const App: React.FC<StudioHubAppProps> = ({
     return () => window.removeEventListener("popstate", onPopState);
   }, [initialPath]);
 
+  const previewMatch = /^\/preview\/([^/?#]+)(?:\/(.*))?$/.exec(route.path);
+  const matchedSlug = previewMatch?.[1] ? decodeURIComponent(previewMatch[1]) : null;
+
+  // Keep document.title synchronized on SPA transitions (WCAG 2.4.2 Page Titled)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (matchedSlug) {
+      const tpl = getTemplateBySlug(matchedSlug);
+      const label = tpl?.manifest.title ?? matchedSlug;
+      document.title = route.wireframe
+        ? `${label} · Wireframe Workbench | GenUI Studio Hub`
+        : `${label} · Preview | GenUI Studio Hub`;
+    } else {
+      document.title = "GenUI Studio Hub — Wireframe-to-Application Workbench";
+    }
+  }, [matchedSlug, route.wireframe]);
+
   const navigate = useCallback(
     (nextPath: string, fullscreen = false, wireframe: WireframeRouteMode = null) => {
       if (typeof window !== "undefined") {
@@ -93,20 +110,18 @@ export const App: React.FC<StudioHubAppProps> = ({
     [],
   );
 
-  const previewMatch = /^\/preview\/([^/?#]+)(?:\/(.*))?$/.exec(route.path);
-  if (previewMatch && previewMatch[1]) {
-    const slug = decodeURIComponent(previewMatch[1]);
-    const subPath = previewMatch[2]
+  if (matchedSlug) {
+    const subPath = previewMatch?.[2]
       ? decodeURIComponent(previewMatch[2]).replace(/\/+$/, "")
       : undefined;
     return (
       <PreviewPage
-        slug={slug}
+        slug={matchedSlug}
         initialSubPath={subPath}
         isFullscreen={route.fullscreen}
         onToggleFullscreen={() =>
           navigate(
-            subPath ? `/preview/${slug}/${subPath}` : `/preview/${slug}`,
+            subPath ? `/preview/${matchedSlug}/${subPath}` : `/preview/${matchedSlug}`,
             !route.fullscreen,
             route.wireframe,
           )

@@ -40,14 +40,18 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
     const html = renderToStaticMarkup(<App initialPath="/" />);
 
     expect(html).toContain("GenUI Studio Hub");
-    expect(html).toContain("Aegis 3D Spatial Infrastructure War-Room");
+    expect(html).toContain("SaaS Dashboard Wireframe Starter");
     expect(html).toContain("Chronos DeFi Standalone");
     expect(html).toContain("Mode A · Native");
     expect(html).toContain("Mode B · Standalone");
 
-    // Required Flagship Showcase Spotlight + 6 filter tags
+    // Required Kiro + GenUI 4-App Showcase + Live Hero Workbench Sandbox + 6 filter tags
+    expect(html).toContain('data-testid="hero-workbench-preview"');
+    expect(html).toContain("/wireframeBindings/selectedPlan");
+    expect(html).toContain("uptimePercent: 140 → 100");
     expect(html).toContain('data-testid="marketplace-featured-flagship"');
     expect(html).toContain("AFTERDARK 2.0");
+    expect(html).toContain("CHIMERA // LAB");
     expect(html).toContain("npx genui-studio add afterdark-horror");
     expect(html).toContain("3D / WebGL");
     expect(html).toContain("B2B SaaS");
@@ -78,12 +82,12 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
     });
 
     const darkHtml = renderToStaticMarkup(
-      <App initialPath="/preview/spatial-ops-3d-pro" instantStreamForTest />,
+      <App initialPath="/preview/saas-dashboard-starter" instantStreamForTest />,
     );
 
-    expect(darkHtml).toContain('data-template-theme="spatial-ops-3d-pro"');
+    expect(darkHtml).toContain('data-template-theme="saas-dashboard-starter"');
     expect(darkHtml).toContain('data-color-scheme="dark"');
-    expect(darkHtml).toContain('data-template-style="spatial-ops-3d-pro"');
+    expect(darkHtml).toContain('data-template-style="saas-dashboard-starter"');
     expect(darkHtml).toContain("@scope ([data-template-theme=");
     expect(darkHtml).toContain("color-scheme: only dark");
     expect(darkHtml).toContain('data-testid="studio-hud"');
@@ -107,13 +111,13 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
   it("supports ?fullscreen=true mode by hiding full HUD while keeping template theme isolation intact", () => {
     const fullscreenHtml = renderToStaticMarkup(
       <App
-        initialPath="/preview/spatial-ops-3d-pro"
+        initialPath="/preview/saas-dashboard-starter"
         initialFullscreen
         instantStreamForTest
       />,
     );
 
-    expect(fullscreenHtml).toContain('data-template-theme="spatial-ops-3d-pro"');
+    expect(fullscreenHtml).toContain('data-template-theme="saas-dashboard-starter"');
     expect(fullscreenHtml).toContain('data-viewport="fullscreen"');
     expect(fullscreenHtml).toContain('data-testid="exit-fullscreen-btn"');
     expect(fullscreenHtml).not.toContain('data-testid="studio-hud"');
@@ -155,7 +159,7 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       />,
     );
     expect(exportHtml).toContain('data-testid="hub-export-dialog"');
-    expect(exportHtml).toContain("npx genui-studio add spatial-ops-3d-pro");
+    expect(exportHtml).toContain("npx genui-studio add saas-dashboard-starter");
     expect(exportHtml).toContain("2. SKILL.md &amp; POWER.md");
     expect(exportHtml).toContain("3. Standalone Next.js .ZIP");
   });

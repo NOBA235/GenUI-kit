@@ -5,12 +5,12 @@ fileMatchPattern: "packages/templates/src/neuro-chimera-synth/**"
 
 # CHIMERA // LAB Steering (`chimera-frankenstein-rules.md`)
 
-Applies only to Flagship Website #4 (`packages/templates/src/neuro-chimera-synth/**`). It adds to, and never overrides, `genui-invariants.md`, `spatial-3d-rules.md` and `tech.md`.
+Applies only to CHIMERA // LAB (`packages/templates/src/neuro-chimera-synth/**`). It adds to, and never overrides, `genui-invariants.md`, `spatial-3d-rules.md` and `tech.md`.
 
 ## 1. Scope & Isolation
-1. Keep every file inside `packages/templates/src/neuro-chimera-synth/`. The installable Kiro Crew app lives in `neuro-chimera-synth/kiro-crew-app/`. Do not edit root files or other templates.
+1. Keep every file inside `packages/templates/src/neuro-chimera-synth/`. Do not edit unrelated templates.
 2. The template renders at `/preview/neuro-chimera-synth`. All styles stay inside `[data-template-theme="neuro-chimera-synth"]`.
-3. Studio Hub chrome collapses to a corner bio-tag reading `[ALT+G] GENUI STUDIO // EXPORT CHIMERA + KIRO CREW APP`.
+3. Studio Hub chrome collapses to a corner bio-tag reading `[ALT+G] GENUI STUDIO // EXPORT CHIMERA LAB`.
 
 ## 2. Bioluminescent Laboratory Palette
 1. Use only these colours:
@@ -41,18 +41,10 @@ Applies only to Flagship Website #4 (`packages/templates/src/neuro-chimera-synth
 3. React re-renders the HUD at most 10 times per second from throttled telemetry. It never re-renders per frame.
 4. DPR is capped at 2. A `ResizeObserver` resizes the canvas.
 
-## 6. Kiro Crew App Compliance
-1. `kiro-crew-app/` follows the published Kiro Crew App Kit (`kirodotdev/KiroCrew`, `docs/app-kit/`, and https://kiro.dev/docs/crew/apps/manifest/). Treat those docs as the source of truth over this file.
-2. `app.json` must pass `validateCrewManifest()` in `lib/chimera/crew-manifest.ts`, which encodes the documented install-time rules:
-   - `name` is kebab-case and `version` is semver.
-   - Agent, skill, UI and backend paths are relative and stay inside the app root.
-   - Each cron has exactly one of `every` / `cron_expr`.
-   - Each UI page has `route` and `label`.
-   - `backend.hooks.*` use `module.path:callable`.
-3. Agents use `"model": "auto"` and `"tools": ["@kirocrew-core"]`. Prompts are read-only by default: agents propose DDL and query rewrites and never run them without approval.
-4. Crons that need user configuration ship with `"enabled": false`.
-5. The dashboard UI never bundles `@kirocrew/app-sdk`, React or `lucide-react`. The Crew host provides them through its import map.
-6. Every `SKILL.md` is UTF-8 without a BOM. PowerShell redirection writes UTF-16, which Crew skips.
+## 6. Local Optimizer Agent Constellation Compliance
+1. All three built-in optimizer agents (`chimera-architect`, `index-surgeon`, `deadlock-hunter`) run deterministically in-memory against the active `PhysarumNetwork` via `components/lab-store.ts` and `components/OptimizerAgentConstellation.tsx`.
+2. Agents are read-only with respect to external systems: they mutate only local simulator state and record content-hash checkpoints with suggested Conventional Commit messages.
+3. Audit schedule previews use `nextCronRuns()` in `lib/chimera/cron.ts` after client mount to avoid SSR hydration mismatches.
 
 ## 7. Sonification
 1. `lib/chimera/sonifier.ts` uses only the Web Audio API and no-ops under SSR or without `AudioContext`.

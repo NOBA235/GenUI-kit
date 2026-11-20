@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Check, Copy, Download, X } from "lucide-react";
 import {
   buildTemplateCliCommand,
   exportTemplateToShadcnRegistry,
@@ -27,6 +28,19 @@ function triggerTextDownload(filename: string, content: string, mime = "text/mar
   URL.revokeObjectURL(url);
 }
 
+function isPointerOutsideDialog(
+  e: React.PointerEvent<HTMLDialogElement>,
+  dialog: HTMLDialogElement,
+): boolean {
+  const r = dialog.getBoundingClientRect();
+  return (
+    e.clientX < r.left ||
+    e.clientX > r.right ||
+    e.clientY < r.top ||
+    e.clientY > r.bottom
+  );
+}
+
 export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
   isOpen,
   onClose,
@@ -34,6 +48,8 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
   wireframeExport = null,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pressedOutsideRef = useRef(false);
+  const titleId = useId();
   const [activeTab, setActiveTab] = useState<"CLI" | "SKILLS" | "ZIP" | "SHADCN">("CLI");
   const [licenseToken, setLicenseToken] = useState("kiroween-2026-judge-pass");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -52,27 +68,27 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
     }
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+  // Fallback for browsers without <dialog closedby="any"> (Safari):
+  // require both pointerdown and pointerup outside the dialog box so text-selection drags don't dismiss.
+  const handlePointerDown = (e: React.PointerEvent<HTMLDialogElement>) => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (!("closedBy" in HTMLDialogElement.prototype)) {
-      if (e.target !== dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      const inside =
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width;
-      if (!inside) {
-        dialog.close();
-        onClose();
-      }
+    if (!dialog || "closedBy" in HTMLDialogElement.prototype) return;
+    pressedOutsideRef.current = isPointerOutsideDialog(e, dialog);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog || "closedBy" in HTMLDialogElement.prototype) return;
+    if (pressedOutsideRef.current && isPointerOutsideDialog(e, dialog)) {
+      dialog.close();
+      onClose();
     }
+    pressedOutsideRef.current = false;
   };
 
   const handleCopy = (text: string, key: string) => {
-    if (navigator?.clipboard) {
-      navigator.clipboard.writeText(text);
+    if (navigator?.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
     }
@@ -128,30 +144,31 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
       ref={dialogRef}
       {...({ closedby: "any" } as Record<string, unknown>)}
       onClose={onClose}
-      onClick={handleBackdropClick}
-      aria-label="Export Website Template"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      aria-labelledby={titleId}
       data-testid="hub-export-dialog"
-      className="studio-dialog fixed inset-0 m-auto h-fit max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-2xl rounded-3xl border border-[#E8EDF5] bg-white p-0 text-[#0B1221] shadow-2xl overflow-hidden"
+      className="studio-dialog fixed inset-0 m-auto h-fit max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-2xl rounded-2xl border border-[#E4E4E7] bg-white p-0 text-[#09090B] shadow-2xl overflow-hidden"
     >
       <div className="flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-[#E8EDF5] bg-[#FAFBFD] px-4 py-4 sm:gap-4 sm:px-6">
+        <div className="flex items-start justify-between gap-3 border-b border-[#E4E4E7] bg-[#FAFAFA] px-4 py-4 sm:gap-4 sm:px-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base font-bold text-[#0B1221]">
-                Export Website · {manifest.title}
+              <h2 id={titleId} className="text-base font-semibold tracking-tight text-[#09090B]">
+                Export · {manifest.title}
               </h2>
               <span
-                className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase ${
+                className={`rounded-md border px-2 py-0.5 font-mono text-[0.625rem] font-medium ${
                   manifest.mode === "standalone"
-                    ? "border-[#D97706]/40 bg-[#FEF3C7] text-[#92400E]"
-                    : "border-[#E2E8F0] bg-white text-[#5B6B82]"
+                    ? "border-[#FDE68A] bg-[#FFFBEB] text-[#B45309]"
+                    : "border-[#E4E4E7] bg-white text-[#52525B]"
                 }`}
               >
                 {manifest.mode === "standalone" ? "Mode B · Standalone" : "Mode A · Native"}
               </span>
             </div>
-            <p className="text-xs text-[#5B6B82] mt-0.5">
+            <p className="text-xs text-[#52525B] mt-0.5">
               CLI Install, AI Skills (SKILL.md / POWER.md), Standalone Next.js .ZIP &amp; Shadcn Registry
             </p>
           </div>
@@ -162,17 +179,18 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
               onClose();
             }}
             data-testid="close-hub-export-btn"
-            className="shrink-0 min-h-[34px] rounded-full border border-[#CBD5E1] bg-white px-3.5 py-1 font-mono text-xs font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+            className="inline-flex shrink-0 min-h-[32px] items-center gap-1 rounded-lg border border-[#E4E4E7] bg-white px-2.5 py-1 text-xs font-medium text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
-            ✕ Close
+            <X aria-hidden="true" className="h-3.5 w-3.5" />
+            <span>Close</span>
           </button>
         </div>
 
-        {/* Tabs (pill segmented control, matching the X-Ray drawer; scrolls on phones) */}
+        {/* Export Format Switcher */}
         <div
           role="group"
           aria-label="Export format"
-          className="hub-scroll-row gap-1.5 border-b border-[#E8EDF5] bg-white px-4 py-3 font-mono text-xs sm:flex-wrap sm:px-6"
+          className="hub-scroll-row gap-1.5 border-b border-[#E4E4E7] bg-white px-4 py-2.5 font-mono text-xs sm:flex-wrap sm:px-6"
         >
           {(
             [
@@ -187,10 +205,10 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
               type="button"
               aria-pressed={activeTab === tabId}
               onClick={() => setActiveTab(tabId)}
-              className={`min-h-[32px] border px-3.5 py-1 font-semibold focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
+              className={`min-h-[30px] rounded-md border px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1 transition cursor-pointer ${
                 activeTab === tabId
-                  ? "border-[#0B1324] bg-[#0B1324] text-white"
-                  : "border-[#CBD5E1] bg-white text-[#5B6B82] hover:border-[#0B1221] hover:text-[#0B1221]"
+                  ? "border-[#09090B] bg-[#09090B] text-white"
+                  : "border-[#E4E4E7] bg-white text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B]"
               }`}
             >
               {label}
@@ -203,10 +221,10 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
           {activeTab === "CLI" && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block font-mono text-xs font-bold text-[#0B1221]">
-                  Install directly via npx CLI:
-                </label>
-                <div className="hub-code-surface flex items-center gap-2 rounded-2xl border border-white/10 p-3 font-mono text-xs">
+                <span className="block font-mono text-xs font-medium text-[#09090B]">
+                  Install via CLI
+                </span>
+                <div className="hub-code-surface flex items-center gap-2 rounded-xl border border-white/10 p-3 font-mono text-xs">
                   <code className="text-[#93C5FD] flex-1 overflow-x-auto select-all">
                     {npxCommand}
                   </code>
@@ -214,29 +232,39 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
                     type="button"
                     onClick={() => handleCopy(npxCommand, "cli")}
                     data-testid="copy-npx-cli-btn"
-                    className="shrink-0 min-h-[32px] rounded-full bg-[#2563EB] px-4 py-1 font-semibold text-white hover:bg-[#1D4ED8] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 transition cursor-pointer"
+                    className="inline-flex shrink-0 min-h-[30px] items-center gap-1.5 rounded-md bg-[#2563EB] px-3 py-1 text-xs font-medium text-white hover:bg-[#1D4ED8] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 transition cursor-pointer"
                   >
-                    {copiedKey === "cli" ? "✔ Copied" : "Copy"}
+                    {copiedKey === "cli" ? (
+                      <>
+                        <Check aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
 
               {manifest.tier === "pro" && (
-                <div className="rounded-2xl border border-[#E8EDF5] bg-[#F8FAFC] p-4 space-y-2">
+                <div className="rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] p-4 space-y-2">
                   <div className="flex items-center justify-between font-mono text-xs">
-                    <span className="font-bold text-[#0B1221]">
+                    <label htmlFor="export-license-token" className="font-semibold text-[#09090B]">
                       Bearer License Token
-                    </span>
-                    <span className="text-[11px] font-semibold text-[#5B6B82]">
+                    </label>
+                    <span className="text-[0.6875rem] font-medium text-[#52525B]">
                       PRO · ${manifest.priceUsd}
                     </span>
                   </div>
                   <input
+                    id="export-license-token"
                     type="text"
                     value={licenseToken}
                     onChange={(e) => setLicenseToken(e.target.value)}
-                    aria-label="Bearer license token"
-                    className="min-h-[38px] w-full rounded-xl border border-[#CBD5E1] bg-white px-3.5 py-1.5 font-mono text-xs text-[#0B1221] focus:border-[#2563EB] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1"
+                    className="min-h-[36px] w-full rounded-lg border border-[#E4E4E7] bg-white px-3 py-1.5 font-mono text-xs text-[#09090B] focus:border-[#2563EB] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-1"
                   />
                 </div>
               )}
@@ -245,53 +273,75 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
 
           {activeTab === "SKILLS" && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => triggerTextDownload(`${manifest.slug}-SKILL.md`, skillMd)}
                   data-testid="download-skill-md-btn"
-                  className="min-h-[40px] rounded-full border border-[#2563EB] bg-[#EFF4FF] px-4 py-2 font-mono text-xs font-semibold text-[#1D4ED8] hover:bg-[#DBEAFE] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+                  className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#EFF6FF] px-4 py-2 font-mono text-xs font-medium text-[#1D4ED8] hover:bg-[#DBEAFE] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
                 >
-                  ⬇ Download SKILL.md
+                  <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>Download SKILL.md</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => triggerTextDownload(`${manifest.slug}-POWER.md`, kiroPowerMd)}
                   data-testid="download-power-md-btn"
-                  className="min-h-[40px] rounded-full border border-[#CBD5E1] bg-white px-4 py-2 font-mono text-xs font-semibold text-[#0B1221] hover:border-[#0B1221] hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+                  className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-4 py-2 font-mono text-xs font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
                 >
-                  ⬇ Download Kiro POWER.md
+                  <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>Download Kiro POWER.md</span>
                 </button>
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between font-mono text-xs text-[#0B1221]">
-                  <span className="font-bold">SKILL.md Preview</span>
+                <div className="flex items-center justify-between font-mono text-xs text-[#09090B]">
+                  <span className="font-semibold">SKILL.md Preview</span>
                   <button
                     type="button"
                     onClick={() => handleCopy(skillMd, "skill")}
-                    className="min-h-[28px] rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-0.5 text-[11px] font-semibold text-[#0B1221] hover:bg-[#EEF2F6] cursor-pointer"
+                    className="inline-flex min-h-[26px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-[#FAFAFA] px-2.5 py-0.5 text-[0.6875rem] font-medium text-[#09090B] hover:bg-[#F4F4F5] cursor-pointer"
                   >
-                    {copiedKey === "skill" ? "✔ Copied" : "Copy SKILL.md"}
+                    {copiedKey === "skill" ? (
+                      <>
+                        <Check aria-hidden="true" className="h-3 w-3 text-[#047857]" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy aria-hidden="true" className="h-3 w-3" />
+                        <span>Copy SKILL.md</span>
+                      </>
+                    )}
                   </button>
                 </div>
-                <pre className="hub-code-surface rounded-2xl border border-white/10 p-3.5 font-mono text-[11px] max-h-40 overflow-y-auto whitespace-pre-wrap">
+                <pre className="hub-code-surface rounded-xl border border-white/10 p-3.5 font-mono text-[0.6875rem] max-h-40 overflow-y-auto whitespace-pre-wrap">
                   {skillMd}
                 </pre>
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between font-mono text-xs text-[#0B1221]">
-                  <span className="font-bold">Kiro POWER.md Preview</span>
+                <div className="flex items-center justify-between font-mono text-xs text-[#09090B]">
+                  <span className="font-semibold">Kiro POWER.md Preview</span>
                   <button
                     type="button"
                     onClick={() => handleCopy(kiroPowerMd, "power")}
-                    className="min-h-[28px] rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-0.5 text-[11px] font-semibold text-[#0B1221] hover:bg-[#EEF2F6] cursor-pointer"
+                    className="inline-flex min-h-[26px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-[#FAFAFA] px-2.5 py-0.5 text-[0.6875rem] font-medium text-[#09090B] hover:bg-[#F4F4F5] cursor-pointer"
                   >
-                    {copiedKey === "power" ? "✔ Copied" : "Copy POWER.md"}
+                    {copiedKey === "power" ? (
+                      <>
+                        <Check aria-hidden="true" className="h-3 w-3 text-[#047857]" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy aria-hidden="true" className="h-3 w-3" />
+                        <span>Copy POWER.md</span>
+                      </>
+                    )}
                   </button>
                 </div>
-                <pre className="hub-code-surface rounded-2xl border border-white/10 p-3.5 font-mono text-[11px] max-h-40 overflow-y-auto whitespace-pre-wrap">
+                <pre className="hub-code-surface rounded-xl border border-white/10 p-3.5 font-mono text-[0.6875rem] max-h-40 overflow-y-auto whitespace-pre-wrap">
                   {kiroPowerMd}
                 </pre>
               </div>
@@ -300,13 +350,13 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
 
           {activeTab === "ZIP" && (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-[#E8EDF5] bg-[#F8FAFC] p-5 space-y-3">
-                <h3 className="text-sm font-bold text-[#0B1221]">
+              <div className="rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-[#09090B]">
                   {manifest.mode === "standalone"
                     ? "Download Clean Standalone Source + GenUI Bridge (.ZIP)"
                     : "Download Standalone Next.js 15 Project (base-nextjs-shell + Template .ZIP)"}
                 </h3>
-                <p className="text-xs text-[#5B6B82] leading-relaxed">
+                <p className="text-xs text-[#52525B] leading-relaxed">
                   {manifest.mode === "standalone"
                     ? "Packages the clean standalone source tree (node_modules, .next, .git, and .env excluded) alongside genui/catalog.ts, SKILL.md, POWER.md, and ASSET_MANIFEST.md."
                     : "Merges GenUI Studio's base-nextjs-shell (Next.js 15 App Router, Tailwind v4, TypeScript) with this template's components, catalog.ts, scoped theme.css, SKILL.md, POWER.md, and ASSET_MANIFEST.md."}
@@ -314,10 +364,10 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
                 <div
                   data-testid="export-wireframe-status"
                   data-includes-wireframe={wireframeExport ? "true" : "false"}
-                  className={`rounded-xl border px-3 py-2 font-mono text-[11px] leading-relaxed ${
+                  className={`rounded-lg border px-3 py-2 font-mono text-[0.6875rem] leading-relaxed ${
                     wireframeExport
                       ? "border-[#A7F3D0] bg-[#ECFDF5] text-[#047857]"
-                      : "border-[#E2E8F0] bg-white text-[#5B6B82]"
+                      : "border-[#E4E4E7] bg-white text-[#52525B]"
                   }`}
                 >
                   {wireframeExport ? (
@@ -349,14 +399,17 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
                   disabled={isGeneratingZip}
                   onClick={handleDownloadZip}
                   data-testid="download-nextjs-zip-btn"
-                  className="min-h-[42px] w-full rounded-full bg-[#0B1324] py-2.5 font-mono text-xs font-semibold text-white hover:bg-[#1E293B] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+                  className="inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg bg-[#09090B] py-2 font-mono text-xs font-medium text-white hover:enabled:bg-[#18181B] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
                 >
-                  {isGeneratingZip
-                    ? "Building Standalone Next.js .ZIP..."
-                    : `⬇ Download ${zipFilename}`}
+                  <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>
+                    {isGeneratingZip
+                      ? "Building Standalone Next.js .ZIP..."
+                      : `Download ${zipFilename}`}
+                  </span>
                 </button>
                 {zipStatus && (
-                  <p className="text-xs font-mono font-semibold text-[#047857] text-center">
+                  <p className="text-xs font-mono font-medium text-[#047857] text-center">
                     {zipStatus}
                   </p>
                 )}
@@ -366,19 +419,29 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
 
           {activeTab === "SHADCN" && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between font-mono text-xs text-[#0B1221]">
-                <span className="font-bold">
+              <div className="flex items-center justify-between font-mono text-xs text-[#09090B]">
+                <span className="font-semibold">
                   Shadcn Registry Item JSON (registry:block)
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopy(shadcnPreviewJson, "shadcn")}
-                  className="min-h-[28px] rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-[11px] font-semibold text-[#0B1221] hover:bg-[#EEF2F6] cursor-pointer"
+                  className="inline-flex min-h-[26px] items-center gap-1 rounded-md border border-[#E4E4E7] bg-[#FAFAFA] px-2.5 py-1 text-[0.6875rem] font-medium text-[#09090B] hover:bg-[#F4F4F5] cursor-pointer"
                 >
-                  {copiedKey === "shadcn" ? "✔ Copied JSON" : "Copy JSON"}
+                  {copiedKey === "shadcn" ? (
+                    <>
+                      <Check aria-hidden="true" className="h-3 w-3 text-[#047857]" />
+                      <span>Copied JSON</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy aria-hidden="true" className="h-3 w-3" />
+                      <span>Copy JSON</span>
+                    </>
+                  )}
                 </button>
               </div>
-              <pre className="hub-code-surface rounded-2xl border border-white/10 p-3.5 font-mono text-[11px] max-h-64 overflow-y-auto">
+              <pre className="hub-code-surface rounded-xl border border-white/10 p-3.5 font-mono text-[0.6875rem] max-h-64 overflow-y-auto">
                 {shadcnPreviewJson}
               </pre>
             </div>

@@ -629,7 +629,7 @@ export class PhysarumNetwork {
   }
 
   /**
-   * The Kiro Crew Optimizer Agent, deterministic edition: apply the index recommendations with
+   * The Optimizer Agent, deterministic edition: apply the index recommendations with
    * the largest call-weighted savings (up to `maxIndexes`), then batch every N+1 query.
    */
   runOptimizerAgent(maxIndexes = 3): OptimizerReport {
