@@ -648,3 +648,11 @@ export function runCatalogInvariantSuite(
 }
 
 export { createVerifiedCatalog };
+
+export {
+  extractActionVocabulary,
+  fuzzPlaytestSpec,
+  type DeadRuleDiagnostic,
+  type PlaytestFuzzOptions,
+  type PlaytestFuzzReport,
+} from "./playtest-fuzzer.js";

@@ -1,6 +1,6 @@
 import type { Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
-import type { VerifiedCatalog } from "@genui-studio/core";
+import type { InteractionRule, VerifiedCatalog } from "@genui-studio/core";
 
 export type TemplateMode = "native" | "standalone";
 
@@ -128,6 +128,14 @@ export interface TemplateWireframeExport {
   readonly designMd: string;
   /** Optional Excalidraw v2 scene JSON, written to `wireframe/<slug>.excalidraw.json`. */
   readonly excalidrawJson?: string;
+  /**
+   * Optional interaction rules. When non-empty they are sanitized, written into the
+   * exported `wireframe.spec.json` as `rules`, and the home route runs them through
+   * `createInteractionRuleEngine` on the same state store the renderer reads.
+   */
+  readonly rules?: readonly InteractionRule[];
+  /** Scene id the rule engine starts in (default: `"main"`). */
+  readonly initialScene?: string;
 }
 
 export interface TemplateRegistryFilter {

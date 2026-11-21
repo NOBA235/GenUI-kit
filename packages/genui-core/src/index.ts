@@ -68,5 +68,57 @@ export {
   type WrapRegistryOptions,
 } from "./boundary/safe-renderer.js";
 
+export {
+  DEFAULT_MAX_TRANSITIONS_PER_STEP,
+  MAX_EFFECTS_PER_RULE,
+  MAX_GUARD_DEPTH,
+  MAX_GUARDS_PER_RULE,
+  MAX_INTERACTION_RULES,
+  CreativeBriefSchema,
+  InteractionEffectSchema,
+  InteractionGuardSchema,
+  InteractionRuleSchema,
+  InteractionTriggerSchema,
+  OutcomeStatusSchema,
+  PreservedConstraintCategorySchema,
+  PreservedConstraintSchema,
+  SynthSoundCueSchema,
+  sanitizeInteractionRules,
+  type CreativeBrief,
+  type InteractionEffect,
+  type InteractionEvent,
+  type InteractionGuard,
+  type InteractionRule,
+  type InteractionTrigger,
+  type OutcomeStatus,
+  type PreservedConstraint,
+  type PreservedConstraintCategory,
+  type RuleSanitizationResult,
+  type SynthSoundCue,
+} from "./interaction/rule-types.js";
+
+export {
+  deepEqualInteractionValue,
+  evaluateInteractionGuard,
+} from "./interaction/guard-eval.js";
+
+export {
+  createWebAudioSynth,
+  type MinimalAudioContext,
+  type MinimalAudioParam,
+  type MinimalGainNode,
+  type MinimalOscillatorNode,
+  type WebAudioSynth,
+  type WebAudioSynthOptions,
+} from "./interaction/synth-audio.js";
+
+export {
+  createInteractionRuleEngine,
+  type FiredRuleTrace,
+  type InteractionRuleEngine,
+  type InteractionRuleEngineOptions,
+  type InteractionStepReport,
+} from "./interaction/rule-engine.js";
+
 export * from "./registry/index.js";
 

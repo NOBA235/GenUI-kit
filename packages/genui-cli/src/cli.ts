@@ -7,6 +7,12 @@ import {
   getAllTemplates,
   getTemplateBySlug,
 } from "@genui-studio/templates";
+import {
+  exportSkillPack,
+  fuzzBehavioralSpec,
+  loadBehavioralSpecFile,
+  parseRequiredOutcomes,
+} from "./behavior.js";
 import { installPack } from "./installer.js";
 import {
   loadAllowedComponentsFile,
@@ -32,12 +38,16 @@ function printHelp() {
     $ npx genui-studio add <pack-name> [flags]
     $ npx genui-studio list
     $ npx genui-studio export <pack-name> [flags]
+    $ npx genui-studio export-skill <slug|spec.json> [--out=<zip>] [--template=<slug>]
+    $ npx genui-studio fuzz <spec.json> [--runs=100] [--seed=42] [--require-outcome=win]
 
   \x1b[1mCOMMANDS:\x1b[0m
     \x1b[32mvalidate <file>\x1b[0m  Validate .json/.jsonl/.sse UI Specs against DAG & safety invariants
     \x1b[32madd <pack>\x1b[0m       Install template pack components, Zod catalog & AI skills
     \x1b[32mlist\x1b[0m             List all available 2D & 3D template packs and pricing
     \x1b[32mexport <pack>\x1b[0m    Generate a complete, ready-to-run Next.js project .zip
+    \x1b[32mexport-skill\x1b[0m     Export an Agent Skill & Contract Pack (.zip) for Kiro, Cursor, Claude Code, Codex
+    \x1b[32mfuzz <spec>\x1b[0m      Playtest a behavioral spec's rules; exits 1 on crashes or unreachable outcomes
 
   \x1b[1mFLAGS:\x1b[0m
     --license=<key>    Bearer license token for Pro commercial packs
@@ -49,7 +59,13 @@ function printHelp() {
     --max-depth=<n>    Max allowed tree depth (default: 16)
     --max-elements=<n> Max allowed element count (default: 500)
     --strict           Fail on warnings (healed values, duplicate refs)
-    --json             Print machine-readable JSON output (validate command)
+    --json             Print machine-readable JSON output (validate, fuzz, export-skill)
+    --out=<file>       Output .zip path (export-skill; default: <slug>-skill-pack.zip)
+    --template=<slug>  Catalog used to validate a spec file (export-skill; default: showcase catalog)
+    --runs=<n>         Fuzzed sessions (fuzz, export-skill; default: 100)
+    --seed=<n>         Fuzzer seed (fuzz, export-skill; default: 42)
+    --max-steps=<n>    Max events per fuzzed session (fuzz, export-skill; default: 24)
+    --require-outcome=<list>  Comma-separated outcomes fuzz must reach (win,lose,complete)
     --help, -h         Show help
 
   \x1b[1mAVAILABLE STARTERS & APPS (ALL MIT):\x1b[0m
@@ -60,6 +76,34 @@ function printHelp() {
     \x1b[36mcmos-cloud-bios\x1b[0m          (Free MIT) - BIOS // NECROMANCER CMOS Utility + 3D PCB IaC Compiler
     \x1b[32mneuro-chimera-synth\x1b[0m      (Free MIT) - CHIMERA // LAB Physarum Bio-SQL Optimizer Lab
 `);
+}
+
+/** Flags that take a value (`--flag=value` or `--flag value`), mapped to their key in `flags`. */
+const VALUE_FLAGS: Readonly<Record<string, string>> = {
+  "--out": "out",
+  "--template": "template",
+  "--runs": "runs",
+  "--seed": "seed",
+  "--max-steps": "maxSteps",
+  "--require-outcome": "requireOutcome",
+};
+
+function readIntFlag(value: string | boolean | undefined, name: string): number | undefined {
+  if (typeof value !== "string") return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`--${name} must be an integer (got "${value}").`);
+  }
+  return parsed;
+}
+
+function printError(json: boolean, err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  if (json) {
+    console.log(JSON.stringify({ ok: false, error: message }));
+  } else {
+    console.error(`\x1b[31mError:\x1b[0m ${message}`);
+  }
 }
 
 async function main() {
@@ -99,6 +143,13 @@ async function main() {
       flags.maxElements = arg.slice("--max-elements=".length);
     } else if (arg === "--max-elements" && args[i + 1]) {
       flags.maxElements = args[++i]!;
+    } else if (VALUE_FLAGS[arg.split("=")[0]!]) {
+      const name = VALUE_FLAGS[arg.split("=")[0]!]!;
+      if (arg.includes("=")) {
+        flags[name] = arg.slice(arg.indexOf("=") + 1);
+      } else if (args[i + 1] !== undefined) {
+        flags[name] = args[++i]!;
+      }
     } else if (arg === "--overwrite") {
       flags.overwrite = true;
     } else if (arg === "--dry-run") {
@@ -291,6 +342,120 @@ async function main() {
     fs.writeFileSync(path.resolve(process.cwd(), outFilename), Buffer.from(zipBytes));
 
     console.log(`  \x1b[32m✔ Project .zip exported to ${outFilename} (${(zipBytes.byteLength / 1024).toFixed(1)} KB)!\x1b[0m\n`);
+    return;
+  }
+
+  if (command === "fuzz") {
+    const target = args[1];
+    const json = Boolean(flags.json);
+    if (!target || target.startsWith("--")) {
+      printError(json, "Missing spec file. Usage: genui-studio fuzz <spec.json> [--runs=100] [--seed=42] [--require-outcome=win]");
+      process.exit(1);
+    }
+    try {
+      const requireOutcomes = parseRequiredOutcomes(
+        typeof flags.requireOutcome === "string" ? flags.requireOutcome : undefined,
+      );
+      const { report, ruleCount, droppedRules } = fuzzBehavioralSpec(
+        loadBehavioralSpecFile(target),
+        {
+          numRuns: readIntFlag(flags.runs, "runs"),
+          seed: readIntFlag(flags.seed, "seed"),
+          maxStepsPerRun: readIntFlag(flags.maxSteps, "max-steps"),
+          requireOutcomes,
+        },
+      );
+      const unreachable = requireOutcomes.filter((o) => report.outcomesReached[o] === 0);
+
+      if (json) {
+        console.log(JSON.stringify({ ok: report.passed, requireOutcomes, unreachable, ruleCount, droppedRules, report }, null, 2));
+      } else {
+        const badge = report.passed ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m";
+        const reached = Object.entries(report.outcomesReached)
+          .map(([o, n]) => `${o}=${n}`)
+          .join(" ");
+        console.log(
+          `[${badge}] rules=${ruleCount} runs=${report.totalRuns} events=${report.totalEventsDispatched} exceptions=${report.unhandledExceptions} breakerTrips=${report.circuitBreakerTrips}`,
+        );
+        console.log(`  outcomes: ${reached}`);
+        for (const outcome of ["win", "lose", "complete"] as const) {
+          const trace = report.shortestTraces[outcome];
+          if (trace) console.log(`  shortest ${outcome}: ${trace.length} events`);
+        }
+        if (droppedRules > 0) {
+          console.log(`  \x1b[33mWARN \x1b[0m ${droppedRules} rule(s) dropped by the sanitizer`);
+        }
+        for (const dead of report.deadRules) {
+          console.log(`  \x1b[33mWARN \x1b[0m rule never fired: ${dead.id} (${dead.label})${dead.sourceSection ? ` from ${dead.sourceSection}` : ""}`);
+        }
+        for (const outcome of unreachable) {
+          console.log(`  \x1b[31mERROR\x1b[0m required outcome "${outcome}" was not reached`);
+        }
+      }
+      if (!report.passed) process.exit(1);
+    } catch (err) {
+      printError(json, err);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (command === "export-skill") {
+    const target = args[1];
+    const json = Boolean(flags.json);
+    if (!target || target.startsWith("--")) {
+      printError(json, "Missing target. Usage: genui-studio export-skill <slug|spec.json> [--out=<zip>] [--template=<slug>]");
+      process.exit(1);
+    }
+    try {
+      const fuzz = {
+        numRuns: readIntFlag(flags.runs, "runs"),
+        seed: readIntFlag(flags.seed, "seed"),
+        maxStepsPerRun: readIntFlag(flags.maxSteps, "max-steps"),
+      };
+      const { pack, outPath, byteLength } = await exportSkillPack(target, {
+        ...(typeof flags.out === "string" ? { out: flags.out } : {}),
+        ...(typeof flags.template === "string" ? { templateSlug: flags.template } : {}),
+        fuzz,
+      });
+      const outcomes = pack.verifiedTraces.map((t) => t.outcome);
+      if (json) {
+        console.log(
+          JSON.stringify(
+            {
+              ok: true,
+              slug: pack.slug,
+              out: outPath,
+              bytes: byteLength,
+              files: Object.keys(pack.files).sort(),
+              verifiedOutcomes: outcomes,
+              deadRules: pack.fuzzReport.deadRules,
+              unknownComponentTypes: pack.unknownComponentTypes,
+              issues: pack.issues,
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        console.log(`\x1b[32m✔ Skill Pack "${pack.slug}" written to ${outPath} (${(byteLength / 1024).toFixed(1)} KB)\x1b[0m`);
+        console.log(`  files: ${Object.keys(pack.files).length}`);
+        console.log(`  verified outcomes: ${outcomes.length > 0 ? outcomes.join(", ") : "none"}`);
+        for (const dead of pack.fuzzReport.deadRules) {
+          console.log(`  \x1b[33mWARN \x1b[0m rule never fired: ${dead.id} (${dead.label})`);
+        }
+        for (const type of pack.unknownComponentTypes) {
+          console.log(`  \x1b[33mWARN \x1b[0m element type not in catalog: ${type}`);
+        }
+        if (pack.issues.length > 0) {
+          console.log(`  ${pack.issues.length} sanitizer issue(s); rerun with --json for details`);
+        }
+        console.log("  next: extract at your repo root, then run `npx vitest run contracts/invariants.pbt.test.ts`");
+      }
+    } catch (err) {
+      printError(json, err);
+      process.exit(1);
+    }
     return;
   }
 

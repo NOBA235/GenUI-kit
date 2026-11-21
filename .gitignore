@@ -15,6 +15,8 @@ out/
 coverage/
 # Scratch project written by apps/studio-hub workbench-journey.e2e.test.tsx (removed after the run)
 apps/studio-hub/.e2e-export/
+# Extracted Skill Pack run by packages/templates skill-pack-exporter.test.ts (removed after the run)
+packages/templates/.temp/
 
 # Environment variables
 .env

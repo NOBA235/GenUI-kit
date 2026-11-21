@@ -55,7 +55,8 @@ export type GraphIssueCode =
   | "stream_limit_exceeded"
   | "line_limit_exceeded"
   | "value_depth_exceeded"
-  | "value_budget_exceeded";
+  | "value_budget_exceeded"
+  | "rule_budget_exceeded";
 
 /**
  * Extended structural / security issue reported by @genui-studio/core.

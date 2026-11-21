@@ -45,6 +45,31 @@ export {
 } from "./exporter.js";
 
 export {
+  buildSkillPack,
+  buildSkillPackFiles,
+  createStarterBrief,
+  generateSkillPackZip,
+  readBehavioralSpecSource,
+  skillPackInputFromTemplate,
+  toSafeSlug,
+  zipSkillPackFiles,
+  type BehavioralSpecSource,
+} from "./skill-pack-exporter.js";
+
+export {
+  BEHAVIORAL_SPEC_FORMAT,
+  type BehavioralSpecDocument,
+  type CatalogComponentContract,
+  type SkillPackBuildResult,
+  type SkillPackFuzzOptions,
+  type SkillPackInput,
+  type TerminalOutcome,
+  type VerifiedTrace,
+} from "./skill-pack-types.js";
+
+export { CONTRACT_TEST_PATH } from "./skill-pack-docs.js";
+
+export {
   SHOWCASE_PACK_TEMPLATES,
   showcasePreviewCatalog,
 } from "./showcase-adapters.js";

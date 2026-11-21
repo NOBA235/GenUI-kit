@@ -1,7 +1,10 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import JSZip from "jszip";
+import { afterAll, describe, expect, it } from "vitest";
 import {
   ALL_TEMPLATE_PACKS,
   generatePackZip,
@@ -312,5 +315,173 @@ describe("GenUI Studio Template Pack Registry & Installer", () => {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// export-skill and fuzz: spawned against the built CLI so exit codes are real.
+// `pnpm -r build` runs before `pnpm -r test` in CI.
+// ---------------------------------------------------------------------------
+
+const CLI_ENTRY = fileURLToPath(new URL("../../dist/cli.js", import.meta.url));
+const behaviorDir = fs.mkdtempSync(path.join(os.tmpdir(), "genui-cli-behavior-"));
+
+afterAll(() => {
+  fs.rmSync(behaviorDir, { recursive: true, force: true });
+});
+
+function runCli(args: readonly string[]) {
+  const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
+    cwd: behaviorDir,
+    encoding: "utf8",
+    env: { ...process.env, NO_COLOR: "1" },
+    timeout: 60_000,
+  });
+  return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+}
+
+const behavioralSpec = {
+  brief: {
+    title: "Signal Relay Vault",
+    slug: "signal-relay-vault",
+    inputMode: "master-prompt",
+    promptSummary: "Charge, arm and open the vault before the signal drains.",
+    elevatorPitch: "Charge, arm and open the vault before the signal drains.",
+    aestheticDirection: "Dark control room with amber indicators.",
+    coreLoop: "Click hero to charge, click metrics to arm, press Enter to open.",
+    winCondition: "Open the vault.",
+    loseCondition: "Signal reaches zero.",
+    targetStack: "Next.js 15",
+    scenes: ["main"],
+    preservedConstraints: [
+      {
+        id: "C-1",
+        category: "auth-security",
+        sourceSection: "## Security",
+        requirement: "Only authenticated operators may call POST /api/vault/unlock.",
+      },
+    ],
+  },
+  spec: {
+    root: "shell",
+    state: { charge: 0, armed: false, signal: 3 },
+    elements: {
+      shell: {
+        type: "SiteShell",
+        props: { brandName: "Relay", tagline: "Keep the signal alive", badge: "LIVE", layoutDensity: "compact" },
+        children: ["hero", "metrics"],
+      },
+      hero: {
+        type: "HeroSection",
+        props: { eyebrow: "1", headline: "Charge", summary: "Click to charge.", primaryCta: "Charge", secondaryCta: null },
+        children: [],
+      },
+      metrics: {
+        type: "MetricStrip",
+        props: { heading: "Vault", primaryValue: "0", primaryLabel: "Charge", secondaryValue: "3", secondaryLabel: "Signal", uptimePercent: 50 },
+        children: [],
+      },
+    },
+  },
+  rules: [
+    {
+      id: "charge",
+      label: "Charge",
+      trigger: { type: "onClick", elementKey: "hero" },
+      effects: [{ type: "inc", path: "/charge", by: 1, max: 2 }],
+    },
+    {
+      id: "arm",
+      label: "Arm",
+      trigger: { type: "onClick", elementKey: "metrics" },
+      guards: [{ op: "gte", path: "/charge", value: 2 }],
+      effects: [{ type: "set", path: "/armed", value: true }],
+    },
+    {
+      id: "open",
+      label: "Open",
+      trigger: { type: "onKeyPress", key: "Enter" },
+      guards: [{ op: "truthy", path: "/armed" }],
+      effects: [{ type: "setOutcome", outcome: "win" }],
+    },
+    {
+      id: "drain",
+      label: "Drain",
+      trigger: { type: "onTimerTick", timerId: "drain" },
+      effects: [{ type: "dec", path: "/signal", by: 1, min: 0 }],
+    },
+    {
+      id: "lost",
+      label: "Signal lost",
+      trigger: { type: "onStateMatch" },
+      guards: [{ op: "lte", path: "/signal", value: 0 }],
+      effects: [{ type: "setOutcome", outcome: "lose" }],
+    },
+  ],
+};
+
+// Each test spawns Node; under `pnpm -r test` other packages run in parallel, so allow more
+// than Vitest's 5 s default.
+describe("CLI behavioral commands (genui-studio fuzz / export-skill)", { timeout: 60_000 }, () => {
+  const specPath = path.join(behaviorDir, "vault.behavior.json");
+  fs.writeFileSync(specPath, JSON.stringify(behavioralSpec, null, 2));
+
+  it("the built CLI exists (run `pnpm -r build` first)", () => {
+    expect(fs.existsSync(CLI_ENTRY)).toBe(true);
+  });
+
+  it("fuzz exits 0 when the required outcomes are reachable", () => {
+    const res = runCli(["fuzz", specPath, "--require-outcome=win,lose", "--runs=100", "--seed=42", "--json"]);
+    expect(res.status, res.stderr || res.stdout).toBe(0);
+    const out = JSON.parse(res.stdout) as {
+      ok: boolean;
+      unreachable: string[];
+      report: { outcomesReached: Record<string, number>; unhandledExceptions: number };
+    };
+    expect(out.ok).toBe(true);
+    expect(out.unreachable).toEqual([]);
+    expect(out.report.outcomesReached.win).toBeGreaterThan(0);
+    expect(out.report.outcomesReached.lose).toBeGreaterThan(0);
+    expect(out.report.unhandledExceptions).toBe(0);
+  });
+
+  it("fuzz exits non-zero when a required outcome is unreachable", () => {
+    const res = runCli(["fuzz", specPath, "--require-outcome", "complete"]);
+    expect(res.status).not.toBe(0);
+    expect(res.stdout).toContain('required outcome "complete" was not reached');
+  });
+
+  it("fuzz rejects unknown outcomes and missing files", () => {
+    expect(runCli(["fuzz", specPath, "--require-outcome=victory"]).status).not.toBe(0);
+    expect(runCli(["fuzz", path.join(behaviorDir, "missing.json")]).status).not.toBe(0);
+  });
+
+  it("export-skill writes a Skill Pack zip from a spec file", async () => {
+    const outZip = path.join(behaviorDir, "out", "vault-pack.zip");
+    const res = runCli(["export-skill", specPath, `--out=${outZip}`, "--json"]);
+    expect(res.status, res.stderr || res.stdout).toBe(0);
+    const out = JSON.parse(res.stdout) as { ok: boolean; slug: string; verifiedOutcomes: string[] };
+    expect(out.ok).toBe(true);
+    expect(out.slug).toBe("signal-relay-vault");
+    expect(out.verifiedOutcomes.sort()).toEqual(["lose", "win"]);
+
+    const zip = await JSZip.loadAsync(fs.readFileSync(outZip));
+    expect(zip.file("contracts/invariants.pbt.test.ts")).not.toBeNull();
+    expect(zip.file("contracts/production-driver.ts")).not.toBeNull();
+    expect(zip.file(".kiro/specs/signal-relay-vault/tasks.md")).not.toBeNull();
+    const skill = await zip.file("SKILL.md")!.async("string");
+    expect(skill).toContain("Only authenticated operators may call POST /api/vault/unlock.");
+  });
+
+  it("export-skill accepts a template slug and writes the default file name", () => {
+    const res = runCli(["export-skill", "product-landing-starter"]);
+    expect(res.status, res.stderr || res.stdout).toBe(0);
+    expect(fs.existsSync(path.join(behaviorDir, "product-landing-starter-skill-pack.zip"))).toBe(true);
+  });
+
+  it("export-skill exits non-zero for an unknown target", () => {
+    const res = runCli(["export-skill", "no-such-template"]);
+    expect(res.status).not.toBe(0);
+    expect(res.stderr).toContain("neither a spec file nor a known template slug");
   });
 });

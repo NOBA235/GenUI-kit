@@ -1,8 +1,11 @@
+import { sanitizeInteractionRules } from "@genui-studio/core";
 import type {
   DualModeTemplateEntry,
   TemplateSourceFile,
   TemplateWireframeExport,
 } from "./types.js";
+
+const SCENE_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 
 /**
  * Browser-safe copy of `packages/templates/base-nextjs-shell/` so Next.js .ZIP exports
@@ -266,9 +269,193 @@ export default function ${componentName}() {
 }
 
 /**
+ * Home route for a wireframe that carries interaction rules. The rule engine and the
+ * renderer share one `TimeTravelStateStore`, so `$state` bindings show rule effects.
+ *
+ * Events reach the engine through:
+ * - clicks on elements targeted by `onClick` rules (delegated listener; each component is
+ *   wrapped in a `display: contents` node carrying its spec element key),
+ * - `keydown` on the window (`onKeyPress`),
+ * - one interval per `onTimerTick` rule with `intervalMs` (paused while the tab is hidden),
+ * - the `dispatchInteraction` action handler, for components that emit events bound in
+ *   the spec (`on: { drop: { action: "dispatchInteraction", params: { type: "onDrop", ... } } }`).
+ */
+function buildInteractiveWireframeRoutePage(componentName: string, slug: string): string {
+  return `"use client";
+import React, { useEffect, useMemo } from "react";
+import type { Spec } from "@json-render/core";
+import { JSONUIProvider, type ComponentRegistry } from "@json-render/react";
+import {
+  createInteractionRuleEngine,
+  createTelemetryTracker,
+  createTimeTravelStateStore,
+  GENUI_ELEMENT_KEY_FIELD,
+  SafeGenUIRenderer,
+  sanitizeInteractionRules,
+  wrapRegistryWithTelemetry,
+  type InteractionEvent,
+} from "@genui-studio/core";
+import { verifiedCatalog } from "../src/template/catalog";
+import { templateComponents } from "../src/template/components";
+import wireframeSpecJson from "../src/template/wireframe.spec.json";
+
+// Compiled in GenUI Studio Wireframe Architect. Source sketch: wireframe/${slug}.excalidraw.json
+const wireframeDoc = wireframeSpecJson as unknown as Spec & {
+  rules?: unknown[];
+  initialScene?: string;
+};
+const wireframeSpec: Spec = {
+  root: wireframeDoc.root,
+  elements: wireframeDoc.elements,
+  ...(wireframeDoc.state ? { state: wireframeDoc.state } : {}),
+};
+const rules = sanitizeInteractionRules(wireframeDoc.rules ?? []).rules;
+const clickTargets = new Set(
+  rules.flatMap((rule) => (rule.trigger.type === "onClick" ? [rule.trigger.elementKey] : [])),
+);
+
+const EVENT_TYPES = new Set([
+  "onClick",
+  "onHover",
+  "onDragStart",
+  "onDrop",
+  "onKeyPress",
+  "onEnterZone",
+  "onTimerTick",
+  "onEvent",
+]);
+
+/** Accepts only flat string fields so spec-bound params cannot smuggle objects into the engine. */
+function toInteractionEvent(params: Record<string, unknown>): InteractionEvent | null {
+  if (typeof params.type !== "string" || !EVENT_TYPES.has(params.type)) return null;
+  const event: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string" && value.length <= 80) event[key] = value;
+  }
+  return event as unknown as InteractionEvent;
+}
+
+function withElementKey(Component: ComponentRegistry[string]): ComponentRegistry[string] {
+  return function InteractionTarget(props) {
+    const key = (props.element as unknown as Record<string, unknown>)[GENUI_ELEMENT_KEY_FIELD];
+    return (
+      <div data-genui-key={typeof key === "string" ? key : undefined} style={{ display: "contents" }}>
+        <Component {...props} />
+      </div>
+    );
+  };
+}
+
+const keyedComponents: ComponentRegistry = Object.fromEntries(
+  Object.entries(templateComponents as ComponentRegistry).map(([name, Component]) => [
+    name,
+    withElementKey(Component),
+  ]),
+);
+
+export default function ${componentName}() {
+  const store = useMemo(
+    () => createTimeTravelStateStore((wireframeSpec.state ?? {}) as Record<string, unknown>),
+    [],
+  );
+  const engine = useMemo(
+    () =>
+      createInteractionRuleEngine({
+        store,
+        rules,
+        initialScene: wireframeDoc.initialScene ?? "main",
+      }),
+    [store],
+  );
+  const tracker = useMemo(() => createTelemetryTracker(), []);
+  const safeRegistry = useMemo(
+    () =>
+      wrapRegistryWithTelemetry(verifiedCatalog, keyedComponents, {
+        telemetryTracker: tracker,
+      }),
+    [tracker],
+  );
+  const handlers = useMemo(
+    () => ({
+      dispatchInteraction: (params: Record<string, unknown>) => {
+        const event = toInteractionEvent(params);
+        if (event) engine.dispatch(event);
+      },
+    }),
+    [engine],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      engine.dispatch({ type: "onKeyPress", key: e.key });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const timers = rules.flatMap((rule) =>
+      rule.trigger.type === "onTimerTick" && rule.trigger.intervalMs
+        ? [
+            window.setInterval(() => {
+              if (document.hidden) return;
+              engine.dispatch(
+                rule.trigger.type === "onTimerTick" && rule.trigger.timerId
+                  ? { type: "onTimerTick", timerId: rule.trigger.timerId }
+                  : { type: "onTimerTick" },
+              );
+            }, rule.trigger.intervalMs),
+          ]
+        : [],
+    );
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      for (const id of timers) window.clearInterval(id);
+    };
+  }, [engine]);
+
+  const onClickCapture = (e: React.MouseEvent<HTMLElement>) => {
+    let node = e.target instanceof Element ? e.target.closest("[data-genui-key]") : null;
+    while (node) {
+      const key = node.getAttribute("data-genui-key");
+      if (key && clickTargets.has(key)) {
+        engine.dispatch({ type: "onClick", elementKey: key });
+        return;
+      }
+      node = node.parentElement?.closest("[data-genui-key]") ?? null;
+    }
+  };
+
+  return (
+    <main data-template-theme=${JSON.stringify(slug)} className="min-h-screen" onClickCapture={onClickCapture}>
+      <JSONUIProvider registry={safeRegistry} store={store} handlers={handlers}>
+        <SafeGenUIRenderer
+          spec={wireframeSpec}
+          registry={safeRegistry}
+          catalog={verifiedCatalog}
+          telemetryTracker={tracker}
+        />
+      </JSONUIProvider>
+    </main>
+  );
+}
+`;
+}
+
+/** Sanitized rules + initial scene of a wireframe export, or null when it has no rules. */
+function resolveWireframeBehavior(
+  wireframe: TemplateWireframeExport,
+): { rules: ReturnType<typeof sanitizeInteractionRules>["rules"]; initialScene: string } | null {
+  const rules = sanitizeInteractionRules(wireframe.rules ?? []).rules;
+  if (rules.length === 0) return null;
+  const initialScene =
+    typeof wireframe.initialScene === "string" && SCENE_ID.test(wireframe.initialScene)
+      ? wireframe.initialScene
+      : "main";
+  return { rules, initialScene };
+}
+
+/**
  * Re-validates a wireframe export against the template catalog and returns the files to
  * add to the project. The Spec passes through `catalog.validateFull()` (DAG sanitizer,
- * unsafe-URI / prototype-pollution blocking, Zod prop healing) before it is written.
+ * unsafe-URI / prototype-pollution blocking, Zod prop healing) and rules pass through
+ * `sanitizeInteractionRules()` before they are written.
  */
 function buildWireframeExportFiles(
   entry: DualModeTemplateEntry,
@@ -281,8 +468,12 @@ function buildWireframeExportFiles(
     maxElements: 500,
     pruneMissingChildren: true,
   });
+  const behavior = resolveWireframeBehavior(wireframe);
+  const specFile = behavior
+    ? { ...validated.sanitizedSpec, initialScene: behavior.initialScene, rules: behavior.rules }
+    : validated.sanitizedSpec;
   const files: Record<string, string> = {
-    [specPath]: `${JSON.stringify(validated.sanitizedSpec, null, 2)}\n`,
+    [specPath]: `${JSON.stringify(specFile, null, 2)}\n`,
     [`.kiro/specs/${manifest.slug}/design.md`]: wireframe.designMd.endsWith("\n")
       ? wireframe.designMd
       : `${wireframe.designMd}\n`,
@@ -299,15 +490,23 @@ function buildWireframeExportFiles(
   return files;
 }
 
-const WIREFRAME_README_SECTION = (slug: string, specPath: string): string => `
+const WIREFRAME_README_SECTION = (slug: string, specPath: string, hasRules: boolean): string => `
 ## Wireframe
 
 This project was exported from GenUI Studio's Wireframe Architect.
 
-- \`${specPath}\`: the compiled GenUI Spec rendered by \`app/page.tsx\`
+- \`${specPath}\`: the compiled GenUI Spec rendered by \`app/page.tsx\`${hasRules ? " (with its interaction `rules`)" : ""}
 - \`.kiro/specs/${slug}/design.md\`: Mermaid component and state-binding graph
 - \`wireframe/${slug}.excalidraw.json\`: the source sketch (open it at excalidraw.com)
-`;
+${
+  hasRules
+    ? `
+### Interaction rules
+
+\`app/page.tsx\` runs the spec's rules through \`createInteractionRuleEngine\` on the same state store the renderer reads. Clicks on rule targets, key presses and \`intervalMs\` timers are dispatched automatically. Hover, drag-and-drop and zone triggers need wiring in your components: emit an event bound in the spec to the \`dispatchInteraction\` action, with the interaction event as params.
+`
+    : ""
+}`;
 
 /**
  * Merges `base-nextjs-shell` with a Mode A (Internal Native) or Mode B (Ingested Standalone)
@@ -468,17 +667,17 @@ Exported from **GenUI Studio** (Mode: \`${manifest.mode}\`, Slug: \`${manifest.s
 pnpm install
 pnpm dev
 \`\`\`
-${options.wireframe ? WIREFRAME_README_SECTION(manifest.slug, WIREFRAME_SPEC_EXPORT_PATH) : ""}`;
+${options.wireframe ? WIREFRAME_README_SECTION(manifest.slug, WIREFRAME_SPEC_EXPORT_PATH, resolveWireframeBehavior(options.wireframe) !== null) : ""}`;
 
   if (options.wireframe) {
     Object.assign(
       mergedFiles,
       buildWireframeExportFiles(entry, options.wireframe, WIREFRAME_SPEC_EXPORT_PATH),
     );
-    mergedFiles["app/page.tsx"] = buildWireframeRoutePage(
-      `${toPascalCase(manifest.slug)}WireframePage`,
-      manifest.slug,
-    );
+    const componentName = `${toPascalCase(manifest.slug)}WireframePage`;
+    mergedFiles["app/page.tsx"] = resolveWireframeBehavior(options.wireframe)
+      ? buildInteractiveWireframeRoutePage(componentName, manifest.slug)
+      : buildWireframeRoutePage(componentName, manifest.slug);
   }
 
   return mergedFiles;
