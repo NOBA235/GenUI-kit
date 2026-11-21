@@ -8,7 +8,7 @@
       "buildCommand": "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/app-cmos-cloud-bios build",
       "outputDirectory": "dist"
     },
-    "ninety9-archive": {
+    "ninety-nine-archive": {
       "root": "apps/ninety9-archive",
       "framework": "vite",
       "installCommand": "pnpm install --frozen-lockfile",
@@ -34,11 +34,11 @@
     },
     {
       "source": "/ninety9",
-      "destination": { "service": "ninety9-archive" }
+      "destination": { "service": "ninety-nine-archive" }
     },
     {
       "source": "/ninety9/(.*)",
-      "destination": { "service": "ninety9-archive" }
+      "destination": { "service": "ninety-nine-archive" }
     },
     {
       "source": "/(.*)",
