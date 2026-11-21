@@ -288,11 +288,15 @@ export function addCountdownTimerMacro(
   const timerElementKey = "macro-countdown-hud";
   const componentType = pickComponentType(
     input.catalog,
-    ["MetricStrip", "HeroSection", "FeatureGrid"],
+    ["MetricStrip", "HeroSection", "FeatureGrid", "CountdownDisplay"],
     rootType,
   );
 
   const props = buildValidPropsForComponent(componentType, input.catalog, {
+    // Playable catalog (CountdownDisplay); showcase components ignore these keys.
+    label: "Countdown",
+    seconds: { $state: "/timerRemaining" },
+    warnAt: 5,
     heading: "Countdown Timer HUD",
     primaryValue: `${initialSeconds}s`,
     primaryLabel: "Time Remaining",
@@ -337,7 +341,7 @@ export function addCountdownTimerMacro(
       trigger: { type: "onTimerTick", timerId: "countdown", intervalMs: 1000 },
       guards: [
         { op: "gt", path: "/timerRemaining", value: 0 },
-        { op: "eq", path: "/outcome", value: "playing" },
+        { op: "eq", path: "/experience/outcome", value: "playing" },
       ],
       effects: [
         { type: "dec", path: "/timerRemaining", by: 1, min: 0 },
@@ -353,7 +357,7 @@ export function addCountdownTimerMacro(
       trigger: { type: "onStateMatch" },
       guards: [
         { op: "lte", path: "/timerRemaining", value: 0 },
-        { op: "eq", path: "/outcome", value: "playing" },
+        { op: "eq", path: "/experience/outcome", value: "playing" },
       ],
       effects: [
         {
@@ -398,11 +402,15 @@ export function addWinGoalMacro(
   const goalElementKey = "macro-win-goal-panel";
   const componentType = pickComponentType(
     input.catalog,
-    ["HeroSection", "MetricStrip", "FeatureGrid"],
+    ["HeroSection", "MetricStrip", "FeatureGrid", "ControlButton"],
     rootType,
   );
 
   const props = buildValidPropsForComponent(componentType, input.catalog, {
+    // Playable catalog (ControlButton); showcase components ignore these keys.
+    label: "Advance objective (+1)",
+    hint: `Reach ${targetScore} to win`,
+    tone: "primary",
     eyebrow: "WIN OBJECTIVE",
     headline: `Reach ${targetScore} Points to Win`,
     summary: `Click this interactive objective ${targetScore} times to trigger the verified win state.`,
@@ -443,7 +451,7 @@ export function addWinGoalMacro(
       description: `Clicking "${goalElementKey}" increments /score by 1 up to ${targetScore}.`,
       enabled: true,
       trigger: { type: "onClick", elementKey: goalElementKey },
-      guards: [{ op: "eq", path: "/outcome", value: "playing" }],
+      guards: [{ op: "eq", path: "/experience/outcome", value: "playing" }],
       effects: [
         { type: "inc", path: "/score", by: 1, max: targetScore },
         { type: "playSynthSound", cue: "powerup" },
@@ -458,7 +466,7 @@ export function addWinGoalMacro(
       trigger: { type: "onStateMatch" },
       guards: [
         { op: "gte", path: "/score", value: targetScore },
-        { op: "eq", path: "/outcome", value: "playing" },
+        { op: "eq", path: "/experience/outcome", value: "playing" },
       ],
       effects: [
         {
@@ -500,16 +508,19 @@ export function addDragAndDropMacro(input: PivotMacroInput): PivotMacroResult {
   const targetKey = "macro-drop-target";
   const sourceType = pickComponentType(
     input.catalog,
-    ["FeatureGrid", "HeroSection", "MetricStrip"],
+    ["FeatureGrid", "HeroSection", "MetricStrip", "DragToken"],
     rootType,
   );
   const targetType = pickComponentType(
     input.catalog,
-    ["HeroSection", "FeatureGrid", "MetricStrip"],
+    ["HeroSection", "FeatureGrid", "MetricStrip", "DropSlot"],
     rootType,
   );
 
   const sourceProps = buildValidPropsForComponent(sourceType, input.catalog, {
+    // Playable catalog (DragToken); showcase components ignore these keys.
+    label: "Payload card",
+    glyph: "P",
     sectionTitle: "Draggable Token Source",
     columns: 1,
     items: [
@@ -526,6 +537,9 @@ export function addDragAndDropMacro(input: PivotMacroInput): PivotMacroResult {
   });
 
   const targetProps = buildValidPropsForComponent(targetType, input.catalog, {
+    // Playable catalog (DropSlot); showcase components ignore these keys.
+    label: "Drop target zone",
+    hint: "Drop the payload card here",
     eyebrow: "DROP ZONE",
     headline: "Drop Target Zone",
     summary: "Release the draggable payload card here to commit it into /droppedItems.",

@@ -167,3 +167,113 @@ dialog.studio-dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
 }
+
+/* Live Flow Map (FlowMapView): fired rules and their edges pulse once, then stay highlighted. */
+.flow-edge {
+  fill: none;
+  stroke: #d4d4d8;
+  stroke-width: 1.5;
+}
+
+.flow-edge[data-edge-kind="match"] {
+  stroke-dasharray: 4 3;
+}
+
+.flow-edge[data-active="true"] {
+  stroke: var(--hub-accent);
+  stroke-width: 2.5;
+  stroke-dasharray: 8 4;
+  animation: flow-edge-pulse 900ms ease-out 1;
+}
+
+.flow-node rect {
+  fill: #ffffff;
+  stroke: #e4e4e7;
+  stroke-width: 1;
+}
+
+.flow-node[data-node-kind="rule"] rect {
+  fill: #fafafa;
+}
+
+.flow-node[data-node-kind="state"] rect,
+.flow-node[data-node-kind="input"] rect,
+.flow-node[data-node-kind="event"] rect {
+  fill: #f8fafc;
+  stroke-dasharray: 3 2;
+}
+
+.flow-node[data-interactive="true"] rect {
+  stroke: #a1a1aa;
+}
+
+.flow-node[data-node-kind="outcome"][data-node-ref="win"] rect {
+  fill: #ecfdf5;
+  stroke: #a7f3d0;
+}
+
+.flow-node[data-node-kind="outcome"][data-node-ref="lose"] rect {
+  fill: #fef2f2;
+  stroke: #fecaca;
+}
+
+.flow-node[data-active="true"] rect {
+  stroke: var(--hub-accent);
+  stroke-width: 2;
+  fill: var(--hub-accent-soft);
+}
+
+.flow-node[data-node-kind="rule"][data-active="true"] rect {
+  animation: flow-node-pulse 900ms ease-out 1;
+}
+
+.flow-node-label {
+  fill: var(--hub-ink);
+  font-family: var(--hub-font-sans);
+}
+
+.flow-node-detail {
+  fill: var(--hub-subtle);
+}
+
+.flow-node-section {
+  fill: var(--hub-accent);
+}
+
+@keyframes flow-edge-pulse {
+  from {
+    stroke-dashoffset: 48;
+    stroke-width: 4;
+  }
+  to {
+    stroke-dashoffset: 0;
+    stroke-width: 2.5;
+  }
+}
+
+@keyframes flow-node-pulse {
+  0% {
+    stroke-width: 5;
+  }
+  100% {
+    stroke-width: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-edge[data-active="true"],
+  .flow-node[data-node-kind="rule"][data-active="true"] rect {
+    animation: none;
+  }
+}
+
+/* Playable stage: Edit mode selects elements instead of playing them. */
+.playable-stage[data-genui-interactive="false"] [data-genui-key] > * {
+  cursor: pointer;
+}
+
+.playable-stage [data-genui-selected="true"] > :not([data-genui-diagnostic-badge]) {
+  outline: 2px solid var(--hub-accent);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}

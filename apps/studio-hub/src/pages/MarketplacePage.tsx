@@ -33,6 +33,8 @@ export interface MarketplacePageProps {
   onOpenPreview: (slug: string) => void;
   /** Opens the workbench with Wireframe Architect and the sample scene loaded. */
   onOpenSampleWireframe?: () => void;
+  /** Opens the playable workbench (`/play`) with the flagship playable starter. */
+  onOpenPlayableStarter?: () => void;
 }
 
 const PIPELINE_STEPS: readonly {
@@ -281,6 +283,7 @@ const ShowcaseThumbnail: React.FC<{ readonly slug: string }> = ({ slug }) => {
 export const MarketplacePage: React.FC<MarketplacePageProps> = ({
   onOpenPreview,
   onOpenSampleWireframe,
+  onOpenPlayableStarter,
 }) => {
   const [modeFilter, setModeFilter] = useState<"all" | TemplateMode>("all");
   const [activeTag, setActiveTag] = useState<"all" | MarketplaceFilterTag>("all");
@@ -435,11 +438,26 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
               {/* Primary & Secondary CTAs */}
               <div className="flex flex-col items-stretch justify-center gap-2.5 pt-1 sm:flex-row sm:items-center">
+                {onOpenPlayableStarter ? (
+                  <button
+                    type="button"
+                    onClick={onOpenPlayableStarter}
+                    data-testid="hero-open-playable-starter"
+                    className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-[#09090B] px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                  >
+                    <span>Play the Signal Relay Vault</span>
+                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={openWorkbench}
                   data-testid="hero-open-sample-wireframe"
-                  className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-[#09090B] px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                  className={
+                    onOpenPlayableStarter
+                      ? "inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#E4E4E7] bg-white px-5 py-2.5 text-sm font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                      : "inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-[#09090B] px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+                  }
                 >
                   <span>Open Sample Wireframe in Workbench</span>
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />

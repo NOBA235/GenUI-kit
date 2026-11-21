@@ -272,34 +272,37 @@ export default function ${componentName}() {
  * Home route for a wireframe that carries interaction rules. The rule engine and the
  * renderer share one `TimeTravelStateStore`, so `$state` bindings show rule effects.
  *
- * Events reach the engine through:
- * - clicks on elements targeted by `onClick` rules (delegated listener; each component is
- *   wrapped in a `display: contents` node carrying its spec element key),
- * - `keydown` on the window (`onKeyPress`),
- * - one interval per `onTimerTick` rule with `intervalMs` (paused while the tab is hidden),
- * - the `dispatchInteraction` action handler, for components that emit events bound in
- *   the spec (`on: { drop: { action: "dispatchInteraction", params: { type: "onDrop", ... } } }`).
+ * Events reach the engine through the `@genui-studio/core` DOM bridge:
+ * - `InteractionSurface`: clicks, HTML drag-and-drop (plus click-to-pick-up, click-to-drop
+ *   for keyboard and touch users) and hovers on the elements the rules target,
+ * - `useInteractionDrivers`: `onKeyPress` keys and one interval per `onTimerTick` timer with
+ *   `intervalMs` (paused while the tab is hidden, stopped once the outcome is decided),
+ * - the `dispatchInteraction` action handler, for events bound in the spec
+ *   (`on: { press: { action: "dispatchInteraction", params: { type: "onEvent", ... } } }`).
  */
 function buildInteractiveWireframeRoutePage(componentName: string, slug: string): string {
   return `"use client";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import type { Spec } from "@json-render/core";
 import { JSONUIProvider, type ComponentRegistry } from "@json-render/react";
 import {
   createInteractionRuleEngine,
   createTelemetryTracker,
   createTimeTravelStateStore,
-  GENUI_ELEMENT_KEY_FIELD,
+  createWebAudioSynth,
+  InteractionSurface,
+  parseInteractionEventParams,
   SafeGenUIRenderer,
   sanitizeInteractionRules,
+  useInteractionDrivers,
+  withInteractionKeys,
   wrapRegistryWithTelemetry,
-  type InteractionEvent,
 } from "@genui-studio/core";
 import { verifiedCatalog } from "../src/template/catalog";
 import { templateComponents } from "../src/template/components";
 import wireframeSpecJson from "../src/template/wireframe.spec.json";
 
-// Compiled in GenUI Studio Wireframe Architect. Source sketch: wireframe/${slug}.excalidraw.json
+// Compiled in GenUI Studio. Source sketch: wireframe/${slug}.excalidraw.json
 const wireframeDoc = wireframeSpecJson as unknown as Spec & {
   rules?: unknown[];
   initialScene?: string;
@@ -310,62 +313,23 @@ const wireframeSpec: Spec = {
   ...(wireframeDoc.state ? { state: wireframeDoc.state } : {}),
 };
 const rules = sanitizeInteractionRules(wireframeDoc.rules ?? []).rules;
-const clickTargets = new Set(
-  rules.flatMap((rule) => (rule.trigger.type === "onClick" ? [rule.trigger.elementKey] : [])),
-);
-
-const EVENT_TYPES = new Set([
-  "onClick",
-  "onHover",
-  "onDragStart",
-  "onDrop",
-  "onKeyPress",
-  "onEnterZone",
-  "onTimerTick",
-  "onEvent",
-]);
-
-/** Accepts only flat string fields so spec-bound params cannot smuggle objects into the engine. */
-function toInteractionEvent(params: Record<string, unknown>): InteractionEvent | null {
-  if (typeof params.type !== "string" || !EVENT_TYPES.has(params.type)) return null;
-  const event: Record<string, string> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (typeof value === "string" && value.length <= 80) event[key] = value;
-  }
-  return event as unknown as InteractionEvent;
-}
-
-function withElementKey(Component: ComponentRegistry[string]): ComponentRegistry[string] {
-  return function InteractionTarget(props) {
-    const key = (props.element as unknown as Record<string, unknown>)[GENUI_ELEMENT_KEY_FIELD];
-    return (
-      <div data-genui-key={typeof key === "string" ? key : undefined} style={{ display: "contents" }}>
-        <Component {...props} />
-      </div>
-    );
-  };
-}
-
-const keyedComponents: ComponentRegistry = Object.fromEntries(
-  Object.entries(templateComponents as ComponentRegistry).map(([name, Component]) => [
-    name,
-    withElementKey(Component),
-  ]),
-);
+const keyedComponents = withInteractionKeys(templateComponents as ComponentRegistry);
 
 export default function ${componentName}() {
   const store = useMemo(
     () => createTimeTravelStateStore((wireframeSpec.state ?? {}) as Record<string, unknown>),
     [],
   );
+  const synth = useMemo(() => createWebAudioSynth(), []);
   const engine = useMemo(
     () =>
       createInteractionRuleEngine({
         store,
         rules,
         initialScene: wireframeDoc.initialScene ?? "main",
+        onSynthSound: (cue) => synth.play(cue),
       }),
-    [store],
+    [store, synth],
   );
   const tracker = useMemo(() => createTelemetryTracker(), []);
   const safeRegistry = useMemo(
@@ -378,60 +342,38 @@ export default function ${componentName}() {
   const handlers = useMemo(
     () => ({
       dispatchInteraction: (params: Record<string, unknown>) => {
-        const event = toInteractionEvent(params);
+        const event = parseInteractionEventParams(params);
         if (event) engine.dispatch(event);
       },
     }),
     [engine],
   );
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      engine.dispatch({ type: "onKeyPress", key: e.key });
-    };
-    window.addEventListener("keydown", onKeyDown);
-    const timers = rules.flatMap((rule) =>
-      rule.trigger.type === "onTimerTick" && rule.trigger.intervalMs
-        ? [
-            window.setInterval(() => {
-              if (document.hidden) return;
-              engine.dispatch(
-                rule.trigger.type === "onTimerTick" && rule.trigger.timerId
-                  ? { type: "onTimerTick", timerId: rule.trigger.timerId }
-                  : { type: "onTimerTick" },
-              );
-            }, rule.trigger.intervalMs),
-          ]
-        : [],
-    );
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      for (const id of timers) window.clearInterval(id);
-    };
-  }, [engine]);
-
-  const onClickCapture = (e: React.MouseEvent<HTMLElement>) => {
-    let node = e.target instanceof Element ? e.target.closest("[data-genui-key]") : null;
-    while (node) {
-      const key = node.getAttribute("data-genui-key");
-      if (key && clickTargets.has(key)) {
-        engine.dispatch({ type: "onClick", elementKey: key });
-        return;
-      }
-      node = node.parentElement?.closest("[data-genui-key]") ?? null;
-    }
-  };
+  useInteractionDrivers({
+    rules,
+    dispatch: (event) => {
+      engine.dispatch(event);
+    },
+    shouldTick: () => engine.getOutcome().status === "playing",
+  });
 
   return (
-    <main data-template-theme=${JSON.stringify(slug)} className="min-h-screen" onClickCapture={onClickCapture}>
-      <JSONUIProvider registry={safeRegistry} store={store} handlers={handlers}>
-        <SafeGenUIRenderer
-          spec={wireframeSpec}
-          registry={safeRegistry}
-          catalog={verifiedCatalog}
-          telemetryTracker={tracker}
-        />
-      </JSONUIProvider>
+    <main data-template-theme=${JSON.stringify(slug)} className="min-h-screen p-4 sm:p-8">
+      <InteractionSurface
+        rules={rules}
+        dispatch={(event) => {
+          engine.dispatch(event);
+        }}
+      >
+        <JSONUIProvider registry={safeRegistry} store={store} handlers={handlers}>
+          <SafeGenUIRenderer
+            spec={wireframeSpec}
+            registry={safeRegistry}
+            catalog={verifiedCatalog}
+            telemetryTracker={tracker}
+          />
+        </JSONUIProvider>
+      </InteractionSurface>
     </main>
   );
 }
@@ -503,7 +445,7 @@ ${
     ? `
 ### Interaction rules
 
-\`app/page.tsx\` runs the spec's rules through \`createInteractionRuleEngine\` on the same state store the renderer reads. Clicks on rule targets, key presses and \`intervalMs\` timers are dispatched automatically. Hover, drag-and-drop and zone triggers need wiring in your components: emit an event bound in the spec to the \`dispatchInteraction\` action, with the interaction event as params.
+\`app/page.tsx\` runs the spec's rules through \`createInteractionRuleEngine\` on the same state store the renderer reads. Clicks, drag-and-drop (or click to pick up, click to drop), hovers, key presses and \`intervalMs\` timers on the elements the rules target are dispatched automatically by \`InteractionSurface\` and \`useInteractionDrivers\` from \`@genui-studio/core\`. Zone triggers need wiring in your components: emit an event bound in the spec to the \`dispatchInteraction\` action, with the interaction event as params.
 `
     : ""
 }`;

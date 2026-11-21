@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { getTemplateBySlug } from "@genui-studio/templates";
 import { MarketplacePage } from "./pages/MarketplacePage.js";
+import { PlayableWorkbenchPage } from "./pages/PlayableWorkbenchPage.js";
 import { PreviewPage } from "./pages/PreviewPage.js";
 import type { WireframeInitialScene } from "./components/WireframeArchitectCanvas.js";
 import {
@@ -83,12 +84,13 @@ export const App: React.FC<StudioHubAppProps> = ({
     return () => window.removeEventListener("popstate", onPopState);
   }, [initialPath]);
 
+  const isPlayableRoute = /^\/play\/?$/.test(route.path);
   const previewMatch = /^\/preview\/([^/?#]+)(?:\/(.*))?$/.exec(route.path);
   const matchedSlug = previewMatch?.[1] ? decodeURIComponent(previewMatch[1]) : null;
 
   // Keep document.title synchronized on SPA transitions (WCAG 2.4.2 Page Titled)
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (typeof document === "undefined" || isPlayableRoute) return;
     if (matchedSlug) {
       const tpl = getTemplateBySlug(matchedSlug);
       const label = tpl?.manifest.title ?? matchedSlug;
@@ -98,7 +100,7 @@ export const App: React.FC<StudioHubAppProps> = ({
     } else {
       document.title = "GenUI Studio Hub — Wireframe-to-Application Workbench";
     }
-  }, [matchedSlug, route.wireframe]);
+  }, [matchedSlug, route.wireframe, isPlayableRoute]);
 
   const navigate = useCallback(
     (nextPath: string, fullscreen = false, wireframe: WireframeRouteMode = null) => {
@@ -109,6 +111,10 @@ export const App: React.FC<StudioHubAppProps> = ({
     },
     [],
   );
+
+  if (isPlayableRoute) {
+    return <PlayableWorkbenchPage onNavigateHome={() => navigate("/", false)} />;
+  }
 
   if (matchedSlug) {
     const subPath = previewMatch?.[2]
@@ -140,6 +146,7 @@ export const App: React.FC<StudioHubAppProps> = ({
       onOpenSampleWireframe={() =>
         navigate(`/preview/${encodeURIComponent(resolveSampleWireframeSlug())}`, false, "sample")
       }
+      onOpenPlayableStarter={() => navigate("/play", false)}
     />
   );
 };

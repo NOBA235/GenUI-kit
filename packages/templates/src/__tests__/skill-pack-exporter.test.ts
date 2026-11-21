@@ -373,7 +373,9 @@ describe("Next.js starter export with interaction rules", () => {
     expect(page).toContain("createInteractionRuleEngine");
     expect(page).toContain("sanitizeInteractionRules(wireframeDoc.rules ?? [])");
     expect(page).toContain("handlers={handlers}");
-    expect(page).toContain("window.clearInterval(id)");
+    expect(page).toContain("<InteractionSurface");
+    expect(page).toContain("useInteractionDrivers({");
+    expect(page).toContain("withInteractionKeys(templateComponents");
     expect(page).not.toContain("dangerouslySetInnerHTML");
   });
 

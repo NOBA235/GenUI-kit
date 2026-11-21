@@ -1,12 +1,18 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, Copy, Download, X } from "lucide-react";
 import {
+  buildSkillPack,
   buildTemplateCliCommand,
+  createStarterBrief,
   exportTemplateToShadcnRegistry,
   generateTemplateZip,
+  skillPackInputFromTemplate,
+  zipSkillPackFiles,
   type DualModeTemplateEntry,
+  type SkillPackInput,
   type TemplateWireframeExport,
 } from "@genui-studio/templates";
+import { downloadBytes } from "../lib/download.js";
 
 export interface TemplateExportDialogProps {
   readonly isOpen: boolean;
@@ -50,7 +56,9 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const pressedOutsideRef = useRef(false);
   const titleId = useId();
-  const [activeTab, setActiveTab] = useState<"CLI" | "SKILLS" | "ZIP" | "SHADCN">("CLI");
+  const [activeTab, setActiveTab] = useState<"CLI" | "SKILLS" | "ZIP" | "SHADCN" | "SKILLPACK">("CLI");
+  const [isBuildingSkillPack, setIsBuildingSkillPack] = useState(false);
+  const [skillPackStatus, setSkillPackStatus] = useState<string | null>(null);
   const [licenseToken, setLicenseToken] = useState("kiroween-2026-judge-pass");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isGeneratingZip, setIsGeneratingZip] = useState(false);
@@ -121,6 +129,42 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
       );
     } finally {
       setIsGeneratingZip(false);
+    }
+  };
+
+  const handleDownloadSkillPack = async () => {
+    try {
+      setIsBuildingSkillPack(true);
+      setSkillPackStatus(null);
+      const input: SkillPackInput = wireframeExport
+        ? {
+            brief: createStarterBrief({
+              slug: manifest.slug,
+              title: manifest.title,
+              description: manifest.description,
+            }),
+            spec: wireframeExport.spec,
+            rules: wireframeExport.rules ?? [],
+            catalog: template.catalog,
+            ...(wireframeExport.initialScene ? { initialScene: wireframeExport.initialScene } : {}),
+            ...(wireframeExport.excalidrawJson !== undefined
+              ? { excalidrawJson: wireframeExport.excalidrawJson }
+              : {}),
+          }
+        : skillPackInputFromTemplate(template);
+      const pack = buildSkillPack(input);
+      const bytes = await zipSkillPackFiles(pack.files);
+      const filename = `${pack.slug}-skill-pack.zip`;
+      downloadBytes(filename, bytes, "application/zip");
+      setSkillPackStatus(
+        `Exported ${filename} (${(bytes.byteLength / 1024).toFixed(1)} KB, ${Object.keys(pack.files).length} files, ${pack.document.rules.length} rules).`,
+      );
+    } catch (err) {
+      setSkillPackStatus(
+        `Failed to build the Skill Pack: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setIsBuildingSkillPack(false);
     }
   };
 
@@ -198,6 +242,7 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
               ["SKILLS", "2. SKILL.md & POWER.md"],
               ["ZIP", "3. Standalone Next.js .ZIP"],
               ["SHADCN", "4. Shadcn Registry JSON"],
+              ["SKILLPACK", "5. Agent Skill & Contract Pack"],
             ] as const
           ).map(([tabId, label]) => (
             <button
@@ -414,6 +459,35 @@ export const TemplateExportDialog: React.FC<TemplateExportDialogProps> = ({
                   </p>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === "SKILLPACK" && (
+            <div className="rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-[#09090B]">
+                Universal Agent Skill &amp; Contract Pack (.ZIP)
+              </h3>
+              <p className="text-xs text-[#52525B] leading-relaxed">
+                SKILL.md, AGENTS.md, <code>.kiro/specs/{manifest.slug}/</code>, a Cursor rule and{" "}
+                <code>contracts/</code> with the behavioral spec, a reference driver that passes and a production
+                driver stub that fails until your IDE agent wires it to the app it builds.{" "}
+                {wireframeExport
+                  ? "Uses your compiled wireframe."
+                  : "Uses the template's home page; it has no interaction rules, so the contract checks the initial state."}
+              </p>
+              <button
+                type="button"
+                disabled={isBuildingSkillPack}
+                onClick={handleDownloadSkillPack}
+                data-testid="download-skill-pack-btn"
+                className="inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg bg-[#09090B] py-2 font-mono text-xs font-medium text-white hover:enabled:bg-[#18181B] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
+              >
+                <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                <span>{isBuildingSkillPack ? "Fuzzing and packing…" : `Download ${manifest.slug}-skill-pack.zip`}</span>
+              </button>
+              {skillPackStatus && (
+                <p className="text-xs font-mono font-medium text-[#047857] text-center">{skillPackStatus}</p>
+              )}
             </div>
           )}
 

@@ -120,5 +120,18 @@ export {
   type InteractionStepReport,
 } from "./interaction/rule-engine.js";
 
+export {
+  INTERACTION_KEY_ATTRIBUTE,
+  InteractionSurface,
+  collectInteractionTargets,
+  parseInteractionEventParams,
+  useInteractionDrivers,
+  withInteractionKeys,
+  type InteractionDriverOptions,
+  type InteractionSurfaceProps,
+  type InteractionTargets,
+  type InteractionTimer,
+} from "./interaction/dom-bridge.js";
+
 export * from "./registry/index.js";
 
