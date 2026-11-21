@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { FileUp, Settings2, Sparkles, Square } from "lucide-react";
 import {
   LLM_PROVIDER_PRESETS,
@@ -56,7 +56,58 @@ export const VibeReframeBar: React.FC<VibeReframeBarProps> = ({
   const [model, setModel] = useState(LLM_PROVIDER_PRESETS.yantra.defaultModel);
   const [apiKey, setApiKey] = useState("");
   const [useDevProxy, setUseDevProxy] = useState(false);
+  const [proxyStatus, setProxyStatus] = useState<{
+    readonly checked: boolean;
+    readonly configured: boolean;
+    readonly baseUrl?: string;
+    readonly defaultModel?: string;
+  }>({ checked: false, configured: false });
   const [status, setStatus] = useState<{ tone: "info" | "error" | "warn"; text: string } | null>(null);
+
+  // Auto-detect server-side .env.local proxy under `vite dev` so users with
+  // GENUI_LLM_API_KEY set don't have to manually check the proxy box.
+  useEffect(() => {
+    if (!devProxyAvailable || typeof window === "undefined" || typeof fetch !== "function") {
+      return;
+    }
+    const protocol = window.location?.protocol;
+    if (protocol !== "http:" && protocol !== "https:") return;
+
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch("/api/architect/status", {
+          method: "GET",
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          proxyConfigured?: boolean;
+          baseUrl?: string;
+          defaultModel?: string;
+        };
+        const isConfigured = data.proxyConfigured === true;
+        setProxyStatus({
+          checked: true,
+          configured: isConfigured,
+          ...(typeof data.baseUrl === "string" ? { baseUrl: data.baseUrl } : {}),
+          ...(typeof data.defaultModel === "string" ? { defaultModel: data.defaultModel } : {}),
+        });
+        if (isConfigured) {
+          setUseDevProxy(true);
+          if (typeof data.defaultModel === "string" && data.defaultModel.trim()) {
+            setModel(data.defaultModel.trim());
+          }
+          if (typeof data.baseUrl === "string" && data.baseUrl.trim()) {
+            setBaseUrl(data.baseUrl.trim());
+          }
+        }
+      } catch {
+        // Ignore in offline/test environments without a dev server.
+      }
+    })();
+    return () => controller.abort();
+  }, [devProxyAvailable]);
 
   const preset = LLM_PROVIDER_PRESETS[provider];
   const config: LlmArchitectConfig = {
@@ -207,7 +258,7 @@ export const VibeReframeBar: React.FC<VibeReframeBarProps> = ({
             className="inline-flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded-md border border-[#E4E4E7] bg-white px-2.5 text-xs font-medium text-[#09090B] hover:bg-[#FAFAFA]"
           >
             <Settings2 aria-hidden="true" className="h-3.5 w-3.5" />
-            Model
+            {devProxyAvailable && useDevProxy && proxyStatus.configured ? "Model · Proxy" : "Model"}
             <span
               aria-label={configured ? "configured" : "not configured"}
               className={`h-1.5 w-1.5 rounded-full ${configured ? "bg-[#10B981]" : "bg-[#D4D4D8]"}`}
@@ -297,7 +348,13 @@ export const VibeReframeBar: React.FC<VibeReframeBarProps> = ({
                   onChange={(e) => setUseDevProxy(e.target.checked)}
                   className="accent-[#2563EB]"
                 />
-                Use dev proxy (GENUI_LLM_API_KEY in .env.local)
+                Use dev proxy (
+                {proxyStatus.checked
+                  ? proxyStatus.configured
+                    ? `active: ${proxyStatus.baseUrl ?? "env"}`
+                    : "copy .env.example → .env.local with GENUI_LLM_API_KEY & restart dev:hub"
+                  : "GENUI_LLM_API_KEY in .env.local"}
+                )
               </label>
             ) : null}
           </p>

@@ -32,26 +32,31 @@ GenUi-kit/
 │               ├── react-to-catalog.md
 │               └── three-and-mcp-patterns.md
 ├── packages/                                # Reusable Skeleton Foundation (3 packages)
-│   ├── genui-core/                          # @genui-studio/core — Reusable Guardrailed GenUI Engine
+│   ├── genui-core/                          # @genui-studio/core — Reusable Guardrailed GenUI & Behavioral Engine
 │   │   └── src/
 │   │       ├── index.ts, types.ts           # Public API exports & shared types
 │   │       ├── catalog/                     # Catalog contract & prompt synchronizer
 │   │       ├── stream/                      # Guardrailed JSONL patch compiler & DAG sanitizer
 │   │       ├── state/                       # Time-travel StateStore & watch cascade guard
+│   │       ├── interaction/                 # rule-types.ts, guard-eval.ts, rule-engine.ts, synth-audio.ts, dom-bridge.tsx
 │   │       ├── boundary/                    # Per-element React ErrorBoundary & SafeGenUIRenderer
 │   │       ├── telemetry/                   # Stream telemetry tracker
 │   │       ├── registry/                    # Starter pack definitions, registry API, ZIP generator, TemplateExportModal (`./registry`)
-│   │       ├── testing/                     # fast-check Arbitraries & invariant runner (`./testing`)
+│   │       ├── testing/                     # fast-check Arbitraries, catalog invariants & playtest-fuzzer.ts (`./testing`)
 │   │       └── __tests__/                   # Unit + fast-check property-based fuzz tests
-│   ├── genui-cli/                           # `genui-studio` CLI: spec validator, starter installer/exporter
-│   └── templates/                           # @genui-studio/templates: scoped themes, Next.js .zip exporter, 2 wireframe starters + 4 apps
+│   ├── genui-cli/                           # `genui-studio` CLI: validate, fuzz, export-skill, export, add, list
+│   └── templates/                           # @genui-studio/templates: Skill Pack & Next.js .zip exporters, 2 starters + 4 apps
 │       ├── base-nextjs-shell/               # Next.js 15 shell merged during .zip starter export
 │       └── src/                             # afterdark-horror/, ninety9-archive/, cmos-cloud-bios/, neuro-chimera-synth/,
-│                                            # showcase-adapters.ts, exporter.ts, base-shell.ts, registry.ts, *.generated.ts
+│                                            # skill-pack-{exporter,contracts,docs,types}.ts, showcase-adapters.ts,
+│                                            # exporter.ts, base-shell.ts, registry.ts, *.generated.ts
 ├── apps/                                    # Consumer Applications Built on the Shared Skeleton (3 apps)
-│   ├── studio-hub/                          # Excalidraw-to-GenUI Workbench & 4-App Showcase (:5175)
+│   ├── studio-hub/                          # Playable /play Workbench, BYO-LLM Architect, Wireframe Compiler & 4-App Showcase (:5175)
+│   │   ├── vite.config.ts                   # Includes server-side /api/architect/stream & /api/architect/status dev proxy
 │   │   ├── scripts/audit-wireframe-compiler.mjs
-│   │   └── src/                             # pages/, components/, lib/excalidraw-compiler.ts, lib/sample-wireframe.ts, __tests__/
+│   │   └── src/                             # pages/{MarketplacePage,PreviewPage,PlayableWorkbenchPage}.tsx, playable/{catalog,components}.tsx,
+│   │                                        # components/{FlowMapView,VibeReframeBar,PlaytestTimelineBar,RuleInspectorDrawer,PlayableStage,PlayableExportDialog,...}.tsx,
+│   │                                        # lib/{excalidraw-compiler,llm-architect,pivot-macros,spec-to-excalidraw,playable-starter,playable-session,flow-graph,sample-wireframe}.ts, __tests__/
 │   ├── ninety9-archive/                     # Standalone Skeleton Crew App #1: 1997 Monochrome Archive & Arcade (:5176)
 │   │   └── src/                             # App.tsx, main.tsx, styles.css, __tests__/app.test.tsx
 │   └── cmos-cloud-bios/                     # Standalone Skeleton Crew App #2: 1994 CMOS BIOS + 3D PCB IaC Compiler (:5177)
@@ -71,7 +76,7 @@ GenUi-kit/
    - It MUST NEVER hardcode domain-specific UI components; it operates generically over any `Catalog<TDef, TCatalog>` and `Spec`.
 2. **Workspace packages depend strictly downward:** `packages/templates` -> `genui-core`; `packages/genui-cli` -> `genui-core`, `templates`.
 3. **Consumer apps under `apps/` are independent consumers:**
-   - `apps/studio-hub`, `apps/ninety9-archive`, and `apps/cmos-cloud-bios` MUST import their core pipeline primitives (`createVerifiedCatalog`, `createGuardrailedStreamCompiler`, `inspectSpecGraph`, `createTimeTravelStateStore`, `SafeGenUIRenderer`) from `@genui-studio/core`.
+   - `apps/studio-hub`, `apps/ninety9-archive`, and `apps/cmos-cloud-bios` MUST import their core pipeline primitives (`createVerifiedCatalog`, `createGuardrailedStreamCompiler`, `inspectSpecGraph`, `createTimeTravelStateStore`, `createInteractionRuleEngine`, `SafeGenUIRenderer`) from `@genui-studio/core`.
    - Consumer apps MUST NEVER import from each other.
 4. **`/.kiro` is versioned source-of-truth infrastructure:**
    - Never add `.kiro` to `.gitignore`.

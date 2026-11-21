@@ -89,24 +89,24 @@ const CORE_PILLARS: readonly {
 }[] = [
   {
     icon: Cpu,
-    title: "Deterministic Excalidraw compiler",
+    title: "Playable behavioral engine & live Flow Map",
     summary:
-      "Pure synchronous compilation with containment hierarchy, UTF-16 code-point ordering, and RFC 6901 $state arrow bindings. Zero network or LLM dependency.",
-    metric: "0 LLM calls · 50-run verified",
+      "Execute declarative Trigger → Guard → Effect rules on TimeTravelStateStore with Web Audio synth, live SVG rule pulses, and fast-check winnability fuzzing.",
+    metric: "/play Signal Relay Vault · shortestTraces",
   },
   {
     icon: ShieldCheck,
-    title: "Schema healing & fault quarantine",
+    title: "Dual-mode BYO-LLM & zero-LLM wireframe compiler",
     summary:
-      "3-color DFS DAG cycle severance, prototype/URI sanitization, Zod range clamping, and per-node React error boundaries keep siblings interactive.",
-    metric: "fast-check PBT · SSR + hydration",
+      "Stream Quick Vibes or Markdown Master Prompts via Yantra AI / OpenAI / Gemini / Ollama with rollback safety, or compile Excalidraw & Pivot Macros offline.",
+    metric: "0 fake NLP · 3-color DFS + Zod healing",
   },
   {
     icon: PackageCheck,
-    title: "Runnable Next.js 15 & Kiro export",
+    title: "Universal Agent Skill Packs & Next.js 15 export",
     summary:
-      "Exports your compiled wireframe into a clean Next.js 15 App Router .zip with catalog.ts, wireframe.spec.json, .excalidraw.json, SKILL.md, and design.md.",
-    metric: "MIT license · zero lock-in",
+      "Export executable AppDriver contract suites (passing reference-driver vs failing production stub) for Kiro/Cursor/Claude Code/Codex, or runnable Next.js 15 starters.",
+    metric: "MIT license · 163 automated tests",
   },
 ];
 
@@ -390,13 +390,24 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
             >
               Registry ({counts.total})
             </a>
+            {onOpenPlayableStarter ? (
+              <button
+                type="button"
+                onClick={onOpenPlayableStarter}
+                data-testid="header-open-playable-starter"
+                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1D4ED8] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
+              >
+                <span>Play Workbench (/play)</span>
+                <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={openWorkbench}
               data-testid="header-open-sample-wireframe"
               className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg bg-[#09090B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#18181B] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2"
             >
-              <span>Open Workbench</span>
+              <span>Wireframe Architect</span>
               <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </nav>
@@ -418,7 +429,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                   aria-hidden="true"
                   className="h-1.5 w-1.5 rounded-full bg-[#2563EB]"
                 />
-                <span>Deterministic Excalidraw-to-React Compiler · @json-render v0.22</span>
+                <span>Verified Behavioral Specs &amp; Universal Agent Skill Packs · @json-render v0.22</span>
               </div>
 
               <h1
@@ -426,14 +437,14 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                 tabIndex={-1}
                 className="hub-display-heading font-bold text-[#09090B] focus:outline-none"
               >
-                Compile wireframes into schema-verified React apps.
+                Verify interactive specs. Hand AI IDEs executable contracts.
               </h1>
 
-              <p className="hub-body-copy mx-auto max-w-[58ch] text-base text-[#52525B] leading-relaxed sm:text-[1.0625rem]">
-                Draw with catalog-backed blocks in Excalidraw. GenUI Studio
-                compiles scenes into a Zod-validated UI Spec with zero LLM calls,
-                surfaces healed props and live $state bindings, and exports a
-                runnable Next.js starter.
+              <p className="hub-body-copy mx-auto max-w-[60ch] text-base text-[#52525B] leading-relaxed sm:text-[1.0625rem]">
+                Play and fuzz declarative state machines in the /play workbench,
+                stream Quick Vibes or Markdown Master Prompts via Yantra AI /
+                OpenAI / Ollama, or compile Excalidraw wireframes offline—then
+                export AppDriver Skill Packs or runnable Next.js 15 starters.
               </p>
 
               {/* Primary & Secondary CTAs */}
@@ -473,9 +484,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 font-mono text-[0.6875rem] text-[#71717A]">
                 <span>MIT licensed</span>
                 <span aria-hidden="true">·</span>
-                <span>Zero external API keys</span>
+                <span>Offline-ready + optional BYO-LLM (.env.local)</span>
                 <span aria-hidden="true">·</span>
-                <span>120 automated tests &amp; fast-check PBT</span>
+                <span>163 automated tests &amp; fast-check PBT</span>
               </div>
             </div>
 
