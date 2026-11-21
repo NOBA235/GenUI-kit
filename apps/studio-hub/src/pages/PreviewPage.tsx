@@ -492,7 +492,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
             className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-[#09090B] px-4 py-2 text-xs font-medium text-white hover:bg-[#18181B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
             <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-            <span>Return to Marketplace</span>
+            <span>Return to WizFrame</span>
           </button>
         </div>
       </div>
@@ -561,10 +561,10 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
               setIsRemixOpen(true);
             }}
             data-testid="open-immersion-hud-btn"
-            aria-label="Open GenUI Studio HUD and export (Alt+G)"
+            aria-label="Open WizFrame HUD and export (Alt+G)"
             className="truncate text-left hover:bg-[#AA0000] cursor-pointer"
           >
-            [ALT+G] GENUI STUDIO // EXPORT CMOS
+            [ALT+G] WIZFRAME // EXPORT CMOS
           </button>
         </div>
       ) : isChimeraLab ? (
@@ -580,10 +580,10 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
               setIsRemixOpen(true);
             }}
             data-testid="open-immersion-hud-btn"
-            aria-label="Open GenUI Studio HUD and export (Alt+G)"
+            aria-label="Open WizFrame HUD and export (Alt+G)"
             className="truncate text-left hover:text-[#FFB000] cursor-pointer"
           >
-            [ALT+G] GENUI STUDIO // EXPORT CHIMERA LAB
+            [ALT+G] WIZFRAME // EXPORT CHIMERA LAB
           </button>
         </div>
       ) : isMonochromeArchive ? (
@@ -601,7 +601,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
             data-testid="open-immersion-hud-btn"
             className="truncate text-left hover:underline cursor-pointer"
           >
-            [ALT+G] GENUI STUDIO // EXPORT ARCHIVE
+            [ALT+G] WIZFRAME // EXPORT ARCHIVE
           </button>
         </div>
       ) : (
@@ -616,7 +616,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
             data-testid="open-immersion-hud-btn"
             className="text-left hover:text-white cursor-pointer"
           >
-            Press [Alt+G] for GenUI Studio / Export | [?debug=true] for Debug
+            Press [Alt+G] for WizFrame / Export | [?debug=true] for Debug
           </button>
           <button
             type="button"

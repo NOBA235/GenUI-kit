@@ -106,7 +106,7 @@ export const StudioHud: React.FC<StudioHudProps> = ({
           className="inline-flex min-h-[26px] items-center gap-1 rounded-md bg-[#09090B] px-2.5 py-1 text-[0.6875rem] font-medium text-white hover:bg-[#18181B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
         >
           <ChevronDown aria-hidden="true" className="h-3 w-3" />
-          <span>Expand Studio HUD</span>
+          <span>Expand WizFrame HUD</span>
         </button>
       </div>
     );
@@ -130,11 +130,11 @@ export const StudioHud: React.FC<StudioHudProps> = ({
             type="button"
             onClick={onNavigateHome}
             data-testid="hud-back-hub-btn"
-            aria-label="Back to Studio Hub"
+            aria-label="Back to WizFrame"
             className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-2.5 py-1 text-xs font-medium text-[#09090B] hover:border-[#D4D4D8] hover:bg-[#FAFAFA] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer"
           >
             <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Studio Hub</span>
+            <span className="hidden sm:inline">WizFrame</span>
           </button>
 
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none lg:flex-wrap">
@@ -162,8 +162,8 @@ export const StudioHud: React.FC<StudioHudProps> = ({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            title="Collapse Studio HUD"
-            aria-label="Collapse Studio HUD"
+            title="Collapse WizFrame HUD"
+            aria-label="Collapse WizFrame HUD"
             className="inline-flex min-h-[32px] shrink-0 items-center rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] px-2 py-1 text-xs text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer lg:hidden"
           >
             <ChevronUp aria-hidden="true" className="h-3.5 w-3.5" />
@@ -321,7 +321,7 @@ export const StudioHud: React.FC<StudioHudProps> = ({
             type="button"
             onClick={onToggleCollapsed}
             data-testid="collapse-hud-btn"
-            title="Collapse Studio HUD"
+            title="Collapse WizFrame HUD"
             className="hidden min-h-[32px] items-center gap-1 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] px-2.5 py-1 text-[#52525B] hover:border-[#D4D4D8] hover:text-[#09090B] focus-visible:outline-2 focus-visible:outline-[#2563EB] focus-visible:outline-offset-2 transition cursor-pointer lg:inline-flex"
           >
             <ChevronUp aria-hidden="true" className="h-3.5 w-3.5" />

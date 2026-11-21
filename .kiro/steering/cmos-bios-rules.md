@@ -10,7 +10,7 @@ Applies only to Flagship Website #3 (`packages/templates/src/cmos-cloud-bios/**`
 ## 1. Scope & Isolation
 1. Keep every template file inside `packages/templates/src/cmos-cloud-bios/`. Do not edit the Studio Hub shell (`apps/studio-hub/src`), the exported Next.js shell (`packages/templates/base-nextjs-shell/`), or other steering files.
 2. The template renders at `/preview/cmos-cloud-bios`. All styles stay inside `[data-template-theme="cmos-cloud-bios"]`.
-3. Studio Hub chrome collapses to a top-right jumper pin reading `[ALT+G] GENUI STUDIO // EXPORT CMOS`.
+3. WizFrame (`apps/studio-hub`) chrome collapses to a top-right jumper pin reading `[ALT+G] WIZFRAME // EXPORT CMOS`.
 
 ## 2. 1994 VGA BIOS Visual Language
 1. Palette is fixed to these VGA colours:

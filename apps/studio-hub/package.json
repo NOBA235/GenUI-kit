@@ -2,7 +2,7 @@
   "name": "@genui-studio/studio-hub",
   "version": "1.0.0",
   "private": true,
-  "description": "GenUI Studio Hub: Unified Dual-Mode Marketplace Storefront, Scoped /preview/[slug] Theme Isolation Engine, GenUI Live Remix Bar, X-Ray PBT Inspector, and Next.js .ZIP Exporter.",
+  "description": "WizFrame — Interactive UI Workbench: playable rule-driven UI stage, live Flow Map, playtest fuzzer, Excalidraw wireframe input, optional BYO-LLM streaming, and Next.js / Agent Skill exports.",
   "license": "MIT",
   "type": "module",
   "scripts": {

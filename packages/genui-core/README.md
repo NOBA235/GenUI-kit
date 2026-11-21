@@ -1,6 +1,6 @@
 # `@genui-studio/core`
 
-The reusable Generative UI Skeleton Engine for **GenUI Studio**, built atop `@json-render/core` (`v0.22.0`) and `@json-render/react` (`v0.22.0`).
+The reusable Generative UI and behavioral interaction engine powering **WizFrame**, built atop `@json-render/core` (`v0.22.0`) and `@json-render/react` (`v0.22.0`).
 
 ## Key Capabilities
 

@@ -37,7 +37,7 @@ export function createPlayableTemplateEntry(blueprint: PlayableBlueprint): DualM
     description: brief.elevatorPitch,
     mode: "native",
     version: "1.0.0",
-    author: "GenUI Studio",
+    author: "WizFrame",
     license: "MIT",
     tier: "free",
     priceUsd: 0,
@@ -62,7 +62,7 @@ ${brief.elevatorPitch}
 
 \`app/page.tsx\` renders \`src/template/wireframe.spec.json\` and runs its interaction rules through
 \`createInteractionRuleEngine\` on the store the renderer reads. Change behavior by editing the
-rules in that file (they are re-sanitized at load) or re-export from GenUI Studio.
+rules in that file (they are re-sanitized at load) or re-export from WizFrame.
 `;
 
   return {
@@ -74,7 +74,7 @@ rules in that file (they are re-sanitized at load) or re-export from GenUI Studi
     themeCss: generateStarterThemeCss(slug, THEME),
     steeringMd: `# ${brief.title} steering\n\n${brief.aestheticDirection}\n\nKeep every interaction going through the rule engine; components hold no domain state.\n`,
     skillMd,
-    kiroPowerMd: `# ${brief.title}\n\nPlayable GenUI starter exported from GenUI Studio. See SKILL.md.\n`,
+    kiroPowerMd: `# ${brief.title}\n\nPlayable starter exported from WizFrame. See SKILL.md.\n`,
     sourceFiles: [
       { path: "catalog.ts", content: catalogSource, kind: "catalog" },
       { path: "components.tsx", content: componentsSource, kind: "component" },

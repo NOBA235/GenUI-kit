@@ -15,7 +15,7 @@ import { App } from "../App.js";
 import { TemplateExportDialog } from "../components/TemplateExportDialog.js";
 import { TemplateXRayDrawer } from "../components/TemplateXRayDrawer.js";
 
-describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () => {
+describe("WizFrame — Interactive UI Workbench, Scoped Preview & HUD", () => {
   afterEach(() => {
     clearRuntimeTemplates();
   });
@@ -39,7 +39,8 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
 
     const html = renderToStaticMarkup(<App initialPath="/" />);
 
-    expect(html).toContain("GenUI Studio Hub");
+    expect(html).toContain("WizFrame");
+    expect(html).toContain("Interactive UI Workbench");
     expect(html).toContain("SaaS Dashboard Wireframe Starter");
     expect(html).toContain("Chronos DeFi Standalone");
     expect(html).toContain("Mode A · Native");
@@ -170,7 +171,7 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
     );
     expect(notFoundHtml).toContain('data-testid="template-not-found"');
     expect(notFoundHtml).toContain("Not Found");
-    expect(notFoundHtml).toContain("Return to Marketplace");
+    expect(notFoundHtml).toContain("Return to WizFrame");
   });
 
   it("renders AFTERDARK in full-window Immersion Mode, timed Scene 01 typography, and ?debug=true overlay", () => {
@@ -186,7 +187,7 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       expect(shutdownHtml).not.toContain('data-testid="studio-hud"');
       expect(shutdownHtml).toContain('data-testid="immersion-hud-indicator"');
       expect(shutdownHtml).toContain(
-        "Press [Alt+G] for GenUI Studio / Export | [?debug=true] for Debug",
+        "Press [Alt+G] for WizFrame / Export | [?debug=true] for Debug",
       );
       expect(shutdownHtml).toContain('data-testid="afterdark-shutdown-overlay"');
       expect(shutdownHtml).toContain("SIGNAL LOST");
@@ -293,7 +294,7 @@ describe("GenUI Studio Hub — Dual-Mode Storefront, Scoped Preview & HUD", () =
       expect(html).toContain('data-testid="immersion-hud-indicator"');
       expect(html).toContain('data-testid="ninety9-cobol-boot-terminal"');
       expect(html).toContain("IDENTIFICATION DIVISION.");
-      expect(html).toContain("[ALT+G] GENUI STUDIO // EXPORT ARCHIVE");
+      expect(html).toContain("[ALT+G] WIZFRAME // EXPORT ARCHIVE");
       expect(html).toContain("/images/ninety9/photos/");
       expect(html).toContain(expectedSnippet);
     }

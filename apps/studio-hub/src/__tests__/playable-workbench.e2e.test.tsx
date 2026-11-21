@@ -113,6 +113,7 @@ describe("Playable workbench entry points", () => {
 
     const play = renderToStaticMarkup(<App initialPath="/play" />);
     expect(play).toContain('data-testid="playable-workbench"');
+    expect(play).toContain("WizFrame Workbench");
     expect(play).toContain("Signal Relay Vault");
     expect(play).toContain('data-genui-key="charge-relay"');
     expect(play).toContain('data-testid="playtest-timeline-bar"');
@@ -131,7 +132,8 @@ describe("Playable workbench in a real DOM (Phase 4 gate)", () => {
       root!.render(<PlayableWorkbenchPage onNavigateHome={() => {}} replayStepMs={0} initialMuted />);
     });
 
-    // Initial state comes from the rule engine's store.
+    // Initial state comes from the rule engine's store, and browser title carries WizFrame.
+    expect(document.title).toContain("WizFrame");
     expect(outcome()).toBe("playing");
     expect(stageState().getAttribute("data-scene")).toBe("main");
     expect(element("signal-timer").textContent).toContain("15s");

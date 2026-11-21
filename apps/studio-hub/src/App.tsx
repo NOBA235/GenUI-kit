@@ -95,10 +95,10 @@ export const App: React.FC<StudioHubAppProps> = ({
       const tpl = getTemplateBySlug(matchedSlug);
       const label = tpl?.manifest.title ?? matchedSlug;
       document.title = route.wireframe
-        ? `${label} · Wireframe Workbench | GenUI Studio Hub`
-        : `${label} · Preview | GenUI Studio Hub`;
+        ? `${label} · Wireframe Architect | WizFrame`
+        : `${label} · Preview | WizFrame`;
     } else {
-      document.title = "GenUI Studio Hub — Wireframe-to-Application Workbench";
+      document.title = "WizFrame — Interactive UI Workbench";
     }
   }, [matchedSlug, route.wireframe, isPlayableRoute]);
 

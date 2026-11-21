@@ -14,9 +14,9 @@ import { buildShowcaseStarterSourceFiles } from "./showcase-starter-source.js";
 import type { DualModeTemplateEntry, TemplateThemeConfig } from "./types.js";
 
 /**
- * Self-contained interactive preview catalog used by the 4 baseline Showcase Packs
- * so Studio Hub renders real multi-section previews, live GenUI remixing, X-Ray PBT,
- * and Next.js shell exports prior to building the 4 new flagship websites.
+ * Self-contained interactive preview catalog used by the starter packs
+ * so WizFrame renders live previews, wireframe compilations, X-Ray PBT,
+ * and Next.js / Skill Pack exports.
  */
 export const showcasePreviewCatalog = createVerifiedCatalog(schema, {
   components: {

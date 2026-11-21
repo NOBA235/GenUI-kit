@@ -42,24 +42,24 @@ const PIPELINE_STEPS: readonly {
   readonly detail: string;
 }[] = [
   {
-    title: "Sketch blocks",
-    detail: "Draw catalog-backed frames, blocks, and state arrows in Excalidraw",
+    title: "Create or load a spec",
+    detail: "Start from Signal Relay Vault, a wireframe sketch, or optional Quick Vibe / Master Prompt",
   },
   {
-    title: "Compile to Spec",
-    detail: "Deterministic Excalidraw → GenUI Spec + Mermaid with zero LLM calls",
+    title: "Configure rules",
+    detail: "Sanitized Trigger → Guard → Effect rules with schema-healed props and offline Pivot Macros",
   },
   {
-    title: "Inspect diagnostics",
-    detail: "Block provenance, $state pointers, healed props, and schema checks",
+    title: "Play & inspect flow",
+    detail: "Click, drag, and tick through the live UI while Flow Map pulses fired rules and history records snapshots",
   },
   {
-    title: "Preview safely",
-    detail: "Per-element fault isolation in SafeGenUIRenderer + time-travel state",
+    title: "Fuzz & replay traces",
+    detail: "Verify whether win/lose outcomes are reachable with fast-check, catch dead rules, and replay shortest traces",
   },
   {
-    title: "Export Next.js starter",
-    detail: "Self-contained Next.js 15 .zip with catalog, spec, and Kiro docs",
+    title: "Export the result",
+    detail: "Download a runnable Next.js 15 starter or an executable Agent Skill & Contract Pack (.zip)",
   },
 ];
 
@@ -358,13 +358,13 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
               aria-hidden="true"
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#09090B] font-mono text-xs font-semibold text-white"
             >
-              G
+              W
             </span>
             <span className="truncate text-sm font-semibold tracking-tight">
-              GenUI Studio Hub
+              WizFrame
             </span>
             <span className="hidden rounded border border-[#E4E4E7] bg-[#FAFAFA] px-1.5 py-0.5 font-mono text-[0.625rem] font-medium text-[#52525B] sm:inline">
-              MIT · v1.0
+              Interactive UI Workbench
             </span>
           </a>
 
@@ -429,7 +429,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                   aria-hidden="true"
                   className="h-1.5 w-1.5 rounded-full bg-[#2563EB]"
                 />
-                <span>Verified Behavioral Specs &amp; Universal Agent Skill Packs · @json-render v0.22</span>
+                <span>WizFrame — Interactive UI Workbench · built on @genui-studio/core &amp; @json-render v0.22</span>
               </div>
 
               <h1
@@ -437,14 +437,14 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                 tabIndex={-1}
                 className="hub-display-heading font-bold text-[#09090B] focus:outline-none"
               >
-                Verify interactive specs. Hand AI IDEs executable contracts.
+                Turn a brief or wireframe into a playable, testable UI.
               </h1>
 
               <p className="hub-body-copy mx-auto max-w-[60ch] text-base text-[#52525B] leading-relaxed sm:text-[1.0625rem]">
-                Play and fuzz declarative state machines in the /play workbench,
-                stream Quick Vibes or Markdown Master Prompts via Yantra AI /
-                OpenAI / Ollama, or compile Excalidraw wireframes offline—then
-                export AppDriver Skill Packs or runnable Next.js 15 starters.
+                WizFrame turns a creative brief or wireframe into an interactive
+                UI, lets you inspect and fuzz-test the behavior behind it, and
+                exports the result as a runnable Next.js 15 app or a reusable
+                agent skill pack.
               </p>
 
               {/* Primary & Secondary CTAs */}
@@ -617,15 +617,16 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-1.5">
                 <p className="font-mono text-xs font-medium text-[#2563EB]">
-                  Reference Applications
+                  Foundation Examples
                 </p>
                 <h2 className="hub-section-heading font-bold text-[#09090B]">
-                  Four distinct applications on one shared engine.
+                  Example apps built on the same core engine.
                 </h2>
               </div>
               <p className="max-w-[46ch] text-sm text-[#52525B]">
-                Every application below is MIT-licensed, previewable live inside
-                scoped containers, and exportable as a standalone Next.js starter.
+                Supporting MIT-licensed examples demonstrating what the
+                underlying @genui-studio/core engine can run—previewable inside
+                scoped containers and exportable as Next.js starters.
               </p>
             </div>
 
@@ -935,7 +936,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
       <footer className="border-t border-[#E4E4E7] bg-white">
         <div className="mx-auto flex max-w-[1160px] flex-col items-start justify-between gap-3 px-4 py-6 text-xs text-[#71717A] sm:flex-row sm:items-center sm:px-6">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#09090B]">GenUI Studio Hub</span>
+            <span className="font-semibold text-[#09090B]">WizFrame</span>
+            <span aria-hidden="true">·</span>
+            <span>Interactive UI Workbench</span>
             <span aria-hidden="true">·</span>
             <span>MIT License</span>
             <span aria-hidden="true">·</span>

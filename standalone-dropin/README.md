@@ -19,4 +19,4 @@ pnpm ingest:standalone <project-slug>
    - `catalog.ts` bridge for `@genui-studio/core` (`SafeGenUIRenderer` & Live Remix Bar)
    - Scoped `theme.css` under `[data-template-theme="<project-slug>"]`
    - `SKILL.md` + Kiro `POWER.md`
-3. Packages the clean standalone source tree directly into the Marketplace `.zip` and Shadcn CLI Registry pipeline, and displays the project in the Studio Hub storefront grid.
+3. Packages the clean standalone source tree directly into the `.zip` and Shadcn CLI Registry export pipeline, and lists the project in the WizFrame registry grid.

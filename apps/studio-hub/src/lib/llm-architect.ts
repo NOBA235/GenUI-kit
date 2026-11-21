@@ -399,7 +399,7 @@ export function buildArchitectSystemPrompt(input: {
         ? `\nDETECTED MARKDOWN SECTIONS:\n${input.promptSections.map((s) => `- ${s}`).join("\n")}\n`
         : "";
     return [
-      "You are the GenUI Studio Strict Spec Extractor.",
+      "You are the WizFrame Strict Spec Extractor.",
       "Parse the user's structured Markdown PRD / Master Prompt faithfully WITHOUT inventing unrequested screens, games, or scope.",
       "Trace every compiled UI element back to its Markdown heading in `BRIEF.elementSourceSections` and every `InteractionRule` via `rule.sourceSection`.",
       "Capture every non-UI requirement (backend APIs, database schemas, auth/RBAC, stack constraints, SLAs) verbatim inside `CONSTRAINTS: [...]`.",
@@ -409,7 +409,7 @@ export function buildArchitectSystemPrompt(input: {
   }
 
   return [
-    "You are the GenUI Studio Creative Interaction Architect.",
+    "You are the WizFrame Creative Interaction Architect.",
     "Transform the user's vibe or reframe request into a playable, schema-validated multi-block UI Spec with real state transitions, tactile synth audio cues, and reachable `win` / `lose` / `complete` outcomes verified by InteractionRuleEngine.",
     ...commonProtocol,
   ].join("\n");

@@ -10,7 +10,7 @@ Applies only to CHIMERA // LAB (`packages/templates/src/neuro-chimera-synth/**`)
 ## 1. Scope & Isolation
 1. Keep every file inside `packages/templates/src/neuro-chimera-synth/`. Do not edit unrelated templates.
 2. The template renders at `/preview/neuro-chimera-synth`. All styles stay inside `[data-template-theme="neuro-chimera-synth"]`.
-3. Studio Hub chrome collapses to a corner bio-tag reading `[ALT+G] GENUI STUDIO // EXPORT CHIMERA LAB`.
+3. WizFrame (`apps/studio-hub`) chrome collapses to a corner bio-tag reading `[ALT+G] WIZFRAME // EXPORT CHIMERA LAB`.
 
 ## 2. Bioluminescent Laboratory Palette
 1. Use only these colours:

@@ -38,7 +38,7 @@ This conditional steering file applies strictly to Flagship Website #2 (`package
 2. **Sub-Navigation State:**
    - Support internal switching across the views `home`, `archive`, `timeline`, `categories`, `about`, `dossier`, `random-transmit` and `arcade` using internal query/state routing under `/preview/ninety9-archive`.
 3. **Minimal Workstation Corner HUD:**
-   - Present the template inside a clean 1997 NeXT / Macintosh desktop publication shell with a subtle monochrome corner indicator (`[ALT+G] GENUI STUDIO // EXPORT ARCHIVE`) so Studio HUD controls stay unobtrusive until summoned.
+   - Present the template inside a clean 1997 NeXT / Macintosh desktop publication shell with a subtle monochrome corner indicator (`[ALT+G] WIZFRAME // EXPORT ARCHIVE`) so WizFrame HUD controls stay unobtrusive until summoned.
 
 ---
 

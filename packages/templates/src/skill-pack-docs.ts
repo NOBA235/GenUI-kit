@@ -240,7 +240,7 @@ PowerShell: \`${RUN_REFERENCE_PWSH}\``;
 }
 
 const CONTRACT_RULES = `- Implement \`contracts/production-driver.ts\` so it drives your real app. Do not make it call \`reference-driver.ts\` or the GenUI rule engine; the contract only proves something when it exercises your code.
-- Do not edit \`contracts/wireframe.spec.json\`, \`contracts/reference-driver.ts\`, \`contracts/app-driver.ts\` or \`${CONTRACT_TEST_PATH}\`. If the behavior must change, change the spec in GenUI Studio and re-export the pack.
+- Do not edit \`contracts/wireframe.spec.json\`, \`contracts/reference-driver.ts\`, \`contracts/app-driver.ts\` or \`${CONTRACT_TEST_PATH}\`. If the behavior must change, change the spec in WizFrame and re-export the pack.
 - Keep the state pointers listed in the spec readable through \`AppDriver.getState()\`.`;
 
 // ---------------------------------------------------------------------------
@@ -479,7 +479,7 @@ description: ${JSON.stringify(singleLine(brief.elevatorPitch).slice(0, 1000))}
 
 ${brief.elevatorPitch}
 
-This pack is a verified behavioral spec exported from GenUI Studio. The UI, state and interaction rules in \`contracts/wireframe.spec.json\` were run and fuzzed before export, and \`${CONTRACT_TEST_PATH}\` checks that your app behaves the same way.
+This pack is a behavioral spec exported from WizFrame. The UI, state and interaction rules in \`contracts/wireframe.spec.json\` were run and fuzzed before export, and \`${CONTRACT_TEST_PATH}\` checks that your app behaves the same way.
 
 ## Creative brief
 
@@ -525,7 +525,7 @@ ${ctx.hasExcalidraw ? `- \`wireframe/${ctx.slug}.excalidraw.json\`: the visual b
 export function buildAgentsMd(ctx: SkillPackContext): string {
   return `# AGENTS.md
 
-You are building **${ctx.document.brief.title}** from a verified behavioral spec exported by GenUI Studio.
+You are building **${ctx.document.brief.title}** from a behavioral spec exported by WizFrame.
 
 - Start with \`SKILL.md\`: brief, UX loop, preserved constraints and verified behavior.
 - The plan is in \`.kiro/specs/${ctx.slug}/tasks.md\`; requirements and design sit next to it.

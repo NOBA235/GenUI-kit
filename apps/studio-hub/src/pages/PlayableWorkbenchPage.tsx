@@ -91,7 +91,7 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
 
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.title = `${blueprint.brief.title} · Playable Workbench | GenUI Studio Hub`;
+      document.title = `${blueprint.brief.title} · Workbench | WizFrame`;
     }
   }, [blueprint.brief.title]);
 
@@ -245,12 +245,12 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
             className="inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#09090B]"
           >
             <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-            Hub
+            WizFrame
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="m-0 truncate text-sm font-semibold tracking-tight">
               {blueprint.brief.title}
-              <span className="ml-2 font-mono text-[0.6875rem] font-normal text-[#71717A]">Playable Workbench</span>
+              <span className="ml-2 font-mono text-[0.6875rem] font-normal text-[#71717A]">WizFrame Workbench</span>
             </h1>
             <p className="m-0 truncate text-xs text-[#52525B]">{blueprint.brief.elevatorPitch}</p>
           </div>
