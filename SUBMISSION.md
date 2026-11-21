@@ -1,6 +1,7 @@
 # Hackathon Submission: WizFrame (`GenUI-kit`)
 
 **Product:** **WizFrame — Interactive UI Workbench**  
+**Live Demo:** [wizframe-workbench.vercel.app/play](https://wizframe-workbench.vercel.app/play) *(App Home: [wizframe-workbench.vercel.app](https://wizframe-workbench.vercel.app/) · Standalone apps: [`/ninety9`](https://wizframe-workbench.vercel.app/ninety9), [`/cmos`](https://wizframe-workbench.vercel.app/cmos))*  
 **Repository:** [github.com/NOBA235/GenUI-kit](https://github.com/NOBA235/GenUI-kit) *(MIT License — [`LICENSE`](./LICENSE))*  
 **Summary:** **WizFrame turns a creative brief or wireframe into an interactive UI, lets you inspect and test the behavior behind it, and exports the result as a runnable app or reusable agent skill.**  
 **Prerequisites:** `Node.js >= 22.18.0`, `pnpm@9.15.0` (core workbench, Excalidraw compiler, Pivot Macros, playtest fuzzer, and exports all run offline with zero API keys; BYO-LLM streaming is optional).

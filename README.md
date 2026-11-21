@@ -1,5 +1,6 @@
 # WizFrame — Interactive UI Workbench
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-wizframe--workbench.vercel.app-09090B?logo=vercel)](https://wizframe-workbench.vercel.app/play)
 [![CI](https://github.com/NOBA235/GenUI-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/NOBA235/GenUI-kit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Node.js >= 22.18.0](https://img.shields.io/badge/node-%3E%3D22.18.0-brightgreen.svg)](./package.json)
@@ -8,7 +9,17 @@
 **Static wireframes and AI mockups break the moment someone clicks, drags, or hits an edge case.**
 **WizFrame turns a creative brief or wireframe into a playable, rule-driven UI, fuzz-tests whether its outcomes are actually reachable, and exports the verified result as a runnable Next.js app or reusable Agent Skill Pack.**
 
+> **Try it live (zero setup, zero API keys):** [**Launch WizFrame Workbench (`/play`)**](https://wizframe-workbench.vercel.app/play) · [App Home](https://wizframe-workbench.vercel.app/) · [NINETY9 (`/ninety9`)](https://wizframe-workbench.vercel.app/ninety9) · [BIOS // NECROMANCER (`/cmos`)](https://wizframe-workbench.vercel.app/cmos)
+
 Runs **100% offline with zero API keys** (BYO-LLM streaming is optional). Built in the `GenUI-kit` TypeScript monorepo on [`@genui-studio/core`](./packages/genui-core) and [`@json-render`](https://github.com/vercel-labs/json-render) `v0.22.0`.
+
+<p align="center">
+  <img src="./docs/screenshots/wizframe-demo.gif" alt="WizFrame Interactive UI Workbench live demo: play Signal Relay Vault to win, verify reachability with fast-check fuzzing, inspect the Live Flow Map, and export Skill Pack or Next.js starter" width="100%" />
+</p>
+
+| Playable Workbench & Verified Win State (`/play`) | Live Flow Map & Fired Rule Edges |
+| :---: | :---: |
+| ![WizFrame Playable Workbench](./docs/screenshots/wizframe-workbench.png) | ![WizFrame Live Flow Map](./docs/screenshots/wizframe-flow-map.png) |
 
 ---
 
@@ -55,16 +66,30 @@ npx vitest run contracts/invariants.pbt.test.ts
 
 ---
 
-## 3. Shared-Core Proof: Two Standalone Apps, One Runtime
+## 3. Featured Applications (Built on the Same Engine)
 
-To show that the foundation examples share one engine rather than copy-pasted app code, both standalone apps under `apps/` import the exact same `@genui-studio/core` + `@genui-studio/templates` pipeline with zero dependency on `apps/studio-hub`:
+All four MIT-licensed featured applications below run on the same [`@genui-studio/core`](./packages/genui-core) verified catalog, DAG sanitizer, time-travel store, and `<SafeGenUIRenderer>` pipeline. Each is previewable inside WizFrame (`/preview/<slug>`) and exportable as a standalone Next.js starter.
+
+| [**AFTERDARK 2.0**](https://wizframe-workbench.vercel.app/preview/afterdark-horror) — `/preview/afterdark-horror` | [**NINETY9**](https://wizframe-workbench.vercel.app/preview/ninety9-archive) — `/preview/ninety9-archive` |
+| :---: | :---: |
+| ![AFTERDARK 2.0 3D Cemetery](./docs/screenshots/app-afterdark.png) | ![NINETY9 1997 Monochrome Archive](./docs/screenshots/app-ninety9.png) |
+| **The Website You Cannot See.** A 3D WebGL haunted cemetery (`Three.js` / `@react-three/fiber`) with 5 interconnected zones, procedural Web Audio, 3-clue investigation, and a Zone E `LIGHT MODE` breaker that transforms the world into a daylight Swiss editorial publication. | **1997 Monochrome Archive & 1-Bit Arcade.** Strict 5-tone paper-white NeXT/Macintosh workstation indexing 34 1990s archival dossiers across 12 sectors, with a COBOL boot gate, toggleable CRT scanlines, 99.4 MHz random transmitter, and 3 HTML5 Canvas games. |
+
+| [**BIOS // NECROMANCER**](https://wizframe-workbench.vercel.app/preview/cmos-cloud-bios) — `/preview/cmos-cloud-bios` | [**CHIMERA // LAB**](https://wizframe-workbench.vercel.app/preview/neuro-chimera-synth) — `/preview/neuro-chimera-synth` |
+| :---: | :---: |
+| ![BIOS // NECROMANCER 1994 CMOS Utility](./docs/screenshots/app-cmos-bios.png) | ![CHIMERA // LAB Bio-Digital SQL Optimizer](./docs/screenshots/app-chimera-lab.png) |
+| **1994 CMOS Utility & 3D Cloud IaC Compiler.** Award Modular BIOS interface where tuning clock multipliers, RAID, and power budgets drives simulated P99 latency, thermals, and monthly cloud cost on a 3D motherboard twin before compiling deterministic `docker-compose.yml`, `vercel.json`, and `main.tf`. | **Bio-Digital SQL Synthesizer & Optimizer.** Live Physarum slime-mould simulation of database query traffic paired with a deterministic SQL parser, before/after EXPLAIN cost planner (`Seq Scan -> Index Scan`), index DDL recommendations, and FM audio sonification. |
+
+### Shared-Core Proof (Two Standalone Apps, Zero Copied Runtime)
+
+Both standalone apps under `apps/` mount directly on the exact same `@genui-studio/core` + `@genui-studio/templates` pipeline with zero dependency on `apps/studio-hub`:
 
 | Standalone App | Entry File | Shared `@genui-studio/core` Primitives Imported | Run Locally |
 | :--- | :--- | :--- | :--- |
-| **NINETY9** (1997 Monochrome Archive & 1-Bit Arcade) | [`apps/ninety9-archive/src/App.tsx`](./apps/ninety9-archive/src/App.tsx) | `createGuardrailedStreamCompiler`, `createTimeTravelStateStore`, `createTelemetryTracker`, `SafeGenUIRenderer`, `specToJsonlStream`, `wrapRegistryWithTelemetry` + `getTemplateBySlug`, `scopeTemplateCss` | `pnpm dev:ninety9` (`:5176`) |
-| **BIOS // NECROMANCER** (1994 CMOS Utility + 3D PCB IaC Compiler) | [`apps/cmos-cloud-bios/src/App.tsx`](./apps/cmos-cloud-bios/src/App.tsx) | Identical 6 `@genui-studio/core` imports + identical `getTemplateBySlug`, `scopeTemplateCss` isolation pipeline | `pnpm dev:cmos` (`:5177`) |
+| **NINETY9** | [`apps/ninety9-archive/src/App.tsx`](./apps/ninety9-archive/src/App.tsx) | `createGuardrailedStreamCompiler`, `createTimeTravelStateStore`, `createTelemetryTracker`, `SafeGenUIRenderer`, `specToJsonlStream`, `wrapRegistryWithTelemetry` + `getTemplateBySlug`, `scopeTemplateCss` | `pnpm dev:ninety9` (`:5176/ninety9/`) |
+| **BIOS // NECROMANCER** | [`apps/cmos-cloud-bios/src/App.tsx`](./apps/cmos-cloud-bios/src/App.tsx) | Identical 6 `@genui-studio/core` imports + identical `getTemplateBySlug`, `scopeTemplateCss` isolation pipeline | `pnpm dev:cmos` (`:5177/cmos/`) |
 
-Additional MIT examples bundled in [`packages/templates`](./packages/templates): `product-landing-starter`, `saas-dashboard-starter`, `afterdark-horror`, and `neuro-chimera-synth`.
+Additional MIT starter blueprints bundled in [`packages/templates`](./packages/templates): `product-landing-starter` and `saas-dashboard-starter`.
 
 ---
 
@@ -135,6 +160,6 @@ Open `/preview/product-landing-starter?wireframe=sample` to draw catalog-backed 
 ### Runtime Safety Bounds & Deployment
 
 - **Bounds:** DAG cycle severance, max `64` rules, `16` guards/effects per rule, tree depth `6`, `32` transitions per step, prototype-pollution key rejection (`__proto__`, `constructor`, `prototype`), unsafe URI blocking (`javascript:`, `vbscript:`, `data:text/html`), per-element error boundaries, and `.env*` exclusion from `.zip` exports.
-- **Static deploy configs:** [`vercel.json`](./vercel.json), [`netlify.toml`](./netlify.toml), and MIT [`LICENSE`](./LICENSE).
+- **Deployment configs:** Multi-service [`vercel.json`](./vercel.json) (`studio-hub` on `/`, `ninety-nine-archive` on `/ninety9`, `cmos-cloud-bios` on `/cmos`), [`netlify.toml`](./netlify.toml), and MIT [`LICENSE`](./LICENSE).
 
 </details>
