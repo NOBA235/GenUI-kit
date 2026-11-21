@@ -31,7 +31,7 @@ GenUi-kit/
 │           ├── POWER.md
 │           └── steering/
 │               ├── react-to-catalog.md
-│               └── three-and-mcp-patterns.md
+│               └── three-shared-state-patterns.md
 ├── packages/                                # Reusable Engine & Exporters (3 packages; keep @genui-studio/* identifiers intact)
 │   ├── genui-core/                          # @genui-studio/core — Guardrailed GenUI & Behavioral Interaction Engine
 │   │   └── src/

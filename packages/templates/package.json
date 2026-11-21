@@ -1,7 +1,7 @@
 {
   "name": "@genui-studio/templates",
   "version": "1.0.0",
-  "description": "Dual-Mode Template Registry, Scoped Theme Container Engine, Standalone Drop-In Ingestion Adapter, and Next.js .ZIP Exporter for GenUI Studio.",
+  "description": "WizFrame export & template engine: Agent Skill Pack exporter, Next.js 15 .zip starter exporter, scoped CSS isolation, and MIT foundation examples.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

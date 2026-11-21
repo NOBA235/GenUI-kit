@@ -560,7 +560,7 @@ export const ArcadeView: React.FC<ArcadeCabinetSectionProps> = ({
             <p className="max-w-3xl text-xs leading-relaxed text-[#292929] sm:text-sm">
               Three modular, zero-dependency HTML5 Canvas games synthesized inside strict
               #FFFFFF / #000000 workstation constraints. High scores and achievements
-              persist to browser localStorage and respond live to GenUI Studio physics remixes.
+              persist to browser localStorage and respond live to WizFrame physics remixes.
             </p>
           </div>
 

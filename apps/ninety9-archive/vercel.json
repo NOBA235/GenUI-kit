@@ -1,9 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/app-ninety9-archive build",
-  "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/ninety9/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/ninety9/images/:path*",
+      "destination": "/images/:path*"
+    },
+    {
+      "source": "/ninety9/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ninety9",
+      "destination": "/index.html"
+    },
     {
       "source": "/((?!assets/|images/|.*\\.(?:js|css|svg|png|jpg|jpeg|webp|woff2|ico|json|map)$).*)",
       "destination": "/index.html"

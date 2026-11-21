@@ -6,7 +6,7 @@
   "description": "Application #4 built with Kiro + GenUI: a Physarum slime-mould simulation of database traffic. Full-table scans and N+1 loops glow crimson; sever or drag nodes and the network re-routes. A deterministic SQL parser and cost planner compare EXPLAIN plans before and after local agent optimization, and network health is sonified as an FM drone.",
   "mode": "native",
   "version": "1.0.0",
-  "author": "GenUI Studio",
+  "author": "WizFrame",
   "license": "MIT",
   "tier": "free",
   "priceUsd": 0,

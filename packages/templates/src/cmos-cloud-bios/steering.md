@@ -1,6 +1,6 @@
 # BIOS // NECROMANCER (`cmos-cloud-bios`) — Template Steering
 
-- **Mode:** Mode A native website inside GenUI Studio, previewed at `/preview/cmos-cloud-bios`.
+- **Mode:** Mode A native website inside WizFrame, previewed at `/preview/cmos-cloud-bios`.
 - **Spec:** `.kiro/specs/cmos-cloud-bios/` (`requirements.md`, `design.md`, `tasks.md`).
 - **Scoped rules:** `.kiro/steering/cmos-bios-rules.md`.
 - **Engine:** `lib/cmos/engine.ts` owns all register state. UI and 3D components read the shared store and never keep their own copy.

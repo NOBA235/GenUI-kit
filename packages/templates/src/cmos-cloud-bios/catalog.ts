@@ -144,7 +144,7 @@ export const initialPageSpecs: Record<string, Spec> = {
       hero: {
         type: "DevToolsHeroSection",
         props: {
-          eyebrow: "OPEN SOURCE // GENUI STUDIO TEMPLATE",
+          eyebrow: "OPEN SOURCE // WIZFRAME EXAMPLE",
           headline: "Configure your cloud like it's 1994.",
           subheadline:
             "Tune clock multipliers, RAID arrays and IRQ lines in an Award BIOS, watch cost, P99 latency and thermals react, then compile real docker-compose.yml, vercel.json and main.tf.",

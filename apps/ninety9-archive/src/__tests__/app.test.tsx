@@ -10,7 +10,9 @@ describe("Standalone App #1: NINETY9 Monochrome Archive (apps/ninety9-archive)",
   it("renders all 6 standalone routes cleanly through @genui-studio/core SafeGenUIRenderer", () => {
     const routes: readonly [string, string][] = [
       ["/", 'id="ninety9-arcade-bay"'],
+      ["/ninety9", 'id="ninety9-arcade-bay"'],
       ["/archive", 'data-testid="ninety9-archive-catalog-view"'],
+      ["/ninety9/archive", 'data-testid="ninety9-archive-catalog-view"'],
       ["/timeline", 'data-testid="ninety9-timeline-section"'],
       ["/categories", 'data-testid="ninety9-categories-view"'],
       ["/about", 'data-testid="ninety9-about-view"'],

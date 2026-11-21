@@ -1,6 +1,6 @@
 ---
 name: "json-render-power"
-displayName: "Vercel json-render & GenUI Studio Architect Power"
+displayName: "Vercel json-render & WizFrame Architect Power"
 description: "Equips coding agents with deep expertise in converting React and React Three Fiber components into guardrailed @json-render v0.22.0 Zod catalogs, type-safe registries, RFC 6902 JSONL stream compilers, and bidirectional $bindState stores."
 keywords:
   - "json-render"
@@ -112,4 +112,4 @@ Always pass streaming or untrusted specs through `createGuardrailedStreamCompile
 
 ## 3. Steering Files Included in This Power
 - [`steering/react-to-catalog.md`](./steering/react-to-catalog.md): Step-by-step transformation recipes for converting containers, slots, repeat lists, and form controls into `@json-render/react` catalog entries.
-- [`steering/three-and-mcp-patterns.md`](./steering/three-and-mcp-patterns.md): Patterns for 3D scene generation (`@json-render/react-three-fiber`) and dual-viewport shared state stores.
+- [`steering/three-shared-state-patterns.md`](./steering/three-shared-state-patterns.md): Patterns for 3D scene generation (`@json-render/react-three-fiber`) and dual-viewport shared state stores.

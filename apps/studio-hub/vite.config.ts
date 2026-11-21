@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
@@ -221,6 +222,56 @@ function createGenuiArchitectProxyPlugin(env: Record<string, string>): Plugin {
   };
 }
 
+/** URL prefix the app sets as `window.EXCALIDRAW_ASSET_PATH` (see src/excalidraw-assets.ts). */
+const EXCALIDRAW_ASSET_PREFIX = "/excalidraw-assets/";
+const FONT_FILE = /^[A-Za-z0-9_-]+\/[A-Za-z0-9._-]+\.woff2$/;
+
+/**
+ * Serves Excalidraw's fonts from this origin instead of its esm.sh fallback.
+ * Dev: streams `<pkg>/dist/prod/fonts/**` at `/excalidraw-assets/fonts/**`.
+ * Build: copies that folder to `dist/excalidraw-assets/fonts/` (not committed to git).
+ */
+function selfHostExcalidrawFontsPlugin(): Plugin {
+  // The package's `exports` map hides package.json, so resolve its folder through the
+  // direct-dependency link pnpm creates in this app's node_modules.
+  const fontsDir = path.join(
+    fs.realpathSync(path.join(__dirname, "node_modules", "@excalidraw", "excalidraw")),
+    "dist",
+    "prod",
+    "fonts",
+  );
+  let outDir = "";
+
+  return {
+    name: "genui-self-host-excalidraw-fonts",
+    configResolved(config) {
+      // Vite also calls closeBundle when a dev or Vitest server shuts down; copy on builds only.
+      outDir = config.command === "build" ? path.resolve(config.root, config.build.outDir) : "";
+    },
+    configureServer(server) {
+      server.middlewares.use(`${EXCALIDRAW_ASSET_PREFIX}fonts/`, (req, res, next) => {
+        const relative = decodeURIComponent((req.url ?? "").split("?")[0] ?? "").replace(/^\/+/, "");
+        if (!FONT_FILE.test(relative)) {
+          next();
+          return;
+        }
+        const file = path.join(fontsDir, relative);
+        if (!file.startsWith(fontsDir + path.sep) || !fs.existsSync(file)) {
+          next();
+          return;
+        }
+        res.setHeader("Content-Type", "font/woff2");
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        fs.createReadStream(file).pipe(res);
+      });
+    },
+    closeBundle() {
+      if (!outDir || !fs.existsSync(fontsDir)) return;
+      fs.cpSync(fontsDir, path.join(outDir, EXCALIDRAW_ASSET_PREFIX, "fonts"), { recursive: true });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, path.resolve(__dirname, "../.."), "");
   const localEnv = loadEnv(mode, __dirname, "");
@@ -231,6 +282,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       createGenuiArchitectProxyPlugin(mergedEnv),
+      selfHostExcalidrawFontsPlugin(),
     ],
     publicDir: path.resolve(__dirname, "../../public"),
     resolve: {

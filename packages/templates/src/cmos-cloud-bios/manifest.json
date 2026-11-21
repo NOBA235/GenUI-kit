@@ -6,7 +6,7 @@
   "description": "Application #3 built with Kiro + GenUI: an Award Modular BIOS setup utility that configures real cloud infrastructure. Tune clock multipliers, RAID, IRQ lines and power budgets, watch simulated cost, P99 latency and thermals react on a 3D motherboard twin, then compile docker-compose.yml, vercel.json and main.tf or transmit the config as FSK modem audio.",
   "mode": "native",
   "version": "1.0.0",
-  "author": "GenUI Studio",
+  "author": "WizFrame",
   "license": "MIT",
   "tier": "free",
   "priceUsd": 0,

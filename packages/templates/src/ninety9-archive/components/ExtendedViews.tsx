@@ -310,7 +310,7 @@ export const AboutView: React.FC<{ readonly heading: string }> = ({ heading }) =
               All {stats.totalEntries} historical dossiers across {stats.totalCategories} sectors
               and {stats.totalMilestones} decade milestones ({stats.yearSpan[0]}–{stats.yearSpan[1]})
               are backed by strict Zod schemas (`ArchiveEntrySchema`), zero-dependency deterministic
-              halftone SVGs, and scoped CSS container isolation inside GenUI Studio.
+              halftone SVGs, and scoped CSS container isolation inside WizFrame.
             </p>
           </div>
 

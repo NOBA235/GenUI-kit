@@ -7,6 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  base: "/ninety9/",
   plugins: [react(), tailwindcss()],
   publicDir: path.resolve(__dirname, "../../public"),
   resolve: {

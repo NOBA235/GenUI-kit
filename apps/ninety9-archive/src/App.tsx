@@ -17,7 +17,8 @@ function resolvePageId(
   pages: readonly { readonly id: string; readonly route: string }[],
   pathname: string,
 ): string {
-  const clean = pathname.replace(/\/+$/, "") || "/";
+  const withoutBase = pathname.replace(/^\/ninety9(?=\/|$)/i, "") || "/";
+  const clean = withoutBase.replace(/\/+$/, "") || "/";
   const match = pages.find((p) => p.route === clean || `/${p.id}` === clean);
   if (match) return match.id;
   if (clean.startsWith("/dossier/")) return "archive";

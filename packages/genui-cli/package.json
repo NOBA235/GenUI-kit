@@ -1,7 +1,7 @@
 {
   "name": "genui-studio",
   "version": "1.0.0",
-  "description": "GenUI Studio CLI: Token-Gated Installer & Registry Client for Agent-Ready 2D/3D Generative UI Template Packs, Zod Catalogs, and AI Skills (npx genui-studio add <pack>).",
+  "description": "WizFrame CLI (genui-studio): validate UI specs, fuzz-test interaction rules, and export runnable Next.js starters or Agent Skill Packs.",
   "license": "MIT",
   "type": "module",
   "bin": {

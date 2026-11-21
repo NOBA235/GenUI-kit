@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/((?!api/|assets/|images/|excalidraw-assets/|.*\\.(?:js|css|svg|png|jpg|jpeg|webp|woff2|ico|json|map)$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

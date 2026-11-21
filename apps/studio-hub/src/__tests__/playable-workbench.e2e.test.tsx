@@ -129,7 +129,9 @@ describe("Playable workbench in a real DOM (Phase 4 gate)", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root!.render(<PlayableWorkbenchPage onNavigateHome={() => {}} replayStepMs={0} initialMuted />);
+      root!.render(
+        <PlayableWorkbenchPage onNavigateHome={() => {}} replayStepMs={0} initialMuted preloadExcalidraw={false} />,
+      );
     });
 
     // Initial state comes from the rule engine's store, and browser title carries WizFrame.

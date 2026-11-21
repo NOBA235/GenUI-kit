@@ -25,11 +25,23 @@ import { describeEvent } from "../lib/rule-describe.js";
 import { specToExcalidrawScene } from "../lib/spec-to-excalidraw.js";
 import { playableCatalog } from "../playable/catalog.js";
 
+// One shared promise: the background preload and React.lazy fetch the chunk only once.
+let excalidrawViewModule: Promise<typeof import("../components/ExcalidrawSourceView.js")> | null = null;
+function loadExcalidrawSourceView() {
+  excalidrawViewModule ??= import("../components/ExcalidrawSourceView.js");
+  return excalidrawViewModule;
+}
+
 const LazyExcalidrawSourceView = React.lazy(() =>
-  import("../components/ExcalidrawSourceView.js").then((mod) => ({
-    default: mod.ExcalidrawSourceView,
-  })),
+  loadExcalidrawSourceView().then((mod) => ({ default: mod.ExcalidrawSourceView })),
 );
+
+/** Downloads the Excalidraw chunk ahead of time; failures are retried when the tab opens. */
+function preloadExcalidrawSourceView(): void {
+  loadExcalidrawSourceView().catch(() => {
+    excalidrawViewModule = null;
+  });
+}
 
 type StageTab = "preview" | "flow" | "excalidraw";
 
@@ -54,6 +66,8 @@ export interface PlayableWorkbenchPageProps {
   /** Fetch override for the LLM stream (tests). */
   readonly fetchImpl?: FetchLike;
   readonly initialBlueprint?: PlayableBlueprint;
+  /** Download the Excalidraw chunk in the background once the page is idle (default: true). */
+  readonly preloadExcalidraw?: boolean;
 }
 
 /**
@@ -66,6 +80,7 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
   initialMuted = false,
   fetchImpl,
   initialBlueprint,
+  preloadExcalidraw = true,
 }) => {
   const [session] = useState(() =>
     createPlayableSession(initialBlueprint ?? createPlayableStarter(), { muted: initialMuted }),
@@ -74,6 +89,8 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
   const blueprint = session.getBlueprint();
 
   const [tab, setTab] = useState<StageTab>("preview");
+  // Once opened, the Excalidraw view stays mounted (hidden) so switching back is instant.
+  const [excalidrawOpened, setExcalidrawOpened] = useState(false);
   const [mode, setMode] = useState<PlaytestMode>("play");
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -102,6 +119,22 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
     },
     [session],
   );
+
+  useEffect(() => {
+    if (tab === "excalidraw") setExcalidrawOpened(true);
+  }, [tab]);
+
+  // Fetch Excalidraw while the user plays, so the first open of the tab doesn't wait for it.
+  useEffect(() => {
+    if (!preloadExcalidraw || typeof window === "undefined") return;
+    if (typeof window.requestIdleCallback === "function") {
+      // Called on window: a detached requestIdleCallback throws "Illegal invocation".
+      const id = window.requestIdleCallback(preloadExcalidrawSourceView, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(preloadExcalidrawSourceView, 1500);
+    return () => clearTimeout(id);
+  }, [preloadExcalidraw]);
 
   useInteractionDrivers({
     rules: blueprint.rules,
@@ -308,6 +341,8 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
                 tabIndex={tab === id ? 0 : -1}
                 onClick={() => setTab(id)}
                 onKeyDown={(e) => onTabKeyDown(e, index)}
+                onPointerEnter={id === "excalidraw" && preloadExcalidraw ? preloadExcalidrawSourceView : undefined}
+                onFocus={id === "excalidraw" && preloadExcalidraw ? preloadExcalidrawSourceView : undefined}
                 data-testid={`stage-tab-${id}`}
                 className={`-mb-px min-h-[36px] cursor-pointer border-b-2 px-3 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2563EB] ${
                   tab === id ? "border-[#09090B] text-[#09090B]" : "border-transparent text-[#71717A] hover:text-[#09090B]"
@@ -359,8 +394,14 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
             </div>
           ) : null}
 
-          {tab === "excalidraw" ? (
-            <div role="tabpanel" id="stage-panel-excalidraw" aria-labelledby="stage-tab-excalidraw" className="space-y-3 p-3 sm:p-4">
+          {excalidrawOpened || tab === "excalidraw" ? (
+            <div
+              role="tabpanel"
+              id="stage-panel-excalidraw"
+              aria-labelledby="stage-tab-excalidraw"
+              hidden={tab !== "excalidraw"}
+              className="space-y-3 p-3 sm:p-4"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#52525B]">
                 <span>
                   One-way export of the current spec ({scene.elements.length} Excalidraw elements). Edits here are not
@@ -385,7 +426,7 @@ export const PlayableWorkbenchPage: React.FC<PlayableWorkbenchPageProps> = ({
                   </div>
                 }
               >
-                <LazyExcalidrawSourceView key={excalidrawJson.length + blueprint.rules.length} scene={scene} />
+                <LazyExcalidrawSourceView scene={scene} visible={tab === "excalidraw"} />
               </Suspense>
             </div>
           ) : null}

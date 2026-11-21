@@ -169,7 +169,7 @@ export const initialPageSpecs: Record<string, Spec> = {
       hero: {
         type: "BiotechHeroSection",
         props: {
-          eyebrow: "OPEN SOURCE // GENUI STUDIO TEMPLATE",
+          eyebrow: "OPEN SOURCE // WIZFRAME EXAMPLE",
           headline: "Grow your database like a slime mould.",
           subheadline:
             "CHIMERA // LAB models query traffic as a Physarum network. Full-table scans and N+1 loops glow crimson, local optimizer agents propose the composite indexes and batched rewrites that heal them, and you can hear the network settle.",

@@ -1,6 +1,6 @@
 # CHIMERA // LAB (`neuro-chimera-synth`) — Template Steering
 
-- **Mode:** Mode A native website inside GenUI Studio, previewed at `/preview/neuro-chimera-synth`.
+- **Mode:** Mode A native website inside WizFrame, previewed at `/preview/neuro-chimera-synth`.
 - **Spec:** `.kiro/specs/neuro-chimera-synth/` (`requirements.md`, `design.md`, `tasks.md`).
 - **Scoped rules:** `.kiro/steering/chimera-frankenstein-rules.md`.
 - **State:** `components/lab-store.ts` owns the live `PhysarumNetwork` and the lab UI state. Components read it through `useLab` and change it only through the store's actions.

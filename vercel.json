@@ -1,12 +1,48 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/studio-hub build",
-  "outputDirectory": "apps/studio-hub/dist",
+  "services": {
+    "cmos-cloud-bios": {
+      "root": "apps/cmos-cloud-bios",
+      "framework": "vite",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/app-cmos-cloud-bios build",
+      "outputDirectory": "dist"
+    },
+    "ninety9-archive": {
+      "root": "apps/ninety9-archive",
+      "framework": "vite",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/app-ninety9-archive build",
+      "outputDirectory": "dist"
+    },
+    "studio-hub": {
+      "root": "apps/studio-hub",
+      "framework": "vite",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm --filter @genui-studio/core build && pnpm --filter @genui-studio/templates build && pnpm --filter @genui-studio/studio-hub build",
+      "outputDirectory": "dist"
+    }
+  },
   "rewrites": [
     {
-      "source": "/((?!assets/|images/|.*\\.(?:js|css|svg|png|jpg|jpeg|webp|woff2|ico|json|map)$).*)",
-      "destination": "/index.html"
+      "source": "/cmos",
+      "destination": { "service": "cmos-cloud-bios" }
+    },
+    {
+      "source": "/cmos/(.*)",
+      "destination": { "service": "cmos-cloud-bios" }
+    },
+    {
+      "source": "/ninety9",
+      "destination": { "service": "ninety9-archive" }
+    },
+    {
+      "source": "/ninety9/(.*)",
+      "destination": { "service": "ninety9-archive" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "studio-hub" }
     }
   ]
 }
