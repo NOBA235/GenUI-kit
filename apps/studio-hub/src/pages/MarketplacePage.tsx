@@ -356,9 +356,45 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
           >
             <span
               aria-hidden="true"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#09090B] font-mono text-xs font-semibold text-white"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1E3A8A] shadow-sm ring-2 ring-[#BFDBFE]"
             >
-              W
+              <svg viewBox="0 0 32 32" className="h-8 w-8" fill="none">
+                <path
+                  d="M7.6 13.2c3.3-1.1 6.3-3.4 9.4-9.1 1.4 3.6 4 6.2 7.4 8.1-5.1 2.2-11.2 2.8-16.8 1Z"
+                  fill="#60A5FA"
+                  stroke="#BFDBFE"
+                  strokeLinejoin="round"
+                  strokeWidth="1.1"
+                />
+                <path
+                  d="M6 14.1c5.9-2.1 14.2-2.1 20 0-2.6 2.5-16.9 3.3-20 0Z"
+                  fill="#FBBF24"
+                />
+                <path
+                  d="m16.7 6.8.7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2.7-1.5Z"
+                  fill="#FEF3C7"
+                />
+                <path
+                  d="M10 15.1c1.7-1 9.9-1 11.8.1l-.4 5.4c-.2 2.6-2.1 4.5-5.6 7.1-3.5-2.6-5.4-4.5-5.6-7.1l-.2-5.5Z"
+                  fill="#F8FAFC"
+                />
+                <path
+                  d="M12.1 15.5c1.1-.8 5.9-.8 7 0l-.5 3.4c-.3 1.6-1.4 2.4-3 2.4s-2.7-.8-3-2.4l-.5-3.4Z"
+                  fill="#F4C99A"
+                />
+                <path
+                  d="M13.8 17.4h.1m3.9 0h.1"
+                  stroke="#1E293B"
+                  strokeLinecap="round"
+                  strokeWidth="1.3"
+                />
+                <path
+                  d="M14.4 19.2c.8.5 1.6.5 2.4 0"
+                  stroke="#92400E"
+                  strokeLinecap="round"
+                  strokeWidth=".9"
+                />
+              </svg>
             </span>
             <span className="truncate text-sm font-semibold tracking-tight">
               WizFrame
